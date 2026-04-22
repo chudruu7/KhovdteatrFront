@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Home from './pages/Home';
-import About from './pages/About';
+import About from './pages/about';
 import News from './pages/news';
 import NewsDetail from './pages/NewsDetails';
 import Schedule from './pages/schedule';
