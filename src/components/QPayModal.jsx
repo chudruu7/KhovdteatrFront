@@ -73,7 +73,7 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
       if (res.success && res.data.paid) {
         cleanup();
         // ← confirmBooking дуудна
-        await fetch(`http://localhost:5000/api/bookings/${bookingId}/confirm`, {
+        await fetch(`/https://khovdteatr-web-pied.vercel.app/bookings/${bookingId}/confirm`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
   // ← НЭМЭХ: booking-г шууд цуцлах
   if (bookingId && step === "qr") {
     try {
-      await fetch(`http://localhost:5000/api/bookings/${bookingId}/cancel`, {
+      await fetch(`https://khovdteatr-web-pied.vercel.app/bookings/${bookingId}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +233,7 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
     onClick={async () => {
       cleanup();
       try {
-        await fetch(`http://localhost:5000/api/bookings/${bookingId}/confirm`, {
+        await fetch(`https://khovdteatr-web-pied.vercel.app/bookings/${bookingId}/confirm`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

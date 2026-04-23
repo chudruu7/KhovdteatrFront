@@ -7,7 +7,7 @@ import QPayModal from '../components/QPayModal';
 
 
 const TIMEOUT_SECS = 600;
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'https://khovdteatr-web-pied.vercel.app/';
 
 const PRICES = {
   standard: { adult: 15000, child: 8000 },

@@ -2,7 +2,7 @@
   "name": "cinema-ticketing-react-tailwind",
   "version": "1.0.0",
   "private": true,
-  "proxy": "http://localhost:5000",
+  "proxy": "https://khovdteatr-web-pied.vercel.app/",
   "type": "module",
   "scripts": {
     "dev": "vite",
