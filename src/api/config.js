@@ -1,5 +1,5 @@
 // src/api/config.js 
-const API_BASE_URL = 'https://khovdteatr-web-pied.vercel.app/'; // Back-end URL
+const API_BASE_URL = 'https://khovdteatrbackend.onrender.com/'; // Back-end URL
 
 // Хэрэглэгчийн токен авах
 const getToken = () => localStorage.getItem('token');
