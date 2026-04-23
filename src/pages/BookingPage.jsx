@@ -7,7 +7,7 @@ import QPayModal from '../components/QPayModal';
 
 
 const TIMEOUT_SECS = 600;
-const API_BASE_URL = 'https://khovdteatrbackend.onrender.com/';
+const API_BASE_URL = 'https://khovdteatrbackend.onrender.com/api';
 
 const PRICES = {
   standard: { adult: 15000, child: 8000 },

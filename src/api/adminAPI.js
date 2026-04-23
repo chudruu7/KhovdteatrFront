@@ -1,6 +1,6 @@
 // src/api/adminAPI.js
 
-const API_BASE_URL = 'https://khovdteatrbackend.onrender.com/';
+const API_BASE_URL = 'https://khovdteatrbackend.onrender.com/api';
 
 const getHeaders = () => {
     const headers = { 'Content-Type': 'application/json' };

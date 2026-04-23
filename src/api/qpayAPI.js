@@ -2,7 +2,7 @@
 
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://khovdteatrbackend.onrender.com/";
+const API_URL = import.meta.env.VITE_API_URL || "https://khovdteatrbackend.onrender.com/api";
 
 const getAuthHeader = () => {
   const token = localStorage.getItem("token");
