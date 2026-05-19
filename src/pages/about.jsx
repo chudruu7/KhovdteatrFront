@@ -112,7 +112,7 @@ const About = () => {
                         {/* Box 1 */}
                         <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-3xl border border-gray-200 dark:border-white/10">
                             <img 
-                                src="https://scontent.fuln1-1.fna.fbcdn.net/v/t39.30808-6/480773998_934565272175533_2821675809146286106_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=7b2446&_nc_ohc=jdR4EhJhMAYQ7kNvwEiEptV&_nc_oc=Adr2VC5oazQNRwuuRHLWTpXbGGx0-IwjQXbrGWRvM3Htz2rDSwvFc8cmDxoCQ-vZhP8&_nc_zt=23&_nc_ht=scontent.fuln1-1.fna&_nc_gid=G2i32gwdhMD_rYioiwR-kw&_nc_ss=7a3a8&oh=00_Af0PSyIQUyrfX-lkilIG0TxcKxmkbzYIlkdCYmNxhwA_qw&oe=69EE8B58" 
+                                src="https://scontent.fuln1-1.fna.fbcdn.net/v/t39.30808-6/607853909_3124769451043899_1732635920897859390_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=109&ccb=1-7&_nc_sid=7b2446&_nc_ohc=x9b_dIHN7JUQ7kNvwGLvbC3&_nc_oc=AdrcBrw-bojMmIxJ02Wvu-HYiNJhg3VYgB0gw6LnOrIxQRG-IDje5Wzf6eGEZFQSkVI&_nc_zt=23&_nc_ht=scontent.fuln1-1.fna&_nc_gid=y-GY3i3yxtgp8Tf3ayiCaQ&_nc_ss=7b2a8&oh=00_Af7GQGV6EewvQf23kW7HxmdbUKqPTl7naG2iOSMiURk57g&oe=6A08D171" 
                                 alt="Seat" 
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />

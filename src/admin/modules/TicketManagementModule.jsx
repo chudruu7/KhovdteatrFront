@@ -12,13 +12,19 @@ import { useConfirm } from '../modals/ConfirmModal';
 const PAGE_SIZE = 10;
 
 const isExpired = (ticket) => {
-  if (!ticket.date || !ticket.time) return false;
   try {
     // ISO string байсан ч зөв авна: "2026-04-22T..." → "2026-04-22"
-    const dateStr = String(ticket.date).split('T')[0];
+    const directShowTime = ticket.showDatetime || ticket.showTime || ticket.schedule?.showTime;
+    if (directShowTime) {
+      const showTime = new Date(directShowTime);
+      return Number.isFinite(showTime.getTime()) && Date.now() > showTime.getTime();
+    }
+
+    const dateStr = ticket.dateISO || (String(ticket.date || '').match(/^\d{4}-\d{2}-\d{2}/)?.[0]);
+    if (!dateStr || !ticket.time) return false;
     // ticket.time нь Монголын цаг (UTC+8) тул +08:00 тодорхой зааж өгнө
-    const showTime = new Date(`${dateStr}T${ticket.time}:00+08:00`);
-    return Date.now() > showTime.getTime();
+    const showTime = new Date(`${dateStr}T${ticket.time}:00+07:00`);
+    return Number.isFinite(showTime.getTime()) && Date.now() > showTime.getTime();
   } catch { return false; }
 };
 
@@ -97,7 +103,7 @@ const TicketManagementModule = () => {
           t.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           t._id?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchStatus = statusFilter === 'all' || t._effectiveStatus === statusFilter;
-        const matchDate   = !dateFilter || t.date === dateFilter;
+        const matchDate   = !dateFilter || t.dateISO === dateFilter || t.date === dateFilter;
         return matchSearch && matchStatus && matchDate;
       });
   }, [tickets, searchTerm, statusFilter, dateFilter]);

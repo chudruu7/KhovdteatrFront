@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Settings, Bell, Search } from 'lucide-react';
+import { Settings, Bell, Search, Home, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import DashboardModule from './modules/DashboardModule';
 import MovieManagementModule from './modules/MoviemanagementModule';
@@ -8,14 +9,17 @@ import CinemaInfoModule from './modules/CinemaInfoModule';
 import ScheduleManagementModule from './modules/ScheduleManagementModule';
 import TicketManagementModule from './modules/TicketManagementModule';
 import CleanupNotification from './CleanupNotification';
-import { ToastContainer } from './Toast';
-import { ConfirmModalContainer } from './modals/ConfirmModal';
+import toast, { ToastContainer } from './Toast';
+import { ConfirmModalContainer, useConfirm } from './modals/ConfirmModal';
 import ReportsModule from './modules/ReportsModule';
+import UserManagementModule from './modules/UserManagementModule';
 // ✅ ScheduleModal import
 import ScheduleModal from './modals/ScheduleModal';
 
-const AdminPanel = () => {
+const AdminPanelContent = ({ onLogout }) => {
   const [activeModule, setActiveModule] = useState('dashboard');
+  const navigate = useNavigate();
+  const confirm = useConfirm();
 
   // ✅ ScheduleModal state — Dashboard-аас нээх боломжтой болгоно
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
@@ -43,6 +47,21 @@ const AdminPanel = () => {
     console.log('[AdminPanel] Schedule saved:', msg);
   };
 
+  const handleLogout = async () => {
+    const ok = await confirm({
+      title: 'Системээс гарах уу?',
+      message: 'Админ эрхээсээ гарч login хуудас руу шилжинэ.',
+      confirmText: 'Гарах',
+      cancelText: 'Болих',
+      variant: 'logout',
+    });
+    if (!ok) return;
+
+    onLogout?.();
+    toast.success('Системээс амжилттай гарлаа');
+    navigate('/login', { replace: true });
+  };
+
   const renderContent = () => {
     switch (activeModule) {
       case 'dashboard':
@@ -59,6 +78,8 @@ const AdminPanel = () => {
       case 'tickets':  return <TicketManagementModule />;
       case 'news':     return <NewsManagementModule />;
       case 'cinema':   return <CinemaInfoModule />;
+      case 'users':    return <UserManagementModule />;
+      case 'reports':  return <ReportsModule />;
       default:
         return (
           <div className="flex flex-col items-center justify-center h-[60vh]">
@@ -77,7 +98,7 @@ const AdminPanel = () => {
   };
 
   return (
-    <ConfirmModalContainer>
+    <>
       <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-100">
         <Sidebar activeModule={activeModule} setActiveModule={setActiveModule} />
 
@@ -95,6 +116,20 @@ const AdminPanel = () => {
               </div>
 
               <div className="flex items-center gap-4">
+                <button
+                  onClick={() => navigate('/')}
+                  className="inline-flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-bold text-amber-300 transition hover:bg-amber-500/20"
+                >
+                  <Home className="h-4 w-4" />
+                  Үндсэн хуудас
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-300 transition hover:bg-red-500/20"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Гарах
+                </button>
                 <div className="relative">
                   <button className="p-2 hover:bg-slate-800 rounded-xl transition-colors relative">
                     <Bell className="w-6 h-6 text-slate-400" />
@@ -152,8 +187,14 @@ const AdminPanel = () => {
 
       {/* Toast — хамгийн сүүлд */}
       <ToastContainer />
-    </ConfirmModalContainer>
+    </>
   );
 };
+
+const AdminPanel = ({ onLogout }) => (
+  <ConfirmModalContainer>
+    <AdminPanelContent onLogout={onLogout} />
+  </ConfirmModalContainer>
+);
 
 export default AdminPanel;

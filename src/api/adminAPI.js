@@ -93,6 +93,8 @@ export const adminAPI = {
     getUpcomingMovies:   async () => handleResponse(await fetch(`${API_BASE_URL}/admin/upcoming-movies`,  { headers: getHeaders(), credentials: 'include' })),
     getAlerts:           async () => handleResponse(await fetch(`${API_BASE_URL}/admin/alerts`,           { headers: getHeaders(), credentials: 'include' })),
     getSparklines:       async () => handleResponse(await fetch(`${API_BASE_URL}/admin/sparklines`,       { headers: getHeaders(), credentials: 'include' })),
+    getUsers:            async () => handleResponse(await fetch(`${API_BASE_URL}/admin/users`,            { headers: getHeaders(), credentials: 'include' })),
+    deleteUser:          async (id) => handleResponse(await fetch(`${API_BASE_URL}/admin/users/${id}`,     { method: 'DELETE', headers: getHeaders(), credentials: 'include' })),
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

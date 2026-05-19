@@ -1,19 +1,10 @@
 // src/api/config.js 
-const API_BASE_URL = 'https://khovdteatrbackend.onrender.com/api'; // Back-end URL
+const API_BASE_URL = 'https://khovdteatrbackend.onrender.com/api';
 
-// Хэрэглэгчийн токен авах
 const getToken = () => localStorage.getItem('token');
-
-// Токен хадгалах
 const setToken = (token) => localStorage.setItem('token', token);
-
-// Токен устгах
 const removeToken = () => localStorage.removeItem('token');
-
-// Хэрэглэгчийн мэдээлэл хадгалах
 const setUser = (user) => localStorage.setItem('user', JSON.stringify(user));
-
-// Хэрэглэгчийн мэдээлэл авах
 const getUser = () => {
   try {
     const user = localStorage.getItem('user');
@@ -23,75 +14,34 @@ const getUser = () => {
     return null;
   }
 };
-
-// Хэрэглэгчийн мэдээлэл устгах
 const removeUser = () => localStorage.removeItem('user');
 
-// API дуудалт хийх үндсэн функц
-const apiRequest = async (endpoint, options = {}) => {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const token = getToken();
+// ✅ Нийтлэг header үүсгэх helper
+const getHeaders = () => ({
+  'Content-Type': 'application/json',
+  ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {})
+});
 
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
+// ✅ Нийтлэг options үүсгэх helper  
+const getOptions = (method, data) => ({
+  method,
+  headers: getHeaders(),
+  credentials: 'include', // ← ЭНЭ Л ГҮЙДЭГ БАЙСАН
+  ...(data ? { body: JSON.stringify(data) } : {})
+});
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
-
-  const config = {
-    ...options,
-    headers,
-  };
-
-  try {
-    const response = await fetch(url, config);
-    
-    // Хэрэв response амжилтгүй бол
-    if (!response.ok) {
-      const text = await response.text();
-      // HTML хариу ирсэн эсэхийг шалгах
-      if (text.startsWith('<!DOCTYPE')) {
-        throw new Error('Сервер ажиллахгүй байна. Та back-end серверээ асаана уу.');
-      }
-      try {
-        const data = JSON.parse(text);
-        throw new Error(data.message || 'Алдаа гарлаа');
-      } catch {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('API Request Error:', error);
-    throw error;
-  }
-};
-
-// API методууд - GET, POST, PUT, DELETE бүгдийг нэмэх
 const api = {
   get: async (endpoint) => {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('GET request to:', url);
     
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': getToken() ? `Bearer ${getToken()}` : ''
-      }
-    });
+    const response = await fetch(url, getOptions('GET'));
     
     if (!response.ok) {
       const text = await response.text();
       console.error('GET Response not OK:', response.status, text);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
     return response.json();
   },
 
@@ -99,21 +49,13 @@ const api = {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('POST request to:', url, data);
     
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': getToken() ? `Bearer ${getToken()}` : ''
-      },
-      body: JSON.stringify(data)
-    });
+    const response = await fetch(url, getOptions('POST', data));
     
     if (!response.ok) {
       const text = await response.text();
       console.error('POST Response not OK:', response.status, text);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
     return response.json();
   },
 
@@ -121,21 +63,13 @@ const api = {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('PUT request to:', url, data);
     
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': getToken() ? `Bearer ${getToken()}` : ''
-      },
-      body: JSON.stringify(data)
-    });
+    const response = await fetch(url, getOptions('PUT', data));
     
     if (!response.ok) {
       const text = await response.text();
       console.error('PUT Response not OK:', response.status, text);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
     return response.json();
   },
 
@@ -143,25 +77,17 @@ const api = {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('DELETE request to:', url);
     
-    const response = await fetch(url, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': getToken() ? `Bearer ${getToken()}` : ''
-      }
-    });
+    const response = await fetch(url, getOptions('DELETE'));
     
     if (!response.ok) {
       const text = await response.text();
       console.error('DELETE Response not OK:', response.status, text);
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
     return response.json();
   }
 };
 
-// Бүх экспортууд
 export { 
   api, 
   getToken, 

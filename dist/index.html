@@ -1,0 +1,32 @@
+
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b0f1a" />
+    <title>Ховд аймаг ХДТ</title>
+    <link rel="icon" type="image/png" href="/assets/kdt-NrScr8VE.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script type="module" crossorigin src="/assets/index-CxR5_a7K.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-DVeuRd-7.css">
+  </head>
+  <body class="bg-[#0b0f1a] text-gray-100 font-inter">
+    <script>
+      (function () {
+        var path = window.location.pathname;
+        var userAgent = (window.navigator && window.navigator.userAgent) || '';
+        var isMobileDevice = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+        var isMobileWidth = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+        var shouldUseMobileApp = (isMobileDevice || isMobileWidth) && !path.startsWith('/mobile') && !path.startsWith('/admin');
+
+        if (shouldUseMobileApp) {
+          window.location.replace('/mobile/index.html');
+        }
+      })();
+    </script>
+    <div id="root"></div>
+  </body>
+</html>

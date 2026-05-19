@@ -160,7 +160,7 @@ function App() {
               </motion.div>
             </ProtectedRoute>
           } />
-          
+
           <Route path="/admin" element={
             <AdminRoute>
               <motion.div
@@ -170,7 +170,7 @@ function App() {
                 animate="animate"
                 exit="exit"
               >
-                <Adminpanel />
+                <Adminpanel onLogout={handleLogout} />
               </motion.div>
             </AdminRoute>
           } />

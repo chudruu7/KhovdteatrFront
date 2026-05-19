@@ -42,6 +42,16 @@ const bookingAPI = {
   },
 
   // ✅ Нэмэгдсэн — api helper ашиглаж байна
+  markExpired: async () => {
+    try {
+      const data = await api.post('/cleanup/mark-expired', {});
+      return { success: true, data };
+    } catch (err) {
+      console.error('bookingAPI.markExpired error:', err);
+      throw err;
+    }
+  },
+
   getMyBookings: async () => {
     try {
       const data = await api.get('/bookings/my-history');

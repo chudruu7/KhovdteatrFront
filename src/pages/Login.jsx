@@ -266,11 +266,11 @@ const CinematicLogin = ({ onLogin }) => {
             <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-4">
               <img src="/kdt.png" alt="KDT" className="w-full h-full object-contain" />
             </div>
-            <h1 className="text-2xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-              ХОВД АЙМГИЙН ХӨГЖИМТ КИНО ТЕАТР
+            <h1 className="text-xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              ХОВД АЙМГИЙН ХӨГЖИМТ ДРАМЫН ТЕАТР
             </h1>
             <p className="text-gray-400 mt-2 text-sm md:text-base">
-              {isLogin ? 'Тасалбар захиалах бол нэвтрэнэ үү' : 'Шинэ бүртгэл үүсгэх'}
+              {isLogin ? 'Тасалбар захиалахын тулд нэвтрэнэ үү' : 'Шинэ хэрэглэгчээр бүртгэл үүсгэх'}
             </p>
           </motion.div>
 
@@ -413,7 +413,7 @@ const CinematicLogin = ({ onLogin }) => {
     </svg>
     <span className="text-sm font-medium">Google</span>
   </button>
-                 <button
+                   <button
     type="button"
     disabled
     className="flex items-center justify-center space-x-3 py-3 px-4 bg-white/5 border border-white/10 rounded-2xl text-white/30 cursor-not-allowed"
@@ -436,7 +436,7 @@ const CinematicLogin = ({ onLogin }) => {
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 1 }}
             className="text-center mt-6 md:mt-8 text-gray-400 text-xs md:text-sm">
-            <p>©2025 Б.ТӨМӨРЧӨДӨРИЙН бүтээл. Бүх эрх хуулиар хамгаалагдсан.</p>
+            <p>©2026 Б.ТӨМӨРЧӨДӨРИЙН бүтээл. Бүх эрх хуулиар хамгаалагдсан.</p>
           </motion.div>
         </motion.div>
       </div>

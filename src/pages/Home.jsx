@@ -161,7 +161,7 @@ useEffect(() => {
      style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}>
           <LoadingSpinner size="large" />
           <p className="mt-4 text-lg animate-pulse"
-     style={{ color: 'var(--text-secondary)' }}>Соён гэгээрлийн ертөнц рүү хамтдаа аялцгаая...</p>
+     style={{ color: 'var(--text-secondary)' }}>Түр хүлээнэ үү...</p>
         </div>
     
     );
