@@ -150,7 +150,7 @@ const TicketManagementModule = () => {
   });
   if (!ok) return;
   try {
-    await bookingAPI.delete(ticketId); // ✅ api.delete → localhost:5000 руу хандана
+    await bookingAPI.delete(ticketId);
     setTickets(prev => prev.filter(t => t._id !== ticketId));
     setStats(prev => ({ ...prev, total: prev.total - 1 }));
     toast.success('Тасалбар амжилттай устгагдлаа');

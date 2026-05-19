@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
-  TrendingUp, LayoutGrid, Users, UserPlus,
+  TrendingUp, Users, UserPlus,
   Clock4, TriangleAlert, CircleCheck, BellDot,
   ChevronRight, ArrowDownToLine, CirclePlus,
   Clapperboard, Armchair, BadgeDollarSign, Gauge,

@@ -3,8 +3,7 @@ import { ADMIN_DEFAULT_AVATAR } from '../data/avatars';
 import {
   LayoutDashboard, Film, Calendar, MapPin,
   Users, Ticket, Percent, BarChart3,
-  Settings, Info, Newspaper, ChevronLeft, ChevronRight,
-  LogOut, UserCircle
+  Info, Newspaper, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 const Sidebar = ({ activeModule: externalActive, setActiveModule: externalSet }) => {

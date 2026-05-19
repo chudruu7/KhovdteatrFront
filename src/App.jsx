@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Home from './pages/Home';
@@ -12,7 +12,7 @@ import Login from './pages/Login';
 import BookingPage from './pages/BookingPage';
 import ProfilePage from './pages/Profile';
 import Adminpanel from './admin/AdminPanel';
-import { movies, news, promotions } from './data/movies';
+import { movies, news } from './data/movies';
 import { getCurrentUser, setUser, logout } from './auth/auth'; // setCurrentUser -> setUser
 import './index.css';
 

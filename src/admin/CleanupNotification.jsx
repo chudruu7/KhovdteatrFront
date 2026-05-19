@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { cleanupAPI } from "../api/adminAPI";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Calendar, Trash2, Clock, X, Check, 
-  AlertCircle, Archive, ChevronRight, Database 
+  Calendar, Trash2, X, Check,
+  AlertCircle, Database
 } from "lucide-react";
 
 export default function CleanupNotification() {

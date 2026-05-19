@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
   X, Check, AlertCircle, Film, Calendar,
-  Clock, Clock3, Plus, Loader2, ChevronRight,
-  MapPin, Tag, RefreshCw, Star, Users, Ticket,
-  Monitor, Layers, ArrowRight, Save, Trash2,
+  Clock, Clock3, Plus, Loader2,
+  Tag, RefreshCw, Star, Users, Ticket,
+  Monitor, Save,
   Zap, ChevronDown, Sparkles
 } from 'lucide-react';
 import { scheduleAPI, movieAPI } from '../../api/adminAPI';

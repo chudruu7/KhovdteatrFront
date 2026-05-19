@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MyBookingHeader from '../components/Header';
@@ -7,7 +7,7 @@ import QPayModal from '../components/QPayModal';
 
 
 const TIMEOUT_SECS = 600;
-const API_BASE_URL = 'https://khovdteatrbackend.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://khovdteatrbackend.onrender.com/api';
 
 const PRICES = {
   standard: { adult: 15000, child: 8000 },
@@ -172,18 +172,6 @@ const ROW_CELLS = [
 
 // Эгнээний суудлуудыг үүсгэх хэрэгсэл функц
 // left талаас [max..min], дараа нь gap, right талаас [max..min]
-function buildRowSeats(leftRange, rightRange) {
-  const left = [];
-  for (let i = leftRange[0]; i >= leftRange[1]; i--) {
-    left.push({ num: i });
-  }
-  const right = [];
-  for (let i = rightRange[0]; i >= rightRange[1]; i--) {
-    right.push({ num: i });
-  }
-  return { left, right };
-}
-
 // Seat ID: "1эг-15" хэлбэрт
 function makeSeatId(rowLabel, num) {
   return `${rowLabel.replace('-р эгнээ', 'эг')}-${num}`;

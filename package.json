@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build:mobile": "node scripts/build-mobile-web.mjs",
-    "build": "vite build",
+    "build": "CI=false vite build",
     "preview": "vite preview"
   },
   "dependencies": {

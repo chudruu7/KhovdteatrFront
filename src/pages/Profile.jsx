@@ -7,11 +7,10 @@ import { getCurrentUser, updateProfile } from '../auth/auth';
 import { api } from '../api/config';
 import { defaultProfileUrl } from '../data/avatars';
 import bookingAPI from '../api/bookingAPI';
-import LoadingSpinner from '../admin/LoadingSpinner';
 import {
-    FaEdit, FaSave, FaTimes, FaCog, FaShieldAlt, FaSignOutAlt,
+    FaCog, FaSignOutAlt,
     FaCheckCircle, FaExclamationCircle, FaPhone, FaEnvelope, 
-    FaUserCircle, FaTicketAlt, FaClock, FaChevronRight, FaMapMarkerAlt, FaCamera
+    FaUserCircle, FaTicketAlt, FaClock, FaMapMarkerAlt, FaCamera
 } from 'react-icons/fa';
 
 // ===============================================

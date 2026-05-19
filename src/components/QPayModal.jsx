@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import qpayAPI from "../api/qpayAPI";
+import { API_BASE_URL } from "../api/config";
 
 const POLL_INTERVAL_MS = 3000;
 
@@ -73,7 +74,7 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
       if (res.success && res.data.paid) {
         cleanup();
         // ← confirmBooking дуудна
-        await fetch(`https://khovdteatrbackend.onrender.com/api/bookings/${bookingId}/confirm`, {
+        await fetch(`${API_BASE_URL}/bookings/${bookingId}/confirm`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -114,7 +115,7 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
   // ← НЭМЭХ: booking-г шууд цуцлах
   if (bookingId && step === "qr") {
     try {
-      await fetch(`https://khovdteatrbackend.onrender.com/api/bookings/${bookingId}/cancel`, {
+      await fetch(`${API_BASE_URL}/bookings/${bookingId}/cancel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +234,7 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
     onClick={async () => {
       cleanup();
       try {
-        await fetch(`https://khovdteatrbackend.onrender.com/api/bookings/${bookingId}/confirm`, {
+        await fetch(`${API_BASE_URL}/bookings/${bookingId}/confirm`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Plus, Trash2, Edit2, Calendar, Clock, Users,
-  ChevronLeft, ChevronRight, X, Check, AlertCircle,
-  Monitor, Ticket, Film, CalendarDays, Clapperboard,
-  Clock3, TrendingUp, SlidersHorizontal, RefreshCw,
+  ChevronLeft, ChevronRight, X, AlertCircle,
+  Monitor, Ticket, CalendarDays, Clapperboard,
+  Clock3, TrendingUp, RefreshCw,
   CircleCheck, LayoutGrid
 } from 'lucide-react';
 import ScheduleModal from '../modals/ScheduleModal';

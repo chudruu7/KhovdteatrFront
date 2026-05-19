@@ -3,12 +3,12 @@
 // Байршил: frontend/src/admin/modules/ReportsModule.jsx
 // ================================================================
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
-  getDashboard, getDailySales, getMonthlySales, getPaymentMethods,
-  getMovieViewership, getTopMovies, getBookingChannels,
+  getDashboard, getMonthlySales, getPaymentMethods,
+  getMovieViewership, getBookingChannels,
   getHallOccupancy, getPeakHours, getUserActivity, getLoyaltyReport,
-  getCancellations, getDemographics, getDiscounts, getRefunds,
+  getCancellations, getDiscounts, getRefunds,
 } from '../../api/reportAPI';
 
 // ─── Туслах функцүүд ────────────────────────────────────────────
