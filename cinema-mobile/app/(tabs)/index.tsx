@@ -150,8 +150,8 @@ export default function Index() {
 
           <View style={styles.topBar}>
             <View>
-              <Text style={styles.netflixMark}>CINEMA+</Text>
-              <Text style={styles.welcomeText}>Сайн уу, {user?.name || 'кино сонирхогч'}.</Text>
+              <Text style={styles.netflixMark}>Ховд аймгийн Хөгжимт Драмын театр</Text>
+              <Text style={styles.welcomeText}>Тавтай морилно уу, {user?.name || 'кино сонирхогч'}.</Text>
             </View>
             <TouchableOpacity style={styles.profileButton} activeOpacity={0.86}>
               {avatarUrl ? (
@@ -165,7 +165,7 @@ export default function Index() {
           <View style={styles.heroContent}>
             <View style={styles.seriesPill}>
               <View style={styles.liveDot} />
-              <Text style={styles.seriesPillText}>PREMIUM PICK</Text>
+              <Text style={styles.seriesPillText}>яг одоо манай дэлгэцнээ</Text>
             </View>
             <Text style={styles.heroTitle} numberOfLines={3}>{heroMovie.title}</Text>
             <View style={styles.metaLine}>
@@ -181,7 +181,7 @@ export default function Index() {
               ))}
             </View>
             <Text style={styles.synopsis} numberOfLines={3}>
-              {heroMovie.description || heroMovie.synopsis || 'Танай дараагийн үзэх кино эндээс эхэлнэ.'}
+              {heroMovie.description || heroMovie.synopsis || 'Мэдээлэл олдсонгүй.'}
             </Text>
             <View style={styles.actionRow}>
               <TouchableOpacity
@@ -206,7 +206,7 @@ export default function Index() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionKicker}>Now Showing</Text>
-            <Text style={styles.sectionTitle}>Өнөөдрийн онцлох</Text>
+            <Text style={styles.sectionTitle}>Манай дэлгэцнээ</Text>
           </View>
           <FlatList
             horizontal
@@ -229,7 +229,7 @@ export default function Index() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionKicker}>Coming Soon</Text>
-            <Text style={styles.sectionTitle}>Дараагийн дэлгэцнээ</Text>
+            <Text style={styles.sectionTitle}>Тун удахгүй</Text>
           </View>
           <View style={styles.comingGrid}>
             {comingSoon.slice(0, 6).map((item) => (

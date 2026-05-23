@@ -1,146 +1,122 @@
-// src/auth/auth.js
-import { api, setToken, removeToken, getUser as getStoredUser, setUser as setStoredUser, removeUser } from '../api/config';
+import {
+  api,
+  setToken,
+  removeToken,
+  getUser as getStoredUser,
+  setUser as setStoredUser,
+  removeUser,
+} from '../api/config';
 
-// Нэвтрэх
+const persistAuth = (response) => {
+  if (response?.success && response?.token && response?.user) {
+    setToken(response.token);
+    setStoredUser(response.user);
+    return { success: true, user: response.user };
+  }
+
+  return {
+    success: false,
+    message: response?.message || 'Authentication failed',
+  };
+};
+
 export const login = async (email, password) => {
   try {
     const response = await api.post('/auth/login', { email, password });
-    
-    console.log('Login response:', response); // ← нэмэх
-    console.log('avatarUrl:', response.user?.avatarUrl); // ← нэмэх
-    
-    if (response.success && response.token) {
-      setToken(response.token);
-      setStoredUser(response.user);
-      return { success: true, user: response.user };
-    }
-    
-    return { success: false, message: response.message || 'Нэвтрэхэд алдаа гарлаа' };
-  } catch (error) {
-    return { 
-      success: false, 
-      message: error.message || 'Серверт холбогдоход алдаа гарлаа' 
-    };
-  }
-};
-
-// Бүртгэл үүсгэх
-export const register = async (userData) => {
-  try {
-    const response = await api.post('/auth/register', userData);
-
-    if (response.success) {
-      const loginResult = await api.post('/auth/login', {
-        email:    userData.email,
-        password: userData.password
-      });
-
-      if (loginResult.success && loginResult.token) {
-        setToken(loginResult.token);
-        setStoredUser(loginResult.user);
-        return { success: true, user: loginResult.user };
-      }
-
-       return { success: true, message: 'Бүртгэл амжилттай үүслээ' };
-    }
-return { success: false, message: response.message || 'Бүртгэл үүсгэхэд алдаа гарлаа' };
-
-    // ← ЭНИЙГ НЭМЭХ: давхар имэйл бол login хийгээд avatarUrl шинэчилнэ
-    if (response.message?.toLowerCase().includes('давхар') ||
-        response.message?.toLowerCase().includes('exist') ||
-        response.message?.toLowerCase().includes('already') ||
-        response.statusCode === 409) {
-
-      const loginResult = await api.post('/auth/login', {
-        email:    userData.email,
-        password: userData.password
-      });
-
-      if (loginResult.success && loginResult.token) {
-        setToken(loginResult.token);
-
-        // avatarUrl шинэчилнэ (Google зургийг хадгална)
-        if (userData.avatarUrl) {
-          await api.put('/auth/profile', { avatarUrl: userData.avatarUrl });
-        }
-
-        setStoredUser(loginResult.user);
-        return { success: true, user: loginResult.user };
-      }
-    }
-
-    return { success: false, message: response.message || 'Бүртгэл үүсгэхэд алдаа гарлаа' };
+    return persistAuth(response);
   } catch (error) {
     return {
       success: false,
-      message: error.message || 'Серверт холбогдоход алдаа гарлаа'
+      message: error.message || 'Unable to connect to the server',
     };
   }
 };
 
-// Гарах
+export const register = async (userData) => {
+  try {
+    const response = await api.post('/auth/register', userData);
+    return persistAuth(response);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || 'Unable to create account',
+    };
+  }
+};
+
+export const socialLogin = async ({ name, email, avatarUrl, provider, providerId }) => {
+  try {
+    const response = await api.post('/auth/social-login', {
+      name,
+      email,
+      avatarUrl,
+      provider,
+      providerId,
+    });
+    return persistAuth(response);
+  } catch (error) {
+    return {
+      success: false,
+      message: error.message || 'Unable to sign in with social account',
+    };
+  }
+};
+
 export const logout = () => {
   removeToken();
   removeUser();
   return { success: true };
 };
 
-// Одоогийн хэрэглэгч авах
 export const getCurrentUser = () => {
   return getStoredUser();
 };
 
-// Хэрэглэгчийн мэдээлэл хадгалах - ЭНЭ ФУНКЦИЙГ НЭМЭХ
 export const setUser = (user) => {
   setStoredUser(user);
 };
 
-// Нэвтэрсэн эсэх
 export const isAuthenticated = () => {
   return !!localStorage.getItem('token');
 };
 
-// Хэрэглэгчийн мэдээлэл шинэчлэх
 export const updateProfile = async (userData) => {
   try {
     const response = await api.put('/auth/profile', userData);
-    
+
     if (response.success) {
       setStoredUser(response.user);
       return { success: true, user: response.user };
     }
-    
-    return { success: false, message: response.message || 'Мэдээлэл шинэчлэхэд алдаа гарлаа' };
+
+    return { success: false, message: response.message || 'Unable to update profile' };
   } catch (error) {
-    return { 
-      success: false, 
-      message: error.message || 'Серверт холбогдоход алдаа гарлаа' 
+    return {
+      success: false,
+      message: error.message || 'Unable to connect to the server',
     };
   }
 };
 
-// Нууц үг солих
 export const changePassword = async (oldPassword, newPassword) => {
   try {
-    const response = await api.put('/auth/change-password', { oldPassword, newPassword });
-    return response;
+    return await api.put('/auth/change-password', { oldPassword, newPassword });
   } catch (error) {
-    return { 
-      success: false, 
-      message: error.message || 'Нууц үг солиход алдаа гарлаа' 
+    return {
+      success: false,
+      message: error.message || 'Unable to change password',
     };
   }
 };
 
-// Хэрэглэгчийн захиалгууд авах
 export const getUserBookings = async () => {
   try {
     const response = await api.get('/bookings/user');
     return { success: true, bookings: response.bookings || [] };
   } catch (error) {
-    return { 
-      success: false, 
-      message: error.message || 'Захиалгуудыг татахад алдаа гарлаа' 
+    return {
+      success: false,
+      message: error.message || 'Unable to load bookings',
     };
   }
 };

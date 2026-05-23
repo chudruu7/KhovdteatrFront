@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { login, register, getCurrentUser } from '../auth/auth';
+import { login, register, socialLogin, getCurrentUser } from '../auth/auth';
 import { auth } from '../auth/firebaseConfig';
 import {
   GoogleAuthProvider,
@@ -216,13 +216,16 @@ const CinematicLogin = ({ onLogin }) => {
     const result = await signInWithPopup(auth, authProvider);
     const firebaseUser = result.user;
 
-    // Таны existing register/login logic-тай нэгтгэнэ
-    const syncResult = await register({
-      name:      firebaseUser.displayName ?? 'Хэрэглэгч',
-      email:     firebaseUser.email,
-      password:  firebaseUser.uid,          // uid-г нууц үг болгоно (backend-д hash хийнэ)
+    if (!firebaseUser.email) {
+      throw new Error('Google account did not provide an email address.');
+    }
+
+    const syncResult = await socialLogin({
+      name: firebaseUser.displayName ?? 'Google user',
+      email: firebaseUser.email,
       avatarUrl: firebaseUser.photoURL ?? SYSTEM_AVATARS[0].url,
-      oauthProvider: provider.toLowerCase(), // backend мэдэх тул давхар бүртгэлгүй
+      provider: provider.toLowerCase(),
+      providerId: firebaseUser.uid,
     });
 
     if (syncResult.success) {

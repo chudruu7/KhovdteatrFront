@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { authAPI } from '../api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authAPI, USER_KEY } from '../api';
 import { Platform } from 'react-native';
 
 interface AuthContextType {
@@ -36,10 +37,34 @@ const clearToken = async () => {
   else await SecureStore.deleteItemAsync(TOKEN_KEY);
 };
 
+const saveUser = async (user: any) => {
+  if (Platform.OS === 'web') localStorage.setItem(USER_KEY, JSON.stringify(user));
+  else await AsyncStorage.setItem(USER_KEY, JSON.stringify(user));
+};
+
+const clearUser = async () => {
+  if (Platform.OS === 'web') localStorage.removeItem(USER_KEY);
+  else await AsyncStorage.removeItem(USER_KEY);
+};
+
+const getSavedUser = async () => {
+  const raw = Platform.OS === 'web'
+    ? localStorage.getItem(USER_KEY)
+    : await AsyncStorage.getItem(USER_KEY);
+  return raw ? JSON.parse(raw) : null;
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user,    setUser]    = useState<any>(null);
   const [token,   setToken]   = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const persistAuth = async (data: { token: string; user: any }) => {
+    await saveToken(data.token);
+    await saveUser(data.user);
+    setToken(data.token);
+    setUser(data.user);
+  };
 
   useEffect(() => {
     (async () => {
@@ -47,8 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (t) {
         setToken(t);
         try {
+          const cachedUser = await getSavedUser();
+          if (cachedUser) setUser(cachedUser);
           const profile = await authAPI.getProfile();
-          setUser(profile.user || profile);
+          const freshUser = profile.user || profile;
+          setUser(freshUser);
+          await saveUser(freshUser);
         } catch {}
       }
       setLoading(false);
@@ -57,9 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const data = await authAPI.login(email, password);
-    await saveToken(data.token);
-    setToken(data.token);
-    setUser(data.user);
+    await persistAuth(data);
   };
 
   const googleLogin = async (profile: {
@@ -72,20 +99,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ...profile,
       provider: 'google',
     });
-    await saveToken(data.token);
-    setToken(data.token);
-    setUser(data.user);
+    await persistAuth(data);
   };
 
   const register = async (name: string, email: string, password: string, phone: string) => {
     const data = await authAPI.register(name, email, password, phone);
-    await saveToken(data.token);
-    setToken(data.token);
-    setUser(data.user);
+    await persistAuth(data);
   };
 
   const logout = async () => {
     await clearToken();
+    await clearUser();
     setToken(null);
     setUser(null);
   };

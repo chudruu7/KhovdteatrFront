@@ -11,6 +11,15 @@ export interface RegisterPayload {
   name: string;
   email: string;
   password: string;
+  avatarUrl?: string;
+}
+
+export interface SocialLoginPayload {
+  name: string;
+  email: string;
+  avatarUrl?: string | null;
+  provider: 'google' | 'facebook' | 'apple';
+  providerId: string;
 }
 
 export interface User {
@@ -48,9 +57,17 @@ export const register = async (payload: RegisterPayload): Promise<AuthResponse> 
   return data;
 };
 
+export const socialLogin = async (payload: SocialLoginPayload): Promise<AuthResponse> => {
+  const { data } = await api.post<AuthResponse>('/auth/social-login', payload);
+  await setToken(data.token);
+  await AsyncStorage.setItem(USER_KEY, JSON.stringify(data.user));
+  return data;
+};
+
 /** Гарах */
 export const logout = async (): Promise<void> => {
   await removeToken();
+  await AsyncStorage.removeItem(USER_KEY);
 };
 
 /** Одоогийн хэрэглэгчийн мэдээлэл авах */
