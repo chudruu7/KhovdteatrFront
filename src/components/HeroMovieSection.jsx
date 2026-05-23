@@ -609,7 +609,7 @@ const HeroMovieSection = ({ movie, onWatchTrailer, onBookTicket, isLoggedIn }) =
                 <div className="hero-poster-rating">
                   <span className="hero-poster-rating__stars">★★★★★</span>
                   <span className="hero-poster-rating__val">{movie.rating}</span>
-                  <span className="hero-poster-rating__src">IMDB</span>
+                  <span className="hero-poster-rating__src">Ангилал</span>
                 </div>
               )}
             </div>

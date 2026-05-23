@@ -44,10 +44,10 @@ function App() {
     setUser(userData); // setCurrentUser биш, setUser
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsLoggedIn(false);
     setUserState(null);
-    logout();
+    await logout();
   };
 
   const handleSearchResults = (results) => {

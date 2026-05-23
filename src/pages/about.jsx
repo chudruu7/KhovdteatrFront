@@ -33,7 +33,7 @@ const About = () => {
 
                     <div className="relative z-10 container mx-auto px-6 max-w-7xl mt-20">
                         <h4 className="text-red-600 dark:text-red-500 font-bold tracking-[0.3em] uppercase mb-4 animate-fade-in-up">
-                            Ховд Аймгийн Хөгжимт Драмын Театр
+                            Ховд аймгийн Хөгжимт Драмын Театр
                         </h4>
                         <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-tight mb-6 max-w-4xl text-gray-900 dark:text-white">
                             КИНО УРЛАГИЙН <br />

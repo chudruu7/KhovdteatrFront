@@ -80,7 +80,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Системээс гарах</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>v1.0.0 · Ховд Кино Театр</Text>
+        <Text style={styles.version}>v1.0.0 · Ховд аймгийн Хөгжимт Драмын Театр</Text>
       </ScrollView>
     </View>
   );

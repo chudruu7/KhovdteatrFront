@@ -142,7 +142,7 @@ const MovieCard = ({ movie, index, onEdit, onDelete }) => {
           {isNow ? 'Үзэж болно' : 'Удахгүй'}
         </div>
 
-        {/* IMDB */}
+        {/* Local rating */}
         {movie.imdb && (
           <div style={{
             position: 'absolute', top: 10, left: 10,
@@ -305,7 +305,7 @@ const MovieRow = ({ movie, index, onEdit, onDelete }) => {
         <Clock size={11} /> {movie.duration || '—'}
       </div>
 
-      {/* IMDB */}
+      {/* Local rating */}
       <div style={{ width: 72, display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#fbbf24', fontWeight: 700 }}>
         <Star size={11} style={{ fill: '#fbbf24', color: '#fbbf24' }} />
         {movie.imdb || '—'}
@@ -708,7 +708,7 @@ const MovieManagementModule = () => {
               <div style={{ flex: '0 0 220px' }}>Кино</div>
               <div style={{ flex: 1 }}>Төрөл</div>
               <div style={{ width: 80 }}>Хугацаа</div>
-              <div style={{ width: 72 }}>IMDB</div>
+              <div style={{ width: 72 }}>Үнэлгээ</div>
               <div style={{ width: 110 }}>Статус</div>
               <div style={{ width: 120 }}>Үйлдэл</div>
             </div>

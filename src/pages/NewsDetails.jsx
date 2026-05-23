@@ -18,7 +18,7 @@ const MOCK_NEWS_DB = {
         readTime: "3 мин",
         image: "https://images.unsplash.com/photo-1574356778153-f7243c3d5512?q=80&w=2070&auto=format&fit=crop",
         content: [
-            { type: 'text', value: "Ховд аймгийн Хөгжимт Кино Театр нь баруун бүсдээ анхдагч болох зорилгоор Barco брэндийн 4K Laser проекторыг амжилттай суурилууллаа." },
+            { type: 'text', value: "Ховд аймгийн Хөгжимт Драмын Театр нь баруун бүсдээ анхдагч болох зорилгоор Barco брэндийн 4K Laser проекторыг амжилттай суурилууллаа." },
             { type: 'quote', value: "Энэхүү технологи нь уламжлалт проектороос 3 дахин илүү тод, гүн өнгөний ялгаралтай дүрслэлийг үзүүлдэг." },
             { type: 'text', value: "Шинэ проекторын давуу тал нь зөвхөн дүрсийн чанараар хязгаарлагдахгүй — эрчим хүч хэмнэлттэй, 3D киног нүд ядраахгүйгээр үзэх боломжтой." },
         ],
@@ -222,7 +222,7 @@ const Lightbox = ({ images, startIndex, onClose }) => {
             onMouseLeave={handleMouseUp}
         >
             {/* Top bar */}
-            <div className="absolute top-0 left-0 right-0 flex items-center justify-between px-5 py-3 z-20"
+            <div className="absolute top-0 left-0 right-0 flex flex-wrap items-center justify-between gap-2 px-3 sm:px-5 py-3 z-20"
                 style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.7), transparent)' }}>
                 <div className="flex items-center gap-2">
                     <button type="button"
@@ -264,7 +264,7 @@ const Lightbox = ({ images, startIndex, onClose }) => {
             {/* Prev */}
             {images.length > 1 && (
                 <button type="button" onClick={(e) => { e.stopPropagation(); prev(); }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 p-3 rounded-full text-white hover:bg-white/10 transition-colors z-20">
+                    className="absolute left-1 sm:left-3 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full text-white hover:bg-white/10 transition-colors z-20">
                     <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
@@ -273,7 +273,7 @@ const Lightbox = ({ images, startIndex, onClose }) => {
 
             {/* Image */}
             <div
-                className="flex items-center justify-center w-full h-full overflow-hidden px-16"
+                className="flex items-center justify-center w-full h-full overflow-hidden px-4 sm:px-16"
                 style={{ cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in' }}
                 onMouseDown={handleMouseDown}
                 onDoubleClick={handleDoubleClick}
@@ -298,7 +298,7 @@ const Lightbox = ({ images, startIndex, onClose }) => {
             {/* Next */}
             {images.length > 1 && (
                 <button type="button" onClick={(e) => { e.stopPropagation(); next(); }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-3 rounded-full text-white hover:bg-white/10 transition-colors z-20">
+                    className="absolute right-1 sm:right-3 top-1/2 -translate-y-1/2 p-2 sm:p-3 rounded-full text-white hover:bg-white/10 transition-colors z-20">
                     <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
@@ -314,7 +314,7 @@ const Lightbox = ({ images, startIndex, onClose }) => {
             )}
 
             {/* Hint */}
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-gray-600 z-20 pointer-events-none whitespace-nowrap">
+            <div className="hidden sm:block absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-gray-600 z-20 pointer-events-none whitespace-nowrap">
                 Scroll / +− — zoom · Давхар дарах — zoom · Esc — хаах
             </div>
         </div>
@@ -368,13 +368,13 @@ const ImageGrid = ({ images }) => {
             )}
 
             {count === 2 && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {images.map((img, i) => renderImg(img, i))}
                 </div>
             )}
 
             {count === 3 && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <figure className="row-span-2 relative">
                         <img
                             src={images[0].value}
@@ -393,7 +393,7 @@ const ImageGrid = ({ images }) => {
             )}
 
             {count >= 4 && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {images.slice(0, 4).map((img, i) => {
                         const extra = count - 4;
                         return (

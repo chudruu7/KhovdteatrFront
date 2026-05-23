@@ -42,6 +42,30 @@ function normalizeNews(data: any): any[] {
   return Array.isArray(list) ? list : [];
 }
 
+function normalizeContent(value: any): Array<{ type: string; value: string; caption?: string }> {
+  if (!value) return [];
+  const source = typeof value === 'string'
+    ? (() => {
+        try {
+          const parsed = JSON.parse(value);
+          return Array.isArray(parsed) ? parsed : [{ type: 'text', value }];
+        } catch {
+          return [{ type: 'text', value }];
+        }
+      })()
+    : Array.isArray(value)
+      ? value
+      : [{ type: 'text', value: str(value) }];
+
+  return source
+    .map((block: any) => ({
+      type: block?.type || 'text',
+      value: str(block?.value ?? block?.text ?? block?.content ?? block),
+      caption: str(block?.caption),
+    }))
+    .filter((block) => block.value);
+}
+
 export default function NewsScreen() {
   const [news, setNews] = useState<any[]>([]);
   const [selected, setSelected] = useState<any | null>(null);
@@ -79,6 +103,7 @@ export default function NewsScreen() {
 
   const featured = filteredNews[0];
   const rest = filteredNews.slice(1);
+  const selectedBlocks = normalizeContent(selected?.content || selected?.body);
 
   if (loading) {
     return (
@@ -108,7 +133,26 @@ export default function NewsScreen() {
               {!!(selected?.excerpt || selected?.summary) && (
                 <Text style={styles.detailExcerpt}>{str(selected?.excerpt || selected?.summary)}</Text>
               )}
-              <Text style={styles.detailContent}>{str(selected?.content) || 'Дэлгэрэнгүй мэдээлэл удахгүй нэмэгдэнэ.'}</Text>
+              {selectedBlocks.length > 0 ? (
+                <View style={styles.detailBlocks}>
+                  {selectedBlocks.map((block, index) => {
+                    if (block.type === 'image') {
+                      return (
+                        <View key={`${block.value}-${index}`} style={styles.detailImageBlock}>
+                          <Image source={{ uri: block.value }} style={styles.detailInlineImage} />
+                          {!!block.caption && <Text style={styles.detailCaption}>{block.caption}</Text>}
+                        </View>
+                      );
+                    }
+                    if (block.type === 'quote') {
+                      return <Text key={`${block.value}-${index}`} style={styles.detailQuote}>{block.value}</Text>;
+                    }
+                    return <Text key={`${block.value}-${index}`} style={styles.detailContent}>{block.value}</Text>;
+                  })}
+                </View>
+              ) : (
+                <Text style={styles.detailContent}>Дэлгэрэнгүй мэдээлэл удахгүй нэмэгдэнэ.</Text>
+              )}
             </View>
           </ScrollView>
         </View>
@@ -119,7 +163,7 @@ export default function NewsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchNews(true)} tintColor="#E50914" />}
       >
         <View style={styles.header}>
-          <Text style={styles.kicker}>Khovd Cinema</Text>
+          <Text style={styles.kicker}>Ховд аймгийн Хөгжимт Драмын Театр</Text>
           <Text style={styles.title}>Мэдээ мэдээлэл</Text>
           <Text style={styles.subtitle}>Кино театрын зарлал, шинэчлэл, урамшуулал нэг дор.</Text>
         </View>
@@ -285,5 +329,18 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#E50914',
   },
-  detailContent: { color: COLORS.textDim, fontSize: 14, lineHeight: 24, marginTop: SPACING.lg },
+  detailBlocks: { marginTop: SPACING.lg, gap: SPACING.md },
+  detailContent: { color: COLORS.textDim, fontSize: 14, lineHeight: 24 },
+  detailQuote: {
+    color: COLORS.text,
+    fontSize: 15,
+    lineHeight: 23,
+    fontStyle: 'italic',
+    paddingLeft: SPACING.md,
+    borderLeftWidth: 3,
+    borderLeftColor: '#E50914',
+  },
+  detailImageBlock: { gap: SPACING.xs },
+  detailInlineImage: { width: '100%', height: 210, borderRadius: RADIUS.md, backgroundColor: COLORS.bgCard },
+  detailCaption: { color: COLORS.textSub, fontSize: 11, textAlign: 'center' },
 });

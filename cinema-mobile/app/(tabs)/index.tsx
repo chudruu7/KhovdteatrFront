@@ -50,9 +50,11 @@ function PremiumMovieCard({
         colors={['transparent', 'rgba(0,0,0,0.84)']}
         style={styles.railPosterShade}
       />
-      <View style={styles.railRankBadge}>
-        <Text style={styles.railRankText}>{item?.imdb || item?.rating || '8.0'}</Text>
-      </View>
+      {item?.rating && (
+        <View style={styles.railRankBadge}>
+          <Text style={styles.railRankText}>{item.rating}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -137,21 +139,21 @@ export default function Index() {
         <View style={styles.hero}>
           <Image source={{ uri: getPoster(heroMovie) }} style={styles.heroBackdrop} resizeMode="cover" />
           <LinearGradient
-            colors={['rgba(0,0,0,0.18)', 'rgba(0,0,0,0.26)', '#050505']}
+            colors={['rgba(0,0,0,0.12)', 'rgba(24,18,13,0.36)', '#11100f']}
             locations={[0, 0.45, 1]}
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient
-            colors={['rgba(5,5,5,0.98)', 'rgba(5,5,5,0.38)', 'transparent']}
+            colors={['rgba(17,16,15,0.98)', 'rgba(17,16,15,0.44)', 'transparent']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
           />
 
           <View style={styles.topBar}>
-            <View>
-              <Text style={styles.netflixMark}>Ховд аймгийн Хөгжимт Драмын театр</Text>
-              <Text style={styles.welcomeText}>Тавтай морилно уу, {user?.name || 'кино сонирхогч'}.</Text>
+            <View style={styles.brandBlock}>
+              <Text style={styles.netflixMark}>Ховд аймгийн Хөгжимт Драмын Театр</Text>
+              <Text style={styles.welcomeText}>Тасалбар захиалга · {user?.name || 'кино сонирхогч'}</Text>
             </View>
             <TouchableOpacity style={styles.profileButton} activeOpacity={0.86}>
               {avatarUrl ? (
@@ -165,11 +167,11 @@ export default function Index() {
           <View style={styles.heroContent}>
             <View style={styles.seriesPill}>
               <View style={styles.liveDot} />
-              <Text style={styles.seriesPillText}>яг одоо манай дэлгэцнээ</Text>
+              <Text style={styles.seriesPillText}>яг одоо дэлгэцнээ</Text>
             </View>
             <Text style={styles.heroTitle} numberOfLines={3}>{heroMovie.title}</Text>
             <View style={styles.metaLine}>
-              <Text style={styles.metaStrong}>{heroMovie.imdb ? `IMDb ${heroMovie.imdb}` : heroMovie.rating || 'Top rated'}</Text>
+              {heroMovie.rating && <Text style={styles.metaStrong}>Ангилал {heroMovie.rating}</Text>}
               {heroMovie.duration && <Text style={styles.metaText}>{heroMovie.duration}</Text>}
               {heroMovie.ageRating && <Text style={styles.metaText}>{heroMovie.ageRating}</Text>}
             </View>
@@ -189,8 +191,8 @@ export default function Index() {
                 activeOpacity={0.9}
                 onPress={() => router.push(`/movie/${heroMovie._id}`)}
               >
-                <Ionicons name="play" size={20} color="#fff" />
-                <Text style={styles.playButtonText}>Үзэх</Text>
+                <Ionicons name="ticket-outline" size={20} color="#fff" />
+                <Text style={styles.playButtonText}>Тасалбар</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.infoButton}
@@ -205,7 +207,7 @@ export default function Index() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionKicker}>Now Showing</Text>
+            <Text style={styles.sectionKicker}>Яг одоо дэлгэцнээ гарч буй</Text>
             <Text style={styles.sectionTitle}>Манай дэлгэцнээ</Text>
           </View>
           <FlatList
@@ -228,7 +230,7 @@ export default function Index() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionKicker}>Coming Soon</Text>
+            <Text style={styles.sectionKicker}>Тун удахгүй</Text>
             <Text style={styles.sectionTitle}>Тун удахгүй</Text>
           </View>
           <View style={styles.comingGrid}>
@@ -250,11 +252,11 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#11100f',
   },
   loaderFull: {
     flex: 1,
-    backgroundColor: '#050505',
+    backgroundColor: '#11100f',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
@@ -288,11 +290,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  brandBlock: {
+    flex: 1,
+    paddingRight: 12,
+  },
   netflixMark: {
-    color: '#E50914',
-    fontSize: 24,
+    color: '#f5c842',
+    fontSize: 19,
     fontWeight: '900',
     letterSpacing: 0,
+    lineHeight: 23,
   },
   welcomeText: {
     color: 'rgba(255,255,255,0.68)',
@@ -338,7 +345,7 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#E50914',
+    backgroundColor: '#f5c842',
   },
   seriesPillText: {
     color: '#fff',
@@ -364,7 +371,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   metaStrong: {
-    color: '#46D369',
+    color: '#f5c842',
     fontSize: 13,
     fontWeight: '900',
   },
@@ -407,12 +414,12 @@ const styles = StyleSheet.create({
     height: 46,
     paddingHorizontal: 22,
     borderRadius: 8,
-    backgroundColor: '#E50914',
+    backgroundColor: '#d94f68',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#E50914',
+    shadowColor: '#d94f68',
     shadowOpacity: 0.34,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
@@ -441,7 +448,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionKicker: {
-    color: '#E50914',
+    color: '#f5c842',
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0,
@@ -468,7 +475,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.1)',
   },
   railPosterWrapActive: {
-    borderColor: '#E50914',
+    borderColor: '#f5c842',
     transform: [{ translateY: -4 }],
   },
   railPoster: {

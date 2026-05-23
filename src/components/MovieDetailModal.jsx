@@ -79,7 +79,7 @@ const MovieDetailModal = ({ isOpen, onClose, movie, onBookTicket, onWatchTrailer
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute top-3 left-3 bg-yellow-400 text-gray-900 text-xs font-bold px-2 py-1 rounded shadow-md">
-                IMDB {movie.rating}
+                Ангилал {movie.rating}
               </div>
               {isComingSoon && (
                 <div className="absolute top-3 right-3 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded shadow-md">

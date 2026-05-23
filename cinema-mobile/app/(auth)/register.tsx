@@ -10,6 +10,8 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { COLORS, SPACING, RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { firebaseAuth } from '../../api/firebase';
 
 const { width, height } = Dimensions.get('window');
 const iconMap: Record<string, any> = {
@@ -22,8 +24,7 @@ const iconMap: Record<string, any> = {
   shield: 'shield-checkmark-outline',
   eye: 'eye-outline',
   'eye-off': 'eye-off-outline',
-  facebook: 'logo-facebook',
-  apple: 'logo-apple',
+  google: 'logo-google',
 };
 const Icon = ({ name, size, color }: { name: string; size: number; color: string }) => (
   <Ionicons name={iconMap[name] || 'ellipse-outline'} size={size} color={color} />
@@ -31,7 +32,7 @@ const Icon = ({ name, size, color }: { name: string; size: number; color: string
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -48,6 +49,10 @@ export default function RegisterScreen() {
     }
     if (!email.trim()) {
       Alert.alert('Анхааруулга', 'Имэйл хаягаа оруулна уу');
+      return false;
+    }
+    if (!email.trim().toLowerCase().endsWith('@gmail.com')) {
+      Alert.alert('Анхааруулга', 'Зөвхөн Gmail хаягаар бүртгүүлэх боломжтой');
       return false;
     }
     if (!phone.trim()) {
@@ -77,6 +82,44 @@ export default function RegisterScreen() {
       await register(name.trim(), email.trim(), password, phone.trim());
     } catch (error: any) {
       const message = error?.response?.data?.message || 'Бүртгүүлэхэд алдаа гарлаа. Дахин оролдоно уу.';
+      Alert.alert('Алдаа', message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    if (Platform.OS !== 'web') {
+      Alert.alert('Google бүртгэл', 'Google бүртгэл mobile web дээр идэвхтэй. Native app-д Expo OAuth тохиргоо хэрэгтэй.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(firebaseAuth, provider);
+      const firebaseUser = result.user;
+
+      if (!firebaseUser.email) {
+        throw new Error('Google бүртгэлээс имэйл авах боломжгүй байна.');
+      }
+      if (!firebaseUser.email.toLowerCase().endsWith('@gmail.com')) {
+        throw new Error('Зөвхөн Gmail хаягаар бүртгүүлэх боломжтой.');
+      }
+
+      await googleLogin({
+        name: firebaseUser.displayName || 'Хэрэглэгч',
+        email: firebaseUser.email,
+        avatarUrl: firebaseUser.photoURL,
+        providerId: firebaseUser.uid,
+      });
+    } catch (error: any) {
+      const code = error?.code || '';
+      const message =
+        code === 'auth/popup-closed-by-user'
+          ? 'Google бүртгэлийн цонх хаагдлаа.'
+          : error?.response?.data?.message || error?.message || 'Google-р бүртгүүлэхэд алдаа гарлаа.';
       Alert.alert('Алдаа', message);
     } finally {
       setLoading(false);
@@ -240,16 +283,11 @@ export default function RegisterScreen() {
                 <View style={styles.dividerLine} />
               </View>
 
-              {/* Сошиал бүртгэл - зөвхөн icon */}
+              {/* Сошиал бүртгэл */}
               <View style={styles.socialContainer}>
-                <TouchableOpacity style={styles.socialIconButton}>
-                  <Icon name="facebook" size={24} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialIconButton}>
-                  <Icon name="mail" size={24} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialIconButton}>
-                  <Icon name="apple" size={24} color="#fff" />
+                <TouchableOpacity style={styles.socialIconButton} onPress={handleGoogleRegister} disabled={loading}>
+                  <Icon name="google" size={24} color="#fff" />
+                  <Text style={styles.socialText}>Google-р нэвтрэх</Text>
                 </TouchableOpacity>
               </View>
 
@@ -400,14 +438,21 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   socialIconButton: {
-    width: 48,
+    minWidth: 180,
     height: 48,
     borderRadius: RADIUS.full,
     backgroundColor: 'rgba(255,255,255,0.08)',
+    flexDirection: 'row',
+    gap: SPACING.sm,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
+  },
+  socialText: {
+    color: COLORS.white,
+    fontWeight: '700',
+    fontSize: 13,
   },
   loginLink: {
     alignItems: 'center',

@@ -30,12 +30,23 @@ const getOptions = (method, data) => ({
   ...(data ? { body: JSON.stringify(data) } : {})
 });
 
+const requestWithTimeout = async (url, options, timeoutMs = 12000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 const api = {
   get: async (endpoint) => {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('GET request to:', url);
     
-    const response = await fetch(url, getOptions('GET'));
+    const response = await requestWithTimeout(url, getOptions('GET'));
     
     if (!response.ok) {
       const text = await response.text();
@@ -49,12 +60,20 @@ const api = {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('POST request to:', url, data);
     
-    const response = await fetch(url, getOptions('POST', data));
+    const response = await requestWithTimeout(url, getOptions('POST', data));
     
     if (!response.ok) {
       const text = await response.text();
       console.error('POST Response not OK:', response.status, text);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      try {
+        const parsed = JSON.parse(text);
+        throw new Error(parsed.message || `HTTP error! status: ${response.status}`);
+      } catch (parseError) {
+        if (parseError instanceof SyntaxError) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        throw parseError;
+      }
     }
     return response.json();
   },
@@ -63,7 +82,7 @@ const api = {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('PUT request to:', url, data);
     
-    const response = await fetch(url, getOptions('PUT', data));
+    const response = await requestWithTimeout(url, getOptions('PUT', data));
     
     if (!response.ok) {
       const text = await response.text();
@@ -77,7 +96,7 @@ const api = {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('DELETE request to:', url);
     
-    const response = await fetch(url, getOptions('DELETE'));
+    const response = await requestWithTimeout(url, getOptions('DELETE'));
     
     if (!response.ok) {
       const text = await response.text();

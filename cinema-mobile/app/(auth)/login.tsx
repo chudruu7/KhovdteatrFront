@@ -22,9 +22,7 @@ const iconMap: Record<string, IconName> = {
   lock: 'lock-closed-outline',
   eye: 'eye-outline',
   'eye-off': 'eye-off-outline',
-  facebook: 'logo-facebook',
   google: 'logo-google',
-  apple: 'logo-apple',
 };
 
 const Icon = ({ name, size, color }: { name: string; size: number; color: string }) => (
@@ -75,6 +73,9 @@ export default function LoginScreen() {
       if (!firebaseUser.email) {
         throw new Error('Google бүртгэлээс имэйл авах боломжгүй байна.');
       }
+      if (!firebaseUser.email.toLowerCase().endsWith('@gmail.com')) {
+        throw new Error('Зөвхөн Gmail хаягаар нэвтрэх боломжтой.');
+      }
 
       await googleLogin({
         name: firebaseUser.displayName || 'Хэрэглэгч',
@@ -107,8 +108,8 @@ export default function LoginScreen() {
               <LinearGradient colors={[COLORS.coral, '#e74c3c']} style={styles.logoCircle}>
                 <Icon name="film" size={42} color="#fff" />
               </LinearGradient>
-              <Text style={styles.brandName}>ХОВД КИНО</Text>
-              <Text style={styles.brandSubtitle}>Кино театрын захиалгын систем</Text>
+              <Text style={styles.brandName}>ХОВД ТЕАТР</Text>
+              <Text style={styles.brandSubtitle}>Кино тасалбар захиалгын систем</Text>
             </View>
 
             <View style={styles.formCard}>
@@ -168,14 +169,8 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.socialContainer}>
-                <TouchableOpacity style={styles.socialIconButton}>
-                  <Icon name="facebook" size={24} color="#fff" />
-                </TouchableOpacity>
                 <TouchableOpacity style={styles.socialIconButton} onPress={handleGoogleLogin} disabled={loading}>
                   <Icon name="google" size={24} color="#fff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.socialIconButton}>
-                  <Icon name="apple" size={24} color="#fff" />
                 </TouchableOpacity>
               </View>
 

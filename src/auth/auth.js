@@ -6,6 +6,8 @@ import {
   setUser as setStoredUser,
   removeUser,
 } from '../api/config';
+import { signOut } from 'firebase/auth';
+import { auth } from './firebaseConfig';
 
 const persistAuth = (response) => {
   if (response?.success && response?.token && response?.user) {
@@ -62,7 +64,10 @@ export const socialLogin = async ({ name, email, avatarUrl, provider, providerId
   }
 };
 
-export const logout = () => {
+export const logout = async () => {
+  if (auth.currentUser) {
+    await signOut(auth).catch(() => {});
+  }
   removeToken();
   removeUser();
   return { success: true };

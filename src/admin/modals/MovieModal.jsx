@@ -496,7 +496,7 @@ const addCast = () => onCastChange([...(formData.cast || []), { name: '', role: 
                         <option value="18+">18 хүртэлх</option>
                       </Select>
                     </Field>
-                    {/* <Field icon={Star} label="IMDB үнэлгээ">
+                    {/* <Field icon={Star} label="Дотоод үнэлгээ">
                       <Input
                         type="number" step="0.1" min="0" max="10"
                         name="imdb" value={formData.imdb} onChange={onChange}

@@ -3,6 +3,8 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authAPI, USER_KEY } from '../api';
 import { Platform } from 'react-native';
+import { signOut } from 'firebase/auth';
+import { firebaseAuth } from '../api/firebase';
 
 interface AuthContextType {
   user: any;
@@ -108,6 +110,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    if (firebaseAuth.currentUser) {
+      await signOut(firebaseAuth).catch(() => {});
+    }
     await clearToken();
     await clearUser();
     setToken(null);
