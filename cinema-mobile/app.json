@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Ховд аймгийн Хөгжимт кино театр апп",
+    "slug": "cinema-mobile",
+    "scheme": "cinema",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0a0a0f"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "mn.hovd.cinema"
+    },
+    "android": {
+      "package": "mn.hovd.cinema",
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0a0f"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -5,8 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const frontRoot = path.resolve(here, '..');
-const workspaceRoot = path.resolve(frontRoot, '..', '..');
-const mobileRoot = path.join(workspaceRoot, 'cinema-mobile');
+const mobileRoot = path.join(frontRoot, 'cinema-mobile');
 const mobileOut = path.join(frontRoot, 'public', 'mobile');
 const mobileOutFromMobile = path.relative(mobileRoot, mobileOut);
 const publicMobileFonts = path.join(frontRoot, 'public', 'mobile-fonts');
