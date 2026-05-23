@@ -21,12 +21,13 @@ import { movieAPI } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
 
 const { width: W, height: H } = Dimensions.get('window');
-const HERO_HEIGHT = Math.min(H * 0.72, 596);
-const HERO_CARD_W = W - 36;
-const HERO_CARD_H = Math.min(H * 0.46, 404);
-const IPTV_CARD_W = Math.min(W * 0.58, 228);
+const HERO_HEIGHT = Math.min(H * 0.74, 620);
+const HERO_CARD_W = W * 0.86;
+const HERO_CARD_H = HERO_HEIGHT * 0.64;
+const POSTER_CARD_W = 140;
+const POSTER_CARD_H = 210;
 const FALLBACK = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=900&q=80';
-const SWIPE_THRESHOLD = W * 0.23;
+const SWIPE_THRESHOLD = W * 0.25;
 
 const getPoster = (movie: any) => movie?.posterUrl || movie?.poster || FALLBACK;
 const getGenres = (movie: any): string[] => {
@@ -34,31 +35,36 @@ const getGenres = (movie: any): string[] => {
   return Array.isArray(movie.genre) ? movie.genre.filter(Boolean).map(String) : [String(movie.genre)];
 };
 
+// Шинэчилсэн Premium Кино Тайл (Босоо Постер Хэлбэртэй)
 function IptvMovieTile({ item, active, onPress }: { item: any; active?: boolean; onPress: () => void }) {
   return (
-    <TouchableOpacity activeOpacity={0.86} onPress={onPress} style={[styles.iptvTile, active && styles.iptvTileActive]}>
+    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={[styles.iptvTile, active && styles.iptvTileActive]}>
       <Image source={{ uri: getPoster(item) }} style={styles.iptvImage} resizeMode="cover" />
-      <LinearGradient colors={['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.78)']} style={styles.tileShade} />
+      <LinearGradient colors={['transparent', 'rgba(11, 11, 15, 0.95)']} style={styles.tileShade} />
       <View style={styles.tileInfo}>
         <Text style={styles.tileTitle} numberOfLines={1}>{item.title}</Text>
-        <Text style={styles.tileMeta} numberOfLines={1}>{getGenres(item)[0] || item.duration || 'Кино'}</Text>
       </View>
       {active && <View style={styles.focusBar} />}
     </TouchableOpacity>
   );
 }
 
+// Шинэчилсэн Coming Soon Жагсаалт (Premium Minimal Row)
 function ComingSoonRow({ item, onPress }: { item: any; onPress: () => void }) {
   return (
-    <TouchableOpacity style={styles.comingCard} activeOpacity={0.88} onPress={onPress}>
+    <TouchableOpacity style={styles.comingCard} activeOpacity={0.9} onPress={onPress}>
       <Image source={{ uri: getPoster(item) }} style={styles.comingImg} resizeMode="cover" />
-      <LinearGradient colors={['rgba(12,12,16,0.08)', 'rgba(12,12,16,0.96)']} style={styles.comingShade} />
       <View style={styles.comingInfo}>
-        <Text style={styles.comingTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={styles.comingTitle} numberOfLines={1}>{item.title}</Text>
         <View style={styles.comingMeta}>
-          <Ionicons name="sparkles" size={13} color="#F5C842" />
-          <Text style={styles.comingMetaText} numberOfLines={1}>{getGenres(item)[0] || item.director || 'Тун удахгүй'}</Text>
+          <Ionicons name="calendar-outline" size={13} color="#E5A93C" />
+          <Text style={styles.comingMetaText} numberOfLines={1}>
+            {getGenres(item)[0] || 'Тун удахгүй'}
+          </Text>
         </View>
+      </View>
+      <View style={styles.comingArrow}>
+        <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.3)" />
       </View>
     </TouchableOpacity>
   );
@@ -91,7 +97,7 @@ export default function Index() {
 
   const heroMovie = movies[activeIndex] || movies[0];
   const nextMovie = movies[(activeIndex + 1) % Math.max(movies.length, 1)];
-  const heroGenres = getGenres(heroMovie).slice(0, 3);
+  const heroGenres = getGenres(heroMovie).slice(0, 2);
   const avatarUrl = user?.avatarUrl || user?.avatar;
 
   const moveToMovie = (direction: number) => {
@@ -101,8 +107,8 @@ export default function Index() {
 
   const completeSwipe = (direction: number) => {
     Animated.timing(swipe, {
-      toValue: { x: direction * W * 1.1, y: 22 },
-      duration: 210,
+      toValue: { x: direction * W * 1.2, y: 15 },
+      duration: 250,
       useNativeDriver: true,
     }).start(() => {
       swipe.setValue({ x: 0, y: 0 });
@@ -112,27 +118,27 @@ export default function Index() {
 
   const panResponder = useMemo(
     () => PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
       onPanResponderMove: Animated.event([null, { dx: swipe.x, dy: swipe.y }], { useNativeDriver: false }),
       onPanResponderRelease: (_, gesture) => {
         if (gesture.dx > SWIPE_THRESHOLD) return completeSwipe(1);
         if (gesture.dx < -SWIPE_THRESHOLD) return completeSwipe(-1);
-        Animated.spring(swipe, { toValue: { x: 0, y: 0 }, friction: 6, tension: 52, useNativeDriver: true }).start();
+        Animated.spring(swipe, { toValue: { x: 0, y: 0 }, friction: 7, tension: 40, useNativeDriver: true }).start();
       },
     }),
     [activeIndex, movies.length]
   );
 
-  const rotate = swipe.x.interpolate({ inputRange: [-W, 0, W], outputRange: ['-12deg', '0deg', '12deg'] });
-  const likeOpacity = swipe.x.interpolate({ inputRange: [20, SWIPE_THRESHOLD], outputRange: [0, 1], extrapolate: 'clamp' });
-  const skipOpacity = swipe.x.interpolate({ inputRange: [-SWIPE_THRESHOLD, -20], outputRange: [1, 0], extrapolate: 'clamp' });
+  const rotate = swipe.x.interpolate({ inputRange: [-W, 0, W], outputRange: ['-8deg', '0deg', '8deg'] });
+  const likeOpacity = swipe.x.interpolate({ inputRange: [10, SWIPE_THRESHOLD], outputRange: [0, 1], extrapolate: 'clamp' });
+  const skipOpacity = swipe.x.interpolate({ inputRange: [-SWIPE_THRESHOLD, -10], outputRange: [1, 0], extrapolate: 'clamp' });
 
   if (loading) {
     return (
       <View style={styles.loaderFull}>
-        <StatusBar barStyle="light-content" backgroundColor="#050505" />
-        <ActivityIndicator size="large" color="#F5C842" />
-        <Text style={styles.loaderText}>Кинонууд ачааллаж байна...</Text>
+        <StatusBar barStyle="light-content" backgroundColor="#0B0B0F" />
+        <ActivityIndicator size="small" color="#E5A93C" />
+        <Text style={styles.loaderText}>PREMIUM CINEMA</Text>
       </View>
     );
   }
@@ -140,7 +146,7 @@ export default function Index() {
   if (!heroMovie) {
     return (
       <View style={styles.loaderFull}>
-        <Ionicons name="film-outline" size={52} color="rgba(255,255,255,0.34)" />
+        <Ionicons name="film-outline" size={44} color="rgba(255,255,255,0.2)" />
         <Text style={styles.emptyTitle}>Кино олдсонгүй</Text>
       </View>
     );
@@ -149,26 +155,29 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <ScrollView showsVerticalScrollIndicator={false} bounces>
+      <ScrollView showsVerticalScrollIndicator={false} bounces={true}>
+        
+        {/* HERO SECTION */}
         <View style={styles.hero}>
-          <Image source={{ uri: getPoster(heroMovie) }} style={styles.heroBackdrop} resizeMode="cover" />
+          <Image source={{ uri: getPoster(heroMovie) }} style={styles.heroBackdrop} blurRadius={20} resizeMode="cover" />
           <LinearGradient
-            colors={['rgba(4,4,7,0.36)', 'rgba(7,7,11,0.82)', '#09090d']}
-            locations={[0, 0.55, 1]}
+            colors={['rgba(11,11,15,0.4)', 'rgba(11,11,15,0.85)', '#0B0B0F']}
+            locations={[0, 0.5, 1]}
             style={StyleSheet.absoluteFill}
           />
 
+          {/* Top Bar / Profile */}
           <View style={styles.topBar}>
             <View style={styles.brandBlock}>
-              <Text style={styles.brandKicker}>Khovd cinema</Text>
-              <Text style={styles.brandTitle} numberOfLines={2}>Ховд аймгийн хөгжимт драмын театр</Text>
-              <Text style={styles.welcomeText} numberOfLines={1}>Тавтай морилно уу, {user?.name || 'кино сонирхогч'}</Text>
+              <Text style={styles.brandKicker}>KHOVD CINEMA</Text>
+              <Text style={styles.brandTitle} numberOfLines={1}>Хөгжимт Драмын Театр</Text>
             </View>
-            <TouchableOpacity style={styles.profileButton} activeOpacity={0.86} onPress={() => router.push('/(tabs)/profile')}>
-              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : <Ionicons name="person" size={20} color="#fff" />}
+            <TouchableOpacity style={styles.profileButton} activeOpacity={0.8} onPress={() => router.push('/(tabs)/profile')}>
+              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : <Ionicons name="person-outline" size={18} color="#fff" />}
             </TouchableOpacity>
           </View>
 
+          {/* Swiper Deck */}
           <View style={styles.deckWrap}>
             {nextMovie && nextMovie !== heroMovie && (
               <View style={[styles.heroCard, styles.backCard]}>
@@ -181,27 +190,33 @@ export default function Index() {
             >
               <Image source={{ uri: getPoster(heroMovie) }} style={styles.cardImage} resizeMode="cover" />
               <LinearGradient
-                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.2)', 'rgba(0,0,0,0.9)']}
-                locations={[0, 0.46, 1]}
+                colors={['transparent', 'rgba(0,0,0,0.3)', 'rgba(11,11,15,0.98)']}
+                locations={[0, 0.4, 1]}
                 style={StyleSheet.absoluteFill}
               />
+              
+              {/* Badges */}
               <Animated.View style={[styles.swipeBadge, styles.wantBadge, { opacity: likeOpacity }]}>
                 <Text style={styles.swipeBadgeText}>ҮЗНЭ</Text>
               </Animated.View>
               <Animated.View style={[styles.swipeBadge, styles.skipBadge, { opacity: skipOpacity }]}>
-                <Text style={styles.swipeBadgeText}>ДАРАА</Text>
+                <Text style={styles.swipeBadgeText}>АЛСАХ</Text>
               </Animated.View>
+
+              {/* Card Contents */}
               <View style={styles.cardCopy}>
                 <View style={styles.livePill}>
                   <View style={styles.liveDot} />
-                  <Text style={styles.livePillText}>Яг одоо дэлгэцнээ</Text>
+                  <Text style={styles.livePillText}>ГАРЧ БУЙ</Text>
                 </View>
-                <Text style={styles.heroTitle} numberOfLines={2}>{heroMovie.title}</Text>
+                <Text style={styles.heroTitle} numberOfLines={1}>{heroMovie.title}</Text>
+                
                 <View style={styles.metaLine}>
-                  {heroMovie.rating && <Text style={styles.metaStrong}>Ангилал {heroMovie.rating}</Text>}
+                  {heroMovie.rating && <Text style={styles.metaStrong}>★ {heroMovie.rating}</Text>}
                   {heroMovie.duration && <Text style={styles.metaText}>{heroMovie.duration}</Text>}
-                  {heroMovie.ageRating && <Text style={styles.metaText}>{heroMovie.ageRating}</Text>}
+                  {heroMovie.ageRating && <View style={styles.ageBadge}><Text style={styles.ageText}>{heroMovie.ageRating}</Text></View>}
                 </View>
+
                 <View style={styles.genreRow}>
                   {heroGenres.map((genre) => (
                     <View key={genre} style={styles.genrePill}>
@@ -213,23 +228,25 @@ export default function Index() {
             </Animated.View>
           </View>
 
+          {/* Action Quick Buttons */}
           <View style={styles.actionRow}>
-            <TouchableOpacity style={styles.roundAction} activeOpacity={0.85} onPress={() => completeSwipe(-1)}>
-              <Ionicons name="close" size={25} color="#fff" />
+            <TouchableOpacity style={styles.roundAction} activeOpacity={0.8} onPress={() => completeSwipe(-1)}>
+              <Ionicons name="close-outline" size={24} color="rgba(255,255,255,0.6)" />
             </TouchableOpacity>
             <TouchableOpacity style={styles.ticketButton} activeOpacity={0.9} onPress={() => router.push(`/movie/${heroMovie._id}`)}>
-              <Ionicons name="ticket-outline" size={19} color="#11100f" />
-              <Text style={styles.ticketButtonText}>Захиалах</Text>
+              <Ionicons name="ticket-outline" size={18} color="#0B0B0F" />
+              <Text style={styles.ticketButtonText}>Суудал захиалах</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.roundAction, styles.goldAction]} activeOpacity={0.85} onPress={() => completeSwipe(1)}>
-              <Ionicons name="heart" size={23} color="#11100f" />
+            <TouchableOpacity style={[styles.roundAction, styles.goldAction]} activeOpacity={0.8} onPress={() => completeSwipe(1)}>
+              <Ionicons name="heart" size={22} color="#0B0B0F" />
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* SECTION 1: NOW SHOWING */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionKicker}>Now showing</Text>
+            <Text style={styles.sectionKicker}>NOW PLAYING</Text>
             <Text style={styles.sectionTitle}>Дэлгэцнээ гарч буй</Text>
           </View>
           <FlatList
@@ -238,6 +255,8 @@ export default function Index() {
             data={movies}
             keyExtractor={(item, index) => item._id || item.id || `${item.title}-${index}`}
             contentContainerStyle={styles.iptvContent}
+            snapToInterval={POSTER_CARD_W + 14}
+            decelerationRate="fast"
             renderItem={({ item, index }) => (
               <IptvMovieTile
                 item={item}
@@ -248,94 +267,83 @@ export default function Index() {
           />
         </View>
 
+        {/* SECTION 2: COMING SOON */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionKicker}>Coming soon</Text>
+            <Text style={styles.sectionKicker}>COMING SOON</Text>
             <Text style={styles.sectionTitle}>Тун удахгүй</Text>
           </View>
           <View style={styles.comingGrid}>
-            {comingSoon.slice(0, 6).map((item) => (
+            {comingSoon.slice(0, 5).map((item) => (
               <ComingSoonRow key={item._id || item.id || item.title} item={item} onPress={() => router.push(`/movie/${item._id || item.id}`)} />
             ))}
           </View>
         </View>
-        <View style={{ height: 28 }} />
+        
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#09090d' },
+  container: { flex: 1, backgroundColor: '#0B0B0F' },
   loaderFull: {
     flex: 1,
-    backgroundColor: '#09090d',
+    backgroundColor: '#0B0B0F',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
   },
-  loaderText: { color: 'rgba(255,255,255,0.58)', fontSize: 13, fontWeight: '700', letterSpacing: 0 },
-  emptyTitle: { color: '#fff', marginTop: 12, fontSize: 17, fontWeight: '800' },
+  loaderText: { color: 'rgba(255,255,255,0.4)', fontSize: 11, fontWeight: '600', letterSpacing: 3 },
+  emptyTitle: { color: 'rgba(255,255,255,0.4)', marginTop: 8, fontSize: 14, fontWeight: '500' },
   hero: {
     height: HERO_HEIGHT,
-    paddingTop: 44,
-    paddingHorizontal: 18,
+    paddingTop: 54,
     overflow: 'hidden',
   },
   heroBackdrop: {
     position: 'absolute',
     width: W,
-    height: HERO_HEIGHT + 36,
-    opacity: 0.34,
+    height: HERO_HEIGHT,
+    opacity: 0.4,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    zIndex: 3,
-    padding: 12,
-    borderRadius: 18,
-    backgroundColor: 'rgba(9,9,13,0.62)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 24,
+    zIndex: 10,
   },
-  brandBlock: { flex: 1, paddingRight: 12 },
+  brandBlock: { flex: 1 },
   brandKicker: {
-    color: '#F5C842',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 2,
+    color: '#E5A93C',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 2,
+    marginBottom: 4,
   },
   brandTitle: {
-    color: '#fff',
-    fontSize: 19,
-    lineHeight: 23,
-    fontWeight: '900',
-    letterSpacing: 0,
-  },
-  welcomeText: {
-    color: 'rgba(255,255,255,0.68)',
-    fontSize: 12,
-    marginTop: 4,
+    color: '#FFF',
+    fontSize: 18,
     fontWeight: '700',
+    letterSpacing: -0.3,
   },
   profileButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
-    borderColor: 'rgba(245,200,66,0.42)',
+    borderColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
   avatar: { width: '100%', height: '100%' },
   deckWrap: {
-    height: HERO_CARD_H + 18,
-    marginTop: 16,
+    height: HERO_CARD_H + 20,
+    marginTop: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -343,133 +351,134 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: HERO_CARD_W,
     height: HERO_CARD_H,
-    borderRadius: 24,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#15151b',
+    backgroundColor: '#13131A',
     borderWidth: 1,
-    borderColor: 'rgba(245,200,66,0.18)',
+    borderColor: 'rgba(255,255,255,0.06)',
     shadowColor: '#000',
-    shadowOpacity: 0.44,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 18 },
-    elevation: 14,
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 10,
   },
-  backCard: { transform: [{ scale: 0.94 }, { translateY: 16 }], opacity: 0.45 },
+  backCard: { transform: [{ scale: 0.93 }, { translateY: -10 }], opacity: 0.35, zIndex: -1 },
   cardImage: { width: '100%', height: '100%' },
   swipeBadge: {
     position: 'absolute',
-    top: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 9,
-    borderWidth: 2,
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    top: 24,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1.5,
   },
-  wantBadge: { left: 22, borderColor: '#1DE9B6', transform: [{ rotate: '-10deg' }] },
-  skipBadge: { right: 22, borderColor: '#E8607A', transform: [{ rotate: '10deg' }] },
-  swipeBadgeText: { color: '#fff', fontSize: 16, fontWeight: '900' },
-  cardCopy: { position: 'absolute', left: 18, right: 18, bottom: 18 },
+  wantBadge: { left: 24, borderColor: '#4ADE80', transform: [{ rotate: '-6deg' }] },
+  skipBadge: { right: 24, borderColor: '#F87171', transform: [{ rotate: '6deg' }] },
+  swipeBadgeText: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 1 },
+  cardCopy: { position: 'absolute', left: 20, right: 20, bottom: 24 },
   livePill: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-    marginBottom: 10,
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    backgroundColor: 'rgba(229, 169, 60, 0.15)',
+    borderWidth: 0.5,
+    borderColor: 'rgba(229, 169, 60, 0.3)',
+    marginBottom: 12,
   },
-  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#F5C842' },
-  livePillText: { color: '#fff', fontSize: 10, fontWeight: '900', letterSpacing: 0 },
+  liveDot: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#E5A93C' },
+  livePillText: { color: '#E5A93C', fontSize: 9, fontWeight: '700', letterSpacing: 1 },
   heroTitle: {
-    color: '#fff',
-    fontSize: 29,
-    lineHeight: 33,
-    fontWeight: '900',
-    letterSpacing: 0,
-    textShadowColor: 'rgba(0,0,0,0.55)',
-    textShadowOffset: { width: 0, height: 4 },
-    textShadowRadius: 14,
+    color: '#FFF',
+    fontSize: 26,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
-  metaLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 9, marginTop: 10 },
-  metaStrong: { color: '#F5C842', fontSize: 12, fontWeight: '900' },
-  metaText: { color: 'rgba(255,255,255,0.74)', fontSize: 12, fontWeight: '700' },
-  genreRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 11 },
-  genrePill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 7, backgroundColor: 'rgba(255,255,255,0.14)' },
-  genreText: { color: 'rgba(255,255,255,0.84)', fontSize: 11, fontWeight: '800' },
+  metaLine: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 8 },
+  metaStrong: { color: '#E5A93C', fontSize: 13, fontWeight: '700' },
+  metaText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '500' },
+  ageBadge: { paddingHorizontal: 5, paddingVertical: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 3 },
+  ageText: { color: '#FFF', fontSize: 10, fontWeight: '600' },
+  genreRow: { flexDirection: 'row', gap: 6, marginTop: 12 },
+  genrePill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.08)' },
+  genreText: { color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: '500' },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 12,
-    marginTop: 2,
+    gap: 14,
+    marginTop: 20,
+    paddingHorizontal: 24,
   },
   roundAction: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.13)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  goldAction: { backgroundColor: '#F5C842', borderColor: '#F5C842' },
+  goldAction: { backgroundColor: '#E5A93C', borderColor: '#E5A93C' },
   ticketButton: {
-    height: 48,
-    paddingHorizontal: 22,
-    borderRadius: 24,
-    backgroundColor: '#F5C842',
+    flex: 1,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    minWidth: 134,
+    shadowColor: '#FFF',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
   },
-  ticketButtonText: { color: '#11100f', fontSize: 15, fontWeight: '900' },
-  section: { paddingTop: 16 },
-  sectionHeader: { paddingHorizontal: 18, marginBottom: 12 },
+  ticketButtonText: { color: '#0B0B0F', fontSize: 14, fontWeight: '700', letterSpacing: -0.2 },
+  section: { paddingTop: 32 },
+  sectionHeader: { paddingHorizontal: 24, marginBottom: 16 },
   sectionKicker: {
-    color: '#F5C842',
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 0,
-    textTransform: 'uppercase',
+    color: '#E5A93C',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1.5,
   },
-  sectionTitle: { color: '#fff', fontSize: 22, fontWeight: '900', marginTop: 2 },
-  iptvContent: { paddingLeft: 18, paddingRight: 8, gap: 12 },
+  sectionTitle: { color: '#FFF', fontSize: 20, fontWeight: '700', marginTop: 2, letterSpacing: -0.3 },
+  iptvContent: { paddingLeft: 24, paddingRight: 12, gap: 14 },
   iptvTile: {
-    width: IPTV_CARD_W,
-    height: 126,
-    borderRadius: 10,
+    width: POSTER_CARD_W,
+    height: POSTER_CARD_H,
+    borderRadius: 14,
     overflow: 'hidden',
-    backgroundColor: '#15151b',
+    backgroundColor: '#13131A',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.11)',
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  iptvTileActive: { borderColor: '#F5C842', transform: [{ translateY: -3 }] },
+  iptvTileActive: { borderColor: '#E5A93C' },
   iptvImage: { width: '100%', height: '100%' },
-  tileShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '68%' },
-  tileInfo: { position: 'absolute', left: 12, right: 12, bottom: 10 },
-  tileTitle: { color: '#fff', fontSize: 15, fontWeight: '900' },
-  tileMeta: { color: 'rgba(255,255,255,0.68)', fontSize: 11, fontWeight: '700', marginTop: 3 },
-  focusBar: { position: 'absolute', left: 12, right: 12, bottom: 0, height: 3, borderRadius: 3, backgroundColor: '#F5C842' },
-  comingGrid: { paddingHorizontal: 18, gap: 12 },
+  tileShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '50%' },
+  tileInfo: { position: 'absolute', left: 12, right: 12, bottom: 12 },
+  tileTitle: { color: '#FFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  focusBar: { position: 'absolute', top: 8, right: 8, width: 6, height: 6, borderRadius: 3, backgroundColor: '#E5A93C' },
+  comingGrid: { paddingHorizontal: 24, gap: 10 },
   comingCard: {
-    height: 132,
-    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 72,
+    borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#15151b',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.05)',
+    paddingRight: 16,
   },
-  comingImg: { width: '100%', height: '100%' },
-  comingShade: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
-  comingInfo: { position: 'absolute', left: 14, right: 14, bottom: 12 },
-  comingTitle: { color: '#fff', fontSize: 17, lineHeight: 21, fontWeight: '900' },
-  comingMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 },
-  comingMetaText: { color: 'rgba(255,255,255,0.72)', fontSize: 12, fontWeight: '700' },
+  comingImg: { width: 54, height: '100%', borderRadius: 8, marginLeft: 8 },
+  comingInfo: { flex: 1, paddingLeft: 14, justifyContent: 'center' },
+  comingTitle: { color: '#FFF', fontSize: 14, fontWeight: '600' },
+  comingMeta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  comingMetaText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '500' },
+  comingArrow: { justifyContent: 'center' },
 });
