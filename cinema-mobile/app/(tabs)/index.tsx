@@ -210,8 +210,8 @@ export default function Index() {
 
           <View style={styles.topBar}>
             <View style={styles.brandBlock}>
-              <Text style={styles.brandTitle}>Ховд Театр</Text>
-              <Text style={styles.welcomeText}>Тасалбар захиалга · {user?.name || 'кино сонирхогч'}</Text>
+              <Text style={styles.brandTitle}>Ховд аймгийн хөгжимт драмын театр</Text>
+              <Text style={styles.welcomeText}>Тавтай морилно уу {user?.name || 'кино сонирхогч'}</Text>
             </View>
             <TouchableOpacity style={styles.profileButton} activeOpacity={0.86} onPress={() => router.push('/(tabs)/profile')}>
               {avatarUrl ? (
@@ -285,7 +285,7 @@ export default function Index() {
               onPress={() => router.push(`/movie/${heroMovie._id}`)}
             >
               <Ionicons name="ticket-outline" size={19} color="#11100f" />
-              <Text style={styles.ticketButtonText}>Тасалбар</Text>
+              <Text style={styles.ticketButtonText}>Захиалах</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.roundAction, styles.goldAction]} activeOpacity={0.85} onPress={() => completeSwipe(1)}>
               <Ionicons name="heart" size={23} color="#11100f" />
@@ -316,8 +316,8 @@ export default function Index() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionKicker}>Тун удахгүй</Text>
-            <Text style={styles.sectionTitle}>Дараагийн үзвэрүүд</Text>
+            <Text style={styles.sectionKicker}>Coming soon</Text>
+            <Text style={styles.sectionTitle}>Тун удахгүй</Text>
           </View>
           <View style={styles.comingGrid}>
             {comingSoon.slice(0, 6).map((item) => (
