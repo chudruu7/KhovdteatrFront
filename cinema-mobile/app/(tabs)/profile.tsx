@@ -45,10 +45,14 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const menuItems: MenuItem[] = [
+  // Үндсэн цэсүүдийг утгаар нь ангилав
+  const primaryMenu: MenuItem[] = [
     { icon: 'receipt-outline', label: 'Захиалгын түүх', route: '/bookings' },
     { icon: 'ticket-outline', label: 'Миний тасалбарууд', route: '/bookings' },
-    { icon: isLight ? 'sunny-outline' : 'moon-outline', label: isLight ? 'Light mode асаалттай' : 'Dark mode асаалттай' },
+  ];
+
+  const appMenu: MenuItem[] = [
+    { icon: isLight ? 'sunny-outline' : 'moon-outline', label: isLight ? 'Гэгээлэг горим' : 'Харанхуй горим' },
     { icon: 'notifications-outline', label: 'Мэдэгдэл' },
     { icon: 'call-outline', label: 'Холбоо барих' },
     { icon: 'information-circle-outline', label: 'Системийн тухай' },
@@ -56,46 +60,86 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={isLight ? ['#ffffff', colors.bg] : ['#13131a', colors.bg]} style={styles.headerGrad}>
-          <View style={styles.avatar}>
-            <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
-          </View>
-          <Text style={styles.name}>{user?.name || 'Зочин'}</Text>
-          <Text style={styles.email}>{user?.email || ''}</Text>
-          {user?.phone && (
-            <View style={styles.phoneRow}>
-              <Ionicons name="call-outline" size={13} color={colors.textDim} />
-              <Text style={styles.phone}>{user.phone}</Text>
+      <ScrollView showsVerticalScrollIndicator={false} bounces={true}>
+        
+        {/* CINEMATIC PROFILE HERO */}
+        <LinearGradient 
+          colors={isLight ? ['#F5F5F7', colors.bg] : ['#161622', colors.bg]} 
+          style={styles.headerGrad}
+        >
+          <View style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              <View style={styles.onlineBadge} />
             </View>
-          )}
+            
+            <Text style={styles.name}>{user?.name || 'Зочин хэрэглэгч'}</Text>
+            <Text style={styles.email}>{user?.email || 'Мэдээлэл оруулаагүй'}</Text>
+
+            {user?.phone && (
+              <View style={styles.phoneRow}>
+                <Ionicons name="phone-portrait-outline" size={12} color={colors.textDim} />
+                <Text style={styles.phone}>{user.phone}</Text>
+              </View>
+            )}
+          </View>
         </LinearGradient>
 
-        <View style={styles.menu}>
-          {menuItems.map((item, i) => (
+        {/* SECTION 1: ТАСАЛБАР БА ЗАХИАЛГА */}
+        <Text style={styles.sectionTitle}>Миний үйлчилгээ</Text>
+        <View style={styles.menuGroup}>
+          {primaryMenu.map((item, i) => (
             <TouchableOpacity
               key={`${item.label}-${i}`}
-              style={[styles.menuItem, i === menuItems.length - 1 && styles.menuItemLast]}
-              activeOpacity={0.7}
-              onPress={() => item.label.includes('mode') ? toggleTheme() : item.route && router.push(item.route as any)}
+              style={[styles.menuItem, i === primaryMenu.length - 1 && styles.menuItemLast]}
+              activeOpacity={0.8}
+              onPress={() => item.route && router.push(item.route as any)}
             >
               <View style={styles.menuLeft}>
                 <View style={styles.menuIconWrap}>
-                  <Ionicons name={item.icon} size={20} color={colors.teal} />
+                  <Ionicons name={item.icon} size={18} color={colors.teal} />
                 </View>
                 <Text style={styles.menuLabel}>{item.label}</Text>
               </View>
-              <Ionicons name={item.label.includes('mode') ? 'swap-horizontal-outline' : 'chevron-forward'} size={18} color={colors.textSub} />
+              <Ionicons name="chevron-forward" size={16} color={colors.textSub} />
             </TouchableOpacity>
           ))}
         </View>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
-          <Ionicons name="log-out-outline" size={20} color={colors.coral} />
+        {/* SECTION 2: ТОХИРГОО БА ТУСЛАМЖ */}
+        <Text style={styles.sectionTitle}>Ерөнхий тохиргоо</Text>
+        <View style={styles.menuGroup}>
+          {appMenu.map((item, i) => (
+            <TouchableOpacity
+              key={`${item.label}-${i}`}
+              style={[styles.menuItem, i === appMenu.length - 1 && styles.menuItemLast]}
+              activeOpacity={0.8}
+              onPress={() => item.label.includes('горим') ? toggleTheme() : item.route && router.push(item.route as any)}
+            >
+              <View style={styles.menuLeft}>
+                <View style={[styles.menuIconWrap, item.label.includes('горим') && styles.themeIconWrap]}>
+                  <Ionicons name={item.icon} size={18} color={item.label.includes('горим') ? '#E5A93C' : colors.teal} />
+                </View>
+                <Text style={styles.menuLabel}>{item.label}</Text>
+              </View>
+              {item.label.includes('горим') ? (
+                <View style={styles.toggleIndicator}>
+                  <Text style={styles.toggleText}>{isLight ? 'Асаалттай' : 'Идэвхтэй'}</Text>
+                </View>
+              ) : (
+                <Ionicons name="chevron-forward" size={16} color={colors.textSub} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* LOGOUT BUTTON */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
+          <Ionicons name="log-out-outline" size={18} color={colors.coral} />
           <Text style={styles.logoutText}>Системээс гарах</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>v1.0.0 · Ховд аймгийн Хөгжимт Драмын Театр</Text>
+        <Text style={styles.version}>v1.1.0 Premium · Ховд аймгийн Хөгжимт Драмын Театр</Text>
       </ScrollView>
     </View>
   );
@@ -103,31 +147,93 @@ export default function ProfileScreen() {
 
 const createStyles = (colors: typeof COLORS, isLight: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  headerGrad: { alignItems: 'center', paddingTop: 80, paddingBottom: SPACING.xl },
-  avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: RADIUS.full,
-    backgroundColor: colors.tealDim,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.teal,
-    marginBottom: SPACING.md,
-    overflow: 'hidden',
+  
+  // Hero Luxury Profile Card
+  headerGrad: { 
+    alignItems: 'center', 
+    paddingTop: 70, 
+    paddingBottom: SPACING.lg,
+    paddingHorizontal: SPACING.lg 
   },
-  avatarImage: { width: '100%', height: '100%' },
-  name: { fontSize: 22, fontWeight: '800', color: colors.white, marginBottom: 4 },
-  email: { color: colors.textSub, fontSize: 14 },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  phone: { color: colors.textDim, fontSize: 13 },
-  menu: {
-    marginHorizontal: SPACING.lg,
-    marginBottom: SPACING.md,
-    backgroundColor: colors.bgCard,
-    borderRadius: RADIUS.md,
+  profileCard: {
+    width: '100%',
+    backgroundColor: isLight ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.03)',
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.05)',
+    padding: SPACING.xl,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: isLight ? 0.05 : 0.2,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 4,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: SPACING.md,
+  },
+  avatarImage: { 
+    width: 90, 
+    height: 90, 
+    borderRadius: 45,
+    borderWidth: 2,
+    borderColor: isLight ? '#FFF' : 'rgba(255,255,255,0.15)',
+  },
+  onlineBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#4ADE80',
+    borderWidth: 2,
+    borderColor: isLight ? '#FFF' : '#161622',
+  },
+  name: { 
+    fontSize: 20, 
+    fontWeight: '800', 
+    color: isLight ? '#111' : '#FFF', 
+    marginBottom: 4,
+    letterSpacing: -0.3
+  },
+  email: { 
+    color: colors.textSub, 
+    fontSize: 13,
+    fontWeight: '500'
+  },
+  phoneRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 6, 
+    marginTop: SPACING.sm,
+    backgroundColor: isLight ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.05)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12
+  },
+  phone: { color: colors.textDim, fontSize: 12, fontWeight: '600' },
+  
+  // Section Titles
+  sectionTitle: {
+    color: isLight ? '#444' : 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginHorizontal: SPACING.xl,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.sm
+  },
+
+  // Premium Grouped Cards
+  menuGroup: {
+    marginHorizontal: SPACING.lg,
+    backgroundColor: isLight ? '#FFF' : 'rgba(255,255,255,0.02)',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)',
     overflow: 'hidden',
   },
   menuItem: {
@@ -135,33 +241,48 @@ const createStyles = (colors: typeof COLORS, isLight: boolean) => StyleSheet.cre
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: SPACING.md,
+    paddingHorizontal: SPACING.lg,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: isLight ? '#F0F0F2' : 'rgba(255,255,255,0.04)',
   },
   menuItemLast: { borderBottomWidth: 0 },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, flex: 1, paddingRight: 12 },
   menuIconWrap: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
-    backgroundColor: colors.tealDim,
+    backgroundColor: isLight ? 'rgba(0,128,128,0.06)' : 'rgba(0,128,128,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuLabel: { color: colors.white, fontSize: 15, flexShrink: 1 },
+  themeIconWrap: {
+    backgroundColor: isLight ? 'rgba(229,169,60,0.08)' : 'rgba(229,169,60,0.15)',
+  },
+  menuLabel: { color: isLight ? '#1A1A1A' : '#ECECEC', fontSize: 15, fontWeight: '500', flexShrink: 1 },
+  
+  toggleIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: isLight ? '#F0F0F2' : 'rgba(255,255,255,0.06)',
+    borderRadius: 8
+  },
+  toggleText: { color: colors.textSub, fontSize: 11, fontWeight: '600' },
+
+  // Minimal Logout Button
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     marginHorizontal: SPACING.lg,
+    marginTop: SPACING.xl,
     marginBottom: SPACING.md,
     padding: SPACING.md,
-    backgroundColor: colors.coralDim,
-    borderRadius: RADIUS.md,
+    backgroundColor: isLight ? 'rgba(217,79,104,0.05)' : 'rgba(217,79,104,0.08)',
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: isLight ? 'rgba(217,79,104,0.25)' : 'rgba(232,96,122,0.2)',
+    borderColor: isLight ? 'rgba(217,79,104,0.15)' : 'rgba(217,79,104,0.12)',
   },
   logoutText: { color: colors.coral, fontWeight: '700', fontSize: 15 },
-  version: { textAlign: 'center', color: colors.textSub, fontSize: 12, marginBottom: SPACING.xl },
+  version: { textAlign: 'center', color: colors.textSub, fontSize: 12, marginTop: SPACING.md, marginBottom: SPACING.xl },
 });
