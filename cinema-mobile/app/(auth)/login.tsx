@@ -108,7 +108,7 @@ export default function LoginScreen() {
               <LinearGradient colors={[COLORS.coral, '#e74c3c']} style={styles.logoCircle}>
                 <Icon name="film" size={42} color="#fff" />
               </LinearGradient>
-              <Text style={styles.brandName}>ХОВД ТЕАТР</Text>
+              <Text style={styles.brandName}>Тавтай морилно уу</Text>
               <Text style={styles.brandSubtitle}>Кино тасалбар захиалгын систем</Text>
             </View>
 

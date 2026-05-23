@@ -295,7 +295,7 @@ export default function Index() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionKicker}>IPTV маягийн сонголт</Text>
+            <Text style={styles.sectionKicker}>now showing</Text>
             <Text style={styles.sectionTitle}>Дэлгэцнээ гарч буй</Text>
           </View>
           <FlatList

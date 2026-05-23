@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,16 +23,24 @@ export default function ProfileScreen() {
   const styles = createStyles(colors, isLight);
   const avatarUrl = user?.avatarUrl || DEFAULT_AVATAR;
 
+  const doLogout = async () => {
+    await logout();
+    router.replace('/(auth)/login');
+  };
+
   const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Системээс гарах уу?');
+      if (confirmed) void doLogout();
+      return;
+    }
+
     Alert.alert('Гарах', 'Системээс гарах уу?', [
       { text: 'Цуцлах', style: 'cancel' },
       {
         text: 'Гарах',
         style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/(auth)/login');
-        },
+        onPress: () => void doLogout(),
       },
     ]);
   };
