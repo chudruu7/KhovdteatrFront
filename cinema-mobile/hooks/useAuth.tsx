@@ -35,8 +35,12 @@ const saveToken = async (token: string) => {
 };
 
 const clearToken = async () => {
-  if (Platform.OS === 'web') localStorage.removeItem(TOKEN_KEY);
-  else await SecureStore.deleteItemAsync(TOKEN_KEY);
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(TOKEN_KEY);
+    return;
+  }
+  await SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {});
+  await AsyncStorage.removeItem(TOKEN_KEY).catch(() => {});
 };
 
 const saveUser = async (user: any) => {
@@ -45,8 +49,11 @@ const saveUser = async (user: any) => {
 };
 
 const clearUser = async () => {
-  if (Platform.OS === 'web') localStorage.removeItem(USER_KEY);
-  else await AsyncStorage.removeItem(USER_KEY);
+  if (Platform.OS === 'web') {
+    localStorage.removeItem(USER_KEY);
+    return;
+  }
+  await AsyncStorage.removeItem(USER_KEY).catch(() => {});
 };
 
 const getSavedUser = async () => {
@@ -110,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
+    setLoading(true);
     if (firebaseAuth.currentUser) {
       await signOut(firebaseAuth).catch(() => {});
     }
@@ -117,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearUser();
     setToken(null);
     setUser(null);
+    setLoading(false);
   };
 
   return (

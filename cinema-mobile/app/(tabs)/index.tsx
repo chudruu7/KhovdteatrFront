@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Dimensions,
   FlatList,
   Image,
+  PanResponder,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -16,13 +18,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { movieAPI } from '../../api';
-import { COLORS } from '../../constants/theme';
 import { useAuth } from '../../hooks/useAuth';
 
 const { width: W, height: H } = Dimensions.get('window');
-const HERO_HEIGHT = Math.min(H * 0.72, 610);
-const POSTER_WIDTH = W * 0.29;
+const HERO_HEIGHT = Math.min(H * 0.74, 620);
+const HERO_CARD_W = W - 36;
+const HERO_CARD_H = Math.min(H * 0.5, 430);
+const IPTV_CARD_W = Math.min(W * 0.58, 228);
 const FALLBACK = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=900&q=80';
+const SWIPE_THRESHOLD = W * 0.23;
 
 const getPoster = (movie: any) => movie?.posterUrl || movie?.poster || FALLBACK;
 const getGenres = (movie: any): string[] => {
@@ -30,7 +34,7 @@ const getGenres = (movie: any): string[] => {
   return Array.isArray(movie.genre) ? movie.genre.filter(Boolean).map(String) : [String(movie.genre)];
 };
 
-function PremiumMovieCard({
+function IptvMovieTile({
   item,
   active,
   onPress,
@@ -43,18 +47,20 @@ function PremiumMovieCard({
     <TouchableOpacity
       activeOpacity={0.86}
       onPress={onPress}
-      style={[styles.railPosterWrap, active && styles.railPosterWrapActive]}
+      style={[styles.iptvTile, active && styles.iptvTileActive]}
     >
-      <Image source={{ uri: getPoster(item) }} style={styles.railPoster} resizeMode="cover" />
+      <Image source={{ uri: getPoster(item) }} style={styles.iptvImage} resizeMode="cover" />
       <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.84)']}
-        style={styles.railPosterShade}
+        colors={['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.78)']}
+        style={styles.tileShade}
       />
-      {item?.rating && (
-        <View style={styles.railRankBadge}>
-          <Text style={styles.railRankText}>{item.rating}</Text>
-        </View>
-      )}
+      <View style={styles.tileInfo}>
+        <Text style={styles.tileTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.tileMeta} numberOfLines={1}>
+          {getGenres(item)[0] || item.duration || 'Кино'}
+        </Text>
+      </View>
+      {active && <View style={styles.focusBar} />}
     </TouchableOpacity>
   );
 }
@@ -70,9 +76,9 @@ function ComingSoonRow({ item, onPress }: { item: any; onPress: () => void }) {
       <View style={styles.comingInfo}>
         <Text style={styles.comingTitle} numberOfLines={2}>{item.title}</Text>
         <View style={styles.comingMeta}>
-          <Ionicons name="sparkles" size={13} color="#E50914" />
+          <Ionicons name="sparkles" size={13} color="#F5C842" />
           <Text style={styles.comingMetaText} numberOfLines={1}>
-            {getGenres(item)[0] || item.director || 'Coming soon'}
+            {getGenres(item)[0] || item.director || 'Тун удахгүй'}
           </Text>
         </View>
       </View>
@@ -87,6 +93,7 @@ export default function Index() {
   const [comingSoon, setComingSoon] = useState<any[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const swipe = useRef(new Animated.ValueXY()).current;
 
   const fetchData = async () => {
     try {
@@ -107,18 +114,75 @@ export default function Index() {
     fetchData();
   }, []);
 
-  const visibleMovies = movies;
-
-  const heroMovie = visibleMovies[activeIndex] || visibleMovies[0] || movies[0];
+  const heroMovie = movies[activeIndex] || movies[0];
+  const nextMovie = movies[(activeIndex + 1) % Math.max(movies.length, 1)];
   const heroGenres = getGenres(heroMovie).slice(0, 3);
   const avatarUrl = user?.avatarUrl || user?.avatar;
+
+  const moveToMovie = (direction: number) => {
+    if (!movies.length) return;
+    const nextIndex = (activeIndex + direction + movies.length) % movies.length;
+    setActiveIndex(nextIndex);
+  };
+
+  const completeSwipe = (direction: number) => {
+    Animated.timing(swipe, {
+      toValue: { x: direction * W * 1.1, y: 22 },
+      duration: 210,
+      useNativeDriver: true,
+    }).start(() => {
+      swipe.setValue({ x: 0, y: 0 });
+      moveToMovie(direction > 0 ? 1 : -1);
+    });
+  };
+
+  const panResponder = useMemo(
+    () => PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 8 && Math.abs(gesture.dx) > Math.abs(gesture.dy),
+      onPanResponderMove: Animated.event([null, { dx: swipe.x, dy: swipe.y }], { useNativeDriver: false }),
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dx > SWIPE_THRESHOLD) {
+          completeSwipe(1);
+          return;
+        }
+        if (gesture.dx < -SWIPE_THRESHOLD) {
+          completeSwipe(-1);
+          return;
+        }
+        Animated.spring(swipe, {
+          toValue: { x: 0, y: 0 },
+          friction: 6,
+          tension: 52,
+          useNativeDriver: true,
+        }).start();
+      },
+    }),
+    [activeIndex, movies.length]
+  );
+
+  const rotate = swipe.x.interpolate({
+    inputRange: [-W, 0, W],
+    outputRange: ['-12deg', '0deg', '12deg'],
+  });
+
+  const likeOpacity = swipe.x.interpolate({
+    inputRange: [20, SWIPE_THRESHOLD],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const skipOpacity = swipe.x.interpolate({
+    inputRange: [-SWIPE_THRESHOLD, -20],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
 
   if (loading) {
     return (
       <View style={styles.loaderFull}>
         <StatusBar barStyle="light-content" backgroundColor="#050505" />
-        <ActivityIndicator size="large" color="#E50914" />
-        <Text style={styles.loaderText}>Loading cinema...</Text>
+        <ActivityIndicator size="large" color="#F5C842" />
+        <Text style={styles.loaderText}>Кинонууд ачааллаж байна...</Text>
       </View>
     );
   }
@@ -135,27 +199,21 @@ export default function Index() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+      <ScrollView showsVerticalScrollIndicator={false} bounces>
         <View style={styles.hero}>
           <Image source={{ uri: getPoster(heroMovie) }} style={styles.heroBackdrop} resizeMode="cover" />
           <LinearGradient
-            colors={['rgba(0,0,0,0.12)', 'rgba(24,18,13,0.36)', '#11100f']}
-            locations={[0, 0.45, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-          <LinearGradient
-            colors={['rgba(17,16,15,0.98)', 'rgba(17,16,15,0.44)', 'transparent']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
+            colors={['rgba(5,5,8,0.18)', 'rgba(5,5,8,0.72)', '#09090d']}
+            locations={[0, 0.5, 1]}
             style={StyleSheet.absoluteFill}
           />
 
           <View style={styles.topBar}>
             <View style={styles.brandBlock}>
-              <Text style={styles.netflixMark}>Ховд аймгийн Хөгжимт Драмын Театр</Text>
+              <Text style={styles.brandTitle}>Ховд Театр</Text>
               <Text style={styles.welcomeText}>Тасалбар захиалга · {user?.name || 'кино сонирхогч'}</Text>
             </View>
-            <TouchableOpacity style={styles.profileButton} activeOpacity={0.86}>
+            <TouchableOpacity style={styles.profileButton} activeOpacity={0.86} onPress={() => router.push('/(tabs)/profile')}>
               {avatarUrl ? (
                 <Image source={{ uri: avatarUrl }} style={styles.avatar} />
               ) : (
@@ -164,65 +222,93 @@ export default function Index() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.heroContent}>
-            <View style={styles.seriesPill}>
-              <View style={styles.liveDot} />
-              <Text style={styles.seriesPillText}>яг одоо дэлгэцнээ</Text>
-            </View>
-            <Text style={styles.heroTitle} numberOfLines={3}>{heroMovie.title}</Text>
-            <View style={styles.metaLine}>
-              {heroMovie.rating && <Text style={styles.metaStrong}>Ангилал {heroMovie.rating}</Text>}
-              {heroMovie.duration && <Text style={styles.metaText}>{heroMovie.duration}</Text>}
-              {heroMovie.ageRating && <Text style={styles.metaText}>{heroMovie.ageRating}</Text>}
-            </View>
-            <View style={styles.genreRow}>
-              {heroGenres.map((genre) => (
-                <View key={genre} style={styles.genrePill}>
-                  <Text style={styles.genreText}>{genre}</Text>
+          <View style={styles.deckWrap}>
+            {nextMovie && nextMovie !== heroMovie && (
+              <View style={[styles.heroCard, styles.backCard]}>
+                <Image source={{ uri: getPoster(nextMovie) }} style={styles.cardImage} resizeMode="cover" />
+              </View>
+            )}
+            <Animated.View
+              {...panResponder.panHandlers}
+              style={[
+                styles.heroCard,
+                {
+                  transform: [
+                    { translateX: swipe.x },
+                    { translateY: swipe.y },
+                    { rotate },
+                  ],
+                },
+              ]}
+            >
+              <Image source={{ uri: getPoster(heroMovie) }} style={styles.cardImage} resizeMode="cover" />
+              <LinearGradient
+                colors={['rgba(0,0,0,0.02)', 'rgba(0,0,0,0.18)', 'rgba(0,0,0,0.88)']}
+                locations={[0, 0.48, 1]}
+                style={StyleSheet.absoluteFill}
+              />
+              <Animated.View style={[styles.swipeBadge, styles.wantBadge, { opacity: likeOpacity }]}>
+                <Text style={styles.swipeBadgeText}>ҮЗНЭ</Text>
+              </Animated.View>
+              <Animated.View style={[styles.swipeBadge, styles.skipBadge, { opacity: skipOpacity }]}>
+                <Text style={styles.swipeBadgeText}>ДАРАА</Text>
+              </Animated.View>
+              <View style={styles.cardCopy}>
+                <View style={styles.livePill}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.livePillText}>Яг одоо дэлгэцнээ</Text>
                 </View>
-              ))}
-            </View>
-            <Text style={styles.synopsis} numberOfLines={3}>
-              {heroMovie.description || heroMovie.synopsis || 'Мэдээлэл олдсонгүй.'}
-            </Text>
-            <View style={styles.actionRow}>
-              <TouchableOpacity
-                style={styles.playButton}
-                activeOpacity={0.9}
-                onPress={() => router.push(`/movie/${heroMovie._id}`)}
-              >
-                <Ionicons name="ticket-outline" size={20} color="#fff" />
-                <Text style={styles.playButtonText}>Тасалбар</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.infoButton}
-                activeOpacity={0.86}
-                onPress={() => router.push(`/movie/${heroMovie._id}`)}
-              >
-                <Ionicons name="information-circle-outline" size={21} color="#fff" />
-              </TouchableOpacity>
-            </View>
+                <Text style={styles.heroTitle} numberOfLines={2}>{heroMovie.title}</Text>
+                <View style={styles.metaLine}>
+                  {heroMovie.rating && <Text style={styles.metaStrong}>Ангилал {heroMovie.rating}</Text>}
+                  {heroMovie.duration && <Text style={styles.metaText}>{heroMovie.duration}</Text>}
+                  {heroMovie.ageRating && <Text style={styles.metaText}>{heroMovie.ageRating}</Text>}
+                </View>
+                <View style={styles.genreRow}>
+                  {heroGenres.map((genre) => (
+                    <View key={genre} style={styles.genrePill}>
+                      <Text style={styles.genreText}>{genre}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </Animated.View>
+          </View>
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.roundAction} activeOpacity={0.85} onPress={() => completeSwipe(-1)}>
+              <Ionicons name="close" size={25} color="#fff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.ticketButton}
+              activeOpacity={0.9}
+              onPress={() => router.push(`/movie/${heroMovie._id}`)}
+            >
+              <Ionicons name="ticket-outline" size={19} color="#11100f" />
+              <Text style={styles.ticketButtonText}>Тасалбар</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[styles.roundAction, styles.goldAction]} activeOpacity={0.85} onPress={() => completeSwipe(1)}>
+              <Ionicons name="heart" size={23} color="#11100f" />
+            </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionKicker}>Яг одоо дэлгэцнээ гарч буй</Text>
-            <Text style={styles.sectionTitle}>Манай дэлгэцнээ</Text>
+            <Text style={styles.sectionKicker}>IPTV маягийн сонголт</Text>
+            <Text style={styles.sectionTitle}>Дэлгэцнээ гарч буй</Text>
           </View>
           <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
-            data={visibleMovies}
+            data={movies}
             keyExtractor={(item, index) => item._id || item.id || `${item.title}-${index}`}
-            contentContainerStyle={styles.railContent}
+            contentContainerStyle={styles.iptvContent}
             renderItem={({ item, index }) => (
-              <PremiumMovieCard
+              <IptvMovieTile
                 item={item}
-                active={item._id === heroMovie._id}
-                onPress={() => {
-                  setActiveIndex(index);
-                }}
+                active={(item._id || item.id) === (heroMovie._id || heroMovie.id)}
+                onPress={() => setActiveIndex(index)}
               />
             )}
           />
@@ -231,7 +317,7 @@ export default function Index() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionKicker}>Тун удахгүй</Text>
-            <Text style={styles.sectionTitle}>Тун удахгүй</Text>
+            <Text style={styles.sectionTitle}>Дараагийн үзвэрүүд</Text>
           </View>
           <View style={styles.comingGrid}>
             {comingSoon.slice(0, 6).map((item) => (
@@ -252,11 +338,11 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#11100f',
+    backgroundColor: '#09090d',
   },
   loaderFull: {
     flex: 1,
-    backgroundColor: '#11100f',
+    backgroundColor: '#09090d',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
@@ -283,26 +369,26 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: W,
     height: HERO_HEIGHT + 30,
-    opacity: 0.9,
+    opacity: 0.42,
   },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    zIndex: 3,
   },
   brandBlock: {
     flex: 1,
     paddingRight: 12,
   },
-  netflixMark: {
-    color: '#f5c842',
-    fontSize: 19,
+  brandTitle: {
+    color: '#F5C842',
+    fontSize: 24,
     fontWeight: '900',
     letterSpacing: 0,
-    lineHeight: 23,
   },
   welcomeText: {
-    color: 'rgba(255,255,255,0.68)',
+    color: 'rgba(255,255,255,0.72)',
     fontSize: 12,
     marginTop: 2,
     fontWeight: '600',
@@ -322,32 +408,84 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  heroContent: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    paddingBottom: 32,
-    maxWidth: W * 0.88,
+  deckWrap: {
+    height: HERO_CARD_H + 24,
+    marginTop: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  seriesPill: {
+  heroCard: {
+    position: 'absolute',
+    width: HERO_CARD_W,
+    height: HERO_CARD_H,
+    borderRadius: 24,
+    overflow: 'hidden',
+    backgroundColor: '#15151b',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 16 },
+    elevation: 12,
+  },
+  backCard: {
+    transform: [{ scale: 0.94 }, { translateY: 18 }],
+    opacity: 0.54,
+  },
+  cardImage: {
+    width: '100%',
+    height: '100%',
+  },
+  swipeBadge: {
+    position: 'absolute',
+    top: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 2,
+  },
+  wantBadge: {
+    left: 22,
+    borderColor: '#1DE9B6',
+    transform: [{ rotate: '-10deg' }],
+  },
+  skipBadge: {
+    right: 22,
+    borderColor: '#E8607A',
+    transform: [{ rotate: '10deg' }],
+  },
+  swipeBadgeText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  cardCopy: {
+    position: 'absolute',
+    left: 18,
+    right: 18,
+    bottom: 18,
+  },
+  livePill: {
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 7,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.14)',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.16)',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   liveDot: {
     width: 7,
     height: 7,
     borderRadius: 4,
-    backgroundColor: '#f5c842',
+    backgroundColor: '#F5C842',
   },
-  seriesPillText: {
+  livePillText: {
     color: '#fff',
     fontSize: 10,
     fontWeight: '900',
@@ -355,8 +493,8 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: '#fff',
-    fontSize: 39,
-    lineHeight: 43,
+    fontSize: 31,
+    lineHeight: 35,
     fontWeight: '900',
     letterSpacing: 0,
     textShadowColor: 'rgba(0,0,0,0.45)',
@@ -368,87 +506,81 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: 9,
-    marginTop: 12,
+    marginTop: 10,
   },
   metaStrong: {
-    color: '#f5c842',
-    fontSize: 13,
+    color: '#F5C842',
+    fontSize: 12,
     fontWeight: '900',
   },
   metaText: {
-    color: 'rgba(255,255,255,0.72)',
-    fontSize: 13,
+    color: 'rgba(255,255,255,0.74)',
+    fontSize: 12,
     fontWeight: '700',
   },
   genreRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 12,
+    marginTop: 11,
   },
   genrePill: {
     paddingHorizontal: 10,
     paddingVertical: 5,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 7,
+    backgroundColor: 'rgba(255,255,255,0.13)',
   },
   genreText: {
-    color: 'rgba(255,255,255,0.78)',
+    color: 'rgba(255,255,255,0.82)',
     fontSize: 11,
     fontWeight: '800',
-  },
-  synopsis: {
-    color: 'rgba(255,255,255,0.76)',
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 13,
-    fontWeight: '500',
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginTop: 18,
+    justifyContent: 'center',
+    gap: 12,
+    marginTop: 4,
   },
-  playButton: {
-    height: 46,
-    paddingHorizontal: 22,
-    borderRadius: 8,
-    backgroundColor: '#d94f68',
+  roundAction: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.13)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+  },
+  goldAction: {
+    backgroundColor: '#F5C842',
+    borderColor: '#F5C842',
+  },
+  ticketButton: {
+    height: 50,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    backgroundColor: '#F5C842',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#d94f68',
-    shadowOpacity: 0.34,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 8,
+    minWidth: 142,
   },
-  playButtonText: {
-    color: '#fff',
+  ticketButtonText: {
+    color: '#11100f',
     fontSize: 15,
     fontWeight: '900',
   },
-  infoButton: {
-    width: 46,
-    height: 46,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
-  },
   section: {
-    paddingTop: 12,
+    paddingTop: 16,
   },
   sectionHeader: {
     paddingHorizontal: 18,
     marginBottom: 12,
   },
   sectionKicker: {
-    color: '#f5c842',
+    color: '#F5C842',
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0,
@@ -460,50 +592,60 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 2,
   },
-  railContent: {
+  iptvContent: {
     paddingLeft: 18,
-    paddingRight: 6,
+    paddingRight: 8,
     gap: 12,
   },
-  railPosterWrap: {
-    width: POSTER_WIDTH,
-    aspectRatio: 2 / 3,
-    borderRadius: 8,
+  iptvTile: {
+    width: IPTV_CARD_W,
+    height: 126,
+    borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#151515',
+    backgroundColor: '#15151b',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: 'rgba(255,255,255,0.11)',
   },
-  railPosterWrapActive: {
-    borderColor: '#f5c842',
-    transform: [{ translateY: -4 }],
+  iptvTileActive: {
+    borderColor: '#F5C842',
+    transform: [{ translateY: -3 }],
   },
-  railPoster: {
+  iptvImage: {
     width: '100%',
     height: '100%',
   },
-  railPosterShade: {
+  tileShade: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    height: '42%',
+    height: '68%',
   },
-  railRankBadge: {
+  tileInfo: {
     position: 'absolute',
-    left: 7,
-    bottom: 7,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 5,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.18)',
+    left: 12,
+    right: 12,
+    bottom: 10,
   },
-  railRankText: {
+  tileTitle: {
     color: '#fff',
-    fontSize: 10,
+    fontSize: 15,
     fontWeight: '900',
+  },
+  tileMeta: {
+    color: 'rgba(255,255,255,0.68)',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 3,
+  },
+  focusBar: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    bottom: 0,
+    height: 3,
+    borderRadius: 3,
+    backgroundColor: '#F5C842',
   },
   comingGrid: {
     paddingHorizontal: 18,
@@ -511,9 +653,9 @@ const styles = StyleSheet.create({
   },
   comingCard: {
     height: 132,
-    borderRadius: 8,
+    borderRadius: 10,
     overflow: 'hidden',
-    backgroundColor: '#151515',
+    backgroundColor: '#15151b',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },

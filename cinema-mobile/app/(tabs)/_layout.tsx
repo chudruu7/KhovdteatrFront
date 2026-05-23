@@ -26,6 +26,8 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: false,
+        animation: 'shift',
+        sceneStyle: { backgroundColor: colors.bg },
       }}
     >
       <Tabs.Screen

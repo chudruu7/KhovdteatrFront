@@ -26,7 +26,14 @@ export default function ProfileScreen() {
   const handleLogout = () => {
     Alert.alert('Гарах', 'Системээс гарах уу?', [
       { text: 'Цуцлах', style: 'cancel' },
-      { text: 'Гарах', style: 'destructive', onPress: logout },
+      {
+        text: 'Гарах',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+          router.replace('/(auth)/login');
+        },
+      },
     ]);
   };
 
@@ -124,7 +131,7 @@ const createStyles = (colors: typeof COLORS, isLight: boolean) => StyleSheet.cre
     borderBottomColor: colors.border,
   },
   menuItemLast: { borderBottomWidth: 0 },
-  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md },
+  menuLeft: { flexDirection: 'row', alignItems: 'center', gap: SPACING.md, flex: 1, paddingRight: 12 },
   menuIconWrap: {
     width: 36,
     height: 36,
@@ -133,7 +140,7 @@ const createStyles = (colors: typeof COLORS, isLight: boolean) => StyleSheet.cre
     alignItems: 'center',
     justifyContent: 'center',
   },
-  menuLabel: { color: colors.white, fontSize: 15 },
+  menuLabel: { color: colors.white, fontSize: 15, flexShrink: 1 },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',

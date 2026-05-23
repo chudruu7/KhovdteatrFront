@@ -39,13 +39,16 @@ function AppStack() {
       <Stack screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.bg },
-        animation: 'slide_from_right',
+        animation: 'ios_from_right',
+        animationDuration: 260,
+        fullScreenGestureEnabled: true,
+        gestureEnabled: true,
       }}>
         <Stack.Screen name="(auth)"  />
         <Stack.Screen name="(tabs)"  />
         <Stack.Screen name="bookings" />
         <Stack.Screen name="booking" />
-        <Stack.Screen name="movie" options={{ animation: 'slide_from_bottom' }} />
+        <Stack.Screen name="movie" options={{ animation: 'slide_from_bottom', animationDuration: 280 }} />
       </Stack>
     </>
   );
