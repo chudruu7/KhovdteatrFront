@@ -7,7 +7,9 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { scheduleAPI } from '../../api';
-import { COLORS, SPACING, RADIUS } from '../../constants/theme';
+import { COLORS, SPACING, RADIUS, ThemeColors } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { isFutureShowTime } from '../../utils/showtime';
 
 const { width } = Dimensions.get('window');
 const SHORT = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
@@ -38,6 +40,8 @@ const FALLBACK = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w
 
 export default function ScheduleScreen() {
   const router = useRouter();
+  const { colors, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isLight), [colors, isLight]);
   const days = useMemo(() => getWeekDays(), []);
   
   const [selDate, setSelDate] = useState(days[0].fullDate);
@@ -51,9 +55,11 @@ export default function ScheduleScreen() {
       const data = await scheduleAPI.getByDate(selDate);
       const list = Array.isArray(data) ? data : [];
       setSchedules(
-        list.sort((a: any, b: any) =>
-          new Date(a.showTime).getTime() - new Date(b.showTime).getTime()
-        )
+        list
+          .filter((schedule: any) => isFutureShowTime(schedule?.showTime))
+          .sort((a: any, b: any) =>
+            new Date(a.showTime).getTime() - new Date(b.showTime).getTime()
+          )
       );
     } catch (error) {
       console.error(error);
@@ -75,7 +81,7 @@ export default function ScheduleScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isLight ? 'dark-content' : 'light-content'} />
       
       {/* Header */}
       <View style={styles.header}>
@@ -110,7 +116,7 @@ export default function ScheduleScreen() {
 
       {loading && !refreshing ? (
         <View style={styles.center}>
-          <ActivityIndicator color={COLORS.coral} size="large" />
+          <ActivityIndicator color={colors.coral} size="large" />
         </View>
       ) : (
         <ScrollView
@@ -120,15 +126,15 @@ export default function ScheduleScreen() {
             <RefreshControl 
                 refreshing={refreshing} 
                 onRefresh={onRefresh} 
-                tintColor={COLORS.coral}
-                colors={[COLORS.coral]}
+                tintColor={colors.coral}
+                colors={[colors.coral]}
             />
           }
         >
           {schedules.length === 0 ? (
             <View style={styles.empty}>
               <View style={styles.emptyIconCircle}>
-                <Ionicons name="calendar-clear-outline" size={40} color="rgba(255,255,255,0.2)" />
+                <Ionicons name="calendar-clear-outline" size={40} color={colors.textSub} />
               </View>
               <Text style={styles.emptyText}>Энэ өдөр үзвэрийн хуваарь гараагүй байна</Text>
             </View>
@@ -160,7 +166,7 @@ export default function ScheduleScreen() {
 
                     <View style={styles.tagsRow}>
                         <View style={styles.timeTag}>
-                            <Ionicons name="time" size={14} color="white" />
+                            <Ionicons name="time" size={14} color="#fff" />
                             <Text style={styles.timeText}>{time}</Text>
                         </View>
                         <View style={styles.hallTag}>
@@ -169,7 +175,7 @@ export default function ScheduleScreen() {
                     </View>
 
                     <View style={styles.detailsRow}>
-                      <Ionicons name="film-outline" size={14} color="rgba(255,255,255,0.5)" />
+                      <Ionicons name="film-outline" size={14} color={colors.textSub} />
                       <Text style={styles.genreText} numberOfLines={1}>
                         {Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre || 'Кино'}
                       </Text>
@@ -182,7 +188,7 @@ export default function ScheduleScreen() {
                   </View>
 
                   <View style={styles.arrowArea}>
-                     <Ionicons name="chevron-forward" size={20} color={COLORS.coral} />
+                     <Ionicons name="chevron-forward" size={20} color={colors.coral} />
                   </View>
                 </TouchableOpacity>
               );
@@ -195,65 +201,65 @@ export default function ScheduleScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0F' },
+const createStyles = (colors: ThemeColors, isLight: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   header: { paddingHorizontal: 25, paddingTop: 70, paddingBottom: 20 },
-  headerTitle: { fontSize: 32, fontWeight: '900', color: 'white', letterSpacing: -0.5 },
-  headerSub: { fontSize: 14, color: 'rgba(255,255,255,0.4)', marginTop: 4 },
+  headerTitle: { fontSize: 32, fontWeight: '900', color: colors.white, letterSpacing: -0.5 },
+  headerSub: { fontSize: 14, color: colors.textSub, marginTop: 4 },
   
   daysContainer: { paddingVertical: 10 },
   daysRow: { paddingHorizontal: 20, gap: 12, paddingBottom: 15 },
   dayBtn: {
     width: 60, height: 80, borderRadius: 20,
-    backgroundColor: '#16161E', alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.border,
   },
   dayBtnSel: { 
-    backgroundColor: COLORS.coral, 
-    borderColor: COLORS.coral,
-    elevation: 10, shadowColor: COLORS.coral, shadowRadius: 10, shadowOpacity: 0.3 
+    backgroundColor: colors.coral,
+    borderColor: colors.coral,
+    elevation: 10, shadowColor: colors.coral, shadowRadius: 10, shadowOpacity: 0.3
   },
-  dayShort: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase' },
-  dayShortSel: { color: 'white' },
-  dayNum: { fontSize: 22, fontWeight: '800', color: 'white', marginTop: 2 },
-  dayNumSel: { color: 'white' },
-  activeDot: { position: 'absolute', bottom: 8, width: 4, height: 4, borderRadius: 2, backgroundColor: 'white' },
+  dayShort: { fontSize: 11, fontWeight: '700', color: colors.textSub, textTransform: 'uppercase' },
+  dayShortSel: { color: '#fff' },
+  dayNum: { fontSize: 22, fontWeight: '800', color: colors.text, marginTop: 2 },
+  dayNumSel: { color: '#fff' },
+  activeDot: { position: 'absolute', bottom: 8, width: 4, height: 4, borderRadius: 2, backgroundColor: '#fff' },
 
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: { paddingHorizontal: 25, paddingTop: 10 },
   
   empty: { alignItems: 'center', justifyContent: 'center', marginTop: 80 },
   emptyIconCircle: { 
-    width: 100, height: 100, borderRadius: 50, backgroundColor: '#16161E', 
+    width: 100, height: 100, borderRadius: 50, backgroundColor: colors.bgCard,
     alignItems: 'center', justifyContent: 'center', marginBottom: 20 
   },
-  emptyText: { color: 'rgba(255,255,255,0.3)', fontSize: 15, textAlign: 'center', width: '70%', lineHeight: 22 },
+  emptyText: { color: colors.textSub, fontSize: 15, textAlign: 'center', width: '70%', lineHeight: 22 },
 
   schedCard: {
-    flexDirection: 'row', backgroundColor: '#16161E',
+    flexDirection: 'row', backgroundColor: colors.bgCard,
     borderRadius: 25, marginBottom: 18,
-    overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)',
+    overflow: 'hidden', borderWidth: 1, borderColor: colors.border,
     height: 140
   },
   poster: { width: 100, height: '100%', resizeMode: 'cover' },
   info: { flex: 1, padding: 18, justifyContent: 'space-between' },
-  movieTitle: { color: 'white', fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  movieTitle: { color: colors.white, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
   
   tagsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   timeTag: { 
     flexDirection: 'row', alignItems: 'center', gap: 6, 
-    backgroundColor: COLORS.coral, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 
+    backgroundColor: colors.coral, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10
   },
-  timeText: { color: 'white', fontWeight: '900', fontSize: 13 },
-  hallTag: { backgroundColor: 'rgba(255,255,255,0.08)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
-  hallText: { color: 'rgba(255,255,255,0.6)', fontSize: 11, fontWeight: '700' },
+  timeText: { color: '#fff', fontWeight: '900', fontSize: 13 },
+  hallTag: { backgroundColor: colors.bgElevate, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10 },
+  hallText: { color: colors.textDim, fontSize: 11, fontWeight: '700' },
 
   detailsRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  genreText: { color: 'rgba(255,255,255,0.4)', fontSize: 12, fontWeight: '500' },
+  genreText: { color: colors.textSub, fontSize: 12, fontWeight: '500' },
   
   priceContainer: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
-  priceLabel: { color: 'rgba(255,255,255,0.3)', fontSize: 11 },
-  priceText: { color: 'white', fontWeight: '800', fontSize: 16 },
+  priceLabel: { color: colors.textSub, fontSize: 11 },
+  priceText: { color: colors.white, fontWeight: '800', fontSize: 16 },
 
-  arrowArea: { width: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.02)' }
+  arrowArea: { width: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' }
 });

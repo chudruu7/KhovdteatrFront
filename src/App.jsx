@@ -11,6 +11,7 @@ import Promotion from './pages/Promotion';
 import Login from './pages/Login';
 import BookingPage from './pages/BookingPage';
 import ProfilePage from './pages/Profile';
+import TicketVerify from './pages/TicketVerify';
 import Adminpanel from './admin/AdminPanel';
 import { movies, news } from './data/movies';
 import { getCurrentUser, setUser, logout } from './auth/auth'; // setCurrentUser -> setUser
@@ -212,6 +213,18 @@ function App() {
         <BookingPage user={user} />
     </motion.div>
 } />
+
+          <Route path="/ticket-verify/:bookingId" element={
+            <motion.div
+              key="ticket-verify"
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <TicketVerify />
+            </motion.div>
+          } />
           
           <Route path="*" element={
             <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center">

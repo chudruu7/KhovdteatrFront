@@ -1,17 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+// app/movie/[id].tsx
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Modal,
-  Platform,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
+  ActivityIndicator, Alert, Animated, Dimensions, Image,
+  Modal, Platform, ScrollView, StatusBar, StyleSheet,
+  Text, TouchableOpacity, View,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,318 +11,538 @@ import { Ionicons } from '@expo/vector-icons';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { getMovieById } from '../../api/movies';
 import { getSchedulesByMovie } from '../../api/schedule';
-import { COLORS, RADIUS, SPACING } from '../../constants/theme';
+import { COLORS, SPACING } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
+import { isFutureShowTime } from '../../utils/showtime';
 
-const FALLBACK = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=900&q=80';
-const PRICES = {
-  standard: { adult: 15000, child: 8000 },
-  prime: { adult: 20000, child: 10000 },
+// ─── Constants ────────────────────────────────────────────────────────────────
+const { width: W, height: H } = Dimensions.get('window');
+const POSTER_H  = H * 0.62;
+const FALLBACK  = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=900&q=80';
+const PRICES    = {
+  standard: { adult: 15_000, child: 8_000 },
+  prime: { adult: 20_000, child: 10_000 },
 };
+const MN_OFFSET = 8 * 60 * 60 * 1000;
 
-const getYouTubeId = (url?: string | null) => {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const getYouTubeId = (url?: string | null): string | null => {
   if (!url) return null;
-  const value = String(url).trim();
-  if (/^[a-zA-Z0-9_-]{11}$/.test(value)) return value;
-
+  const v = String(url).trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
   try {
-    const parsed = new URL(value);
-    const host = parsed.hostname.replace(/^www\./, '');
-    if (host === 'youtu.be') return parsed.pathname.split('/').filter(Boolean)[0] || null;
-    if (host.includes('youtube.com')) {
-      const direct = parsed.searchParams.get('v');
-      if (direct) return direct;
-      const parts = parsed.pathname.split('/').filter(Boolean);
-      const marker = parts.findIndex((part) => ['embed', 'shorts', 'live'].includes(part));
-      if (marker >= 0) return parts[marker + 1] || null;
+    const p = new URL(v), h = p.hostname.replace(/^www\./, '');
+    if (h === 'youtu.be') return p.pathname.split('/').filter(Boolean)[0] ?? null;
+    if (h.includes('youtube.com')) {
+      const id = p.searchParams.get('v');
+      if (id) return id;
+      const parts = p.pathname.split('/').filter(Boolean);
+      const idx   = parts.findIndex(s => ['embed','shorts','live'].includes(s));
+      if (idx >= 0) return parts[idx + 1] ?? null;
     }
   } catch {
-    const match = value.match(/(?:youtu\.be\/|embed\/|shorts\/|live\/|watch\?v=|&v=)([a-zA-Z0-9_-]{11})/);
-    return match?.[1] || null;
+    const m = v.match(/(?:youtu\.be\/|embed\/|shorts\/|live\/|watch\?v=|&v=)([a-zA-Z0-9_-]{11})/);
+    return m?.[1] ?? null;
   }
-
   return null;
 };
 
-const formatDate = (value?: string) => {
+const formatDate = (value?: string): string => {
   if (!value) return '';
-  const date = new Date(value);
-  const today = new Date();
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-
-  if (date.toDateString() === today.toDateString()) return 'Өнөөдөр';
-  if (date.toDateString() === tomorrow.toDateString()) return 'Маргааш';
-  return date.toLocaleDateString('mn-MN', { month: 'short', day: 'numeric' });
+  const ts   = new Date(value).getTime() + MN_OFFSET;
+  const date = new Date(ts);
+  const now  = new Date(new Date().getTime() + MN_OFFSET);
+  const same = (a: Date, b: Date) =>
+    a.getUTCFullYear() === b.getUTCFullYear() &&
+    a.getUTCMonth()    === b.getUTCMonth()    &&
+    a.getUTCDate()     === b.getUTCDate();
+  const tomorrow = new Date(now);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  if (same(date, now))      return 'Өнөөдөр';
+  if (same(date, tomorrow)) return 'Маргааш';
+  const months = ['1-р','2-р','3-р','4-р','5-р','6-р','7-р','8-р','9-р','10-р','11-р','12-р'];
+  return `${months[date.getUTCMonth()]} сарын ${date.getUTCDate()}`;
 };
 
-const formatTime = (value?: string) => {
+const formatTime = (value?: string): string => {
   if (!value) return '--:--';
-  return new Date(value).toLocaleTimeString('mn-MN', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  const d = new Date(new Date(value).getTime() + MN_OFFSET);
+  return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
 };
 
-export default function MovieDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-  const { width, height } = useWindowDimensions();
-  const { colors, isLight } = useTheme();
-  const styles = createStyles(colors, isLight);
+// ─── Animated Section Title ───────────────────────────────────────────────────
+function SectionHeading({ title, color, delay = 0 }: { title: string; color: string; delay?: number }) {
+  const fade  = useRef(new Animated.Value(0)).current;
+  const slide = useRef(new Animated.Value(10)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fade,  { toValue: 1, duration: 400, delay, useNativeDriver: true }),
+      Animated.timing(slide, { toValue: 0, duration: 400, delay, useNativeDriver: true }),
+    ]).start();
+  }, []);
+  return (
+    <Animated.View style={[styles.sectionHeadingRow, { opacity: fade, transform: [{ translateY: slide }] }]}>
+      <View style={[styles.sectionAccent, { backgroundColor: color }]} />
+      <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
+    </Animated.View>
+  );
+}
 
-  const [movie, setMovie] = useState<any | null>(null);
-  const [schedules, setSchedules] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+// ─── Cast Card ────────────────────────────────────────────────────────────────
+function CastCard({ person, index, colors, isLight }: { person: any; index: number; colors: typeof COLORS; isLight: boolean }) {
+  const fade  = useRef(new Animated.Value(0)).current;
+  const scale = useRef(new Animated.Value(0.92)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fade,  { toValue: 1, duration: 360, delay: index * 60 + 400, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, delay: index * 60 + 400, useNativeDriver: true, tension: 60, friction: 8 }),
+    ]).start();
+  }, []);
+  return (
+    <Animated.View style={[styles.castCard, {
+      opacity: fade, transform: [{ scale }],
+      backgroundColor: isLight ? '#FFF' : 'rgba(255,255,255,0.04)',
+      borderColor: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)',
+    }]}>
+      <View style={[styles.castAvatar, { backgroundColor: isLight ? '#EEF2F7' : 'rgba(255,255,255,0.08)' }]}>
+        <Text style={[styles.castAvatarLetter, { color: colors.teal }]}>
+          {person?.name?.charAt(0)?.toUpperCase() || '?'}
+        </Text>
+      </View>
+      <Text style={[styles.castName, { color: isLight ? '#111' : '#FFF' }]} numberOfLines={1}>
+        {person?.name || '—'}
+      </Text>
+      <Text style={[styles.castRole, { color: colors.textSub }]} numberOfLines={1}>
+        {person?.role || 'Жүжигчин'}
+      </Text>
+    </Animated.View>
+  );
+}
+
+// ─── Showtime Chip ────────────────────────────────────────────────────────────
+function TimeChip({
+  schedule, movieId, movie, posterUri, selectedDate, router, colors, isLight, index,
+}: any) {
+  const showTime  = formatTime(schedule.showTime);
+  const isPrime   = parseInt(showTime.split(':')[0], 10) >= 18;
+  const price     = isPrime ? PRICES.prime.adult : PRICES.standard.adult;
+  const scheduleId = schedule._id || schedule.id;
+  const scale     = useRef(new Animated.Value(1)).current;
+  const fade      = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fade, { toValue: 1, duration: 300, delay: index * 50, useNativeDriver: true }).start();
+  }, []);
+
+  const pressIn  = () => Animated.spring(scale, { toValue: 0.94, useNativeDriver: true, speed: 50 }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 50 }).start();
+  const handlePress = () => {
+    if (!isFutureShowTime(schedule.showTime)) {
+      Alert.alert('Анхааруулга', 'Энэ үзвэрийн цаг өнгөрсөн тул тасалбар захиалах боломжгүй.');
+      return;
+    }
+    router.push({
+      pathname: '/booking/seats',
+      params: { scheduleId, movieId, movieTitle: movie.title, posterUrl: posterUri, date: selectedDate, time: showTime, showTime: schedule.showTime },
+    });
+  };
+
+  return (
+    <Animated.View style={{ opacity: fade, transform: [{ scale }] }}>
+      <TouchableOpacity
+        style={[styles.timeChip, {
+          backgroundColor: isPrime
+            ? (isLight ? 'rgba(197,168,128,0.08)' : 'rgba(197,168,128,0.1)')
+            : (isLight ? '#FFF' : 'rgba(255,255,255,0.04)'),
+          borderColor: isPrime
+            ? 'rgba(197,168,128,0.35)'
+            : (isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'),
+        }]}
+        onPress={handlePress}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+        activeOpacity={1}
+      >
+        {isPrime && (
+          <View style={styles.primeChipBadge}>
+            <Text style={styles.primeChipText}>PRIME</Text>
+          </View>
+        )}
+        <Text style={[styles.timeChipTime, { color: isLight ? '#111' : '#FFF' }]}>{showTime}</Text>
+        <Text style={[styles.timeChipHall, { color: colors.textSub }]} numberOfLines={1}>
+          {schedule.hall?.hallName || schedule.hallName || 'Кино танхим'}
+        </Text>
+        <Text style={[styles.timeChipPrice, { color: isPrime ? '#C5A880' : colors.teal }]}>
+          {price.toLocaleString()}₮
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+export default function MovieDetailScreen() {
+  const { id }             = useLocalSearchParams<{ id: string }>();
+  const router             = useRouter();
+  const { colors, isLight } = useTheme();
+
+  const [movie, setMovie]               = useState<any | null>(null);
+  const [schedules, setSchedules]       = useState<any[]>([]);
+  const [loading, setLoading]           = useState(true);
   const [selectedDate, setSelectedDate] = useState('');
-  const [playing, setPlaying] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  const [playing, setPlaying]           = useState(false);
+  const [expanded, setExpanded]         = useState(false);
+
+  // Entrance animations
+  const posterFade   = useRef(new Animated.Value(0)).current;
+  const infoSlide    = useRef(new Animated.Value(40)).current;
+  const infoFade     = useRef(new Animated.Value(0)).current;
+  const playBtnScale = useRef(new Animated.Value(0)).current;
+  const backBtnFade  = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!id) return;
-
     let mounted = true;
     setLoading(true);
-
     Promise.all([
       getMovieById(id).catch(() => null),
       getSchedulesByMovie(id).catch(() => null),
-    ])
-      .then(([movieRes, scheduleRes]) => {
-        if (!mounted) return;
-        const movieData = movieRes?.movie ?? movieRes;
-        const scheduleList = Array.isArray(scheduleRes)
-          ? scheduleRes
-          : scheduleRes?.schedules || scheduleRes?.data || [];
-
-        setMovie(movieData);
-        setSchedules(scheduleList);
-        if (scheduleList.length > 0) setSelectedDate(formatDate(scheduleList[0].showTime));
-      })
-      .catch(() => Alert.alert('Алдаа', 'Мэдээлэл ачаалахад алдаа гарлаа'))
-      .finally(() => mounted && setLoading(false));
-
-    return () => {
-      mounted = false;
-    };
+    ]).then(([movieRes, scheduleRes]) => {
+      if (!mounted) return;
+      const movieData = movieRes?.movie ?? movieRes;
+      const list: any[] = (Array.isArray(scheduleRes)
+        ? scheduleRes
+        : scheduleRes?.schedules ?? scheduleRes?.data ?? [])
+        .filter((schedule: any) => isFutureShowTime(schedule?.showTime))
+        .sort((a: any, b: any) => new Date(a.showTime).getTime() - new Date(b.showTime).getTime());
+      setMovie(movieData);
+      setSchedules(list);
+      if (list.length > 0) setSelectedDate(formatDate(list[0].showTime));
+    }).catch(() => {
+      if (mounted) Alert.alert('Алдаа', 'Мэдээлэл ачаалахад алдаа гарлаа');
+    }).finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, [id]);
 
-  const groupedSchedules = useMemo(() => {
-    return schedules.reduce<Record<string, any[]>>((acc, schedule) => {
-      const key = formatDate(schedule?.showTime);
-      if (!key) return acc;
-      acc[key] = acc[key] || [];
-      acc[key].push(schedule);
-      return acc;
-    }, {});
-  }, [schedules]);
+  // Run entrance animation after load
+  useEffect(() => {
+    if (!loading && movie) {
+      Animated.stagger(80, [
+        Animated.timing(backBtnFade, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.timing(posterFade,  { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.spring(playBtnScale, { toValue: 1, useNativeDriver: true, tension: 55, friction: 7 }),
+        Animated.parallel([
+          Animated.timing(infoFade,  { toValue: 1, duration: 500, useNativeDriver: true }),
+          Animated.timing(infoSlide, { toValue: 0, duration: 500, useNativeDriver: true }),
+        ]),
+      ]).start();
+    }
+  }, [loading, movie]);
 
-  const posterUri = movie?.posterUrl || movie?.poster || FALLBACK;
-  const description = movie?.description || movie?.synopsis || 'Киноны талаарх дэлгэрэнгүй мэдээлэл удахгүй...';
+  const groupedSchedules = useMemo(() =>
+    schedules.reduce<Record<string, any[]>>((acc, s) => {
+      const key = formatDate(s?.showTime);
+      if (!key) return acc;
+      (acc[key] ??= []).push(s);
+      return acc;
+    }, {}),
+  [schedules]);
+
+  const posterUri  = movie?.posterUrl || movie?.poster || FALLBACK;
+  const description = movie?.description || movie?.synopsis || 'Киноны тайлбар удахгүй нэмэгдэнэ…';
   const trailerUrl = movie?.trailerUrl || movie?.trailer || movie?.youtubeUrl || movie?.videoUrl;
-  const videoId = useMemo(() => getYouTubeId(trailerUrl), [trailerUrl]);
+  const videoId    = useMemo(() => getYouTubeId(trailerUrl), [trailerUrl]);
+  const genres: string[] = (Array.isArray(movie?.genre) ? movie.genre : [movie?.genre]).filter(Boolean);
 
   const openTrailer = () => {
-    if (!videoId) {
-      Alert.alert('Уучлаарай', 'Trailer холбоос бүртгэгдээгүй байна.');
-      return;
-    }
+    if (!videoId) { Alert.alert('Уучлаарай', 'Trailer холбоос бүртгэгдээгүй байна.'); return; }
     setPlaying(true);
   };
 
   if (loading) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: isLight ? '#F5F5F7' : '#0A0A0E' }]}>
+        <StatusBar barStyle={isLight ? 'dark-content' : 'light-content'} />
         <ActivityIndicator color={colors.teal} size="large" />
-        <Text style={styles.loadingText}>Киноны мэдээлэл ачааллаж байна...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSub }]}>Уншиж байна…</Text>
       </View>
     );
   }
 
   if (!movie) {
     return (
-      <View style={styles.center}>
-        <Ionicons name="film-outline" size={64} color={colors.textSub} />
-        <Text style={styles.errorText}>Кино олдсонгүй</Text>
-        <TouchableOpacity style={styles.backHomeBtn} onPress={() => router.back()}>
-          <Text style={styles.backHomeText}>Буцах</Text>
+      <View style={[styles.center, { backgroundColor: isLight ? '#F5F5F7' : '#0A0A0E' }]}>
+        <Ionicons name="film-outline" size={52} color={colors.textSub} />
+        <Text style={[styles.errorText, { color: colors.textSub }]}>Кино олдсонгүй</Text>
+        <TouchableOpacity style={[styles.backHomeBtn, { backgroundColor: colors.teal }]} onPress={() => router.back()}>
+          <Text style={styles.backHomeTxt}>Буцах</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle={isLight ? 'dark-content' : 'light-content'} hidden={playing} />
+    <View style={[styles.container, { backgroundColor: isLight ? '#F5F5F7' : '#0A0A0E' }]}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" hidden={playing} />
 
-      <Modal visible={playing} transparent animationType="fade" onRequestClose={() => setPlaying(false)}>
+      {/* ── Trailer Modal ── */}
+      <Modal visible={playing} transparent animationType="fade" onRequestClose={() => setPlaying(false)} statusBarTranslucent>
         <View style={styles.modalOverlay}>
-          <TouchableOpacity style={styles.closeTrailerBtn} onPress={() => setPlaying(false)}>
-            <Ionicons name="close-circle" size={44} color="#fff" />
+          <TouchableOpacity style={styles.closeTrailerBtn} onPress={() => setPlaying(false)} hitSlop={12}>
+            <Ionicons name="close-circle" size={42} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
           <View style={styles.videoWrapper}>
             {videoId && (
               <YoutubePlayer
-                height={width > height ? height * 0.78 : width * (9 / 16)}
-                width={width}
+                height={W * (9 / 16)}
+                width={W}
                 play={playing}
                 videoId={videoId}
-                onChangeState={(state: string) => {
-                  if (state === 'ended') setPlaying(false);
-                }}
+                onChangeState={(s: string) => { if (s === 'ended') setPlaying(false); }}
               />
             )}
           </View>
         </View>
       </Modal>
 
-      <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color="#fff" />
-      </TouchableOpacity>
+      {/* ── Floating back button ── */}
+      <Animated.View style={[styles.backBtn, { opacity: backBtnFade }]}>
+        <TouchableOpacity onPress={() => router.back()} hitSlop={10} activeOpacity={0.8}>
+          <View style={styles.backBtnInner}>
+            <Ionicons name="arrow-back" size={20} color="#FFF" />
+          </View>
+        </TouchableOpacity>
+      </Animated.View>
 
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+      <ScrollView showsVerticalScrollIndicator={false} bounces>
+
+        {/* ── CINEMATIC POSTER HERO ── */}
         <View style={styles.posterSection}>
-          <Image source={{ uri: posterUri }} style={styles.poster} />
-          <LinearGradient colors={['transparent', isLight ? 'rgba(246,247,251,0.96)' : 'rgba(10,10,15,0.94)']} style={styles.posterGradient} />
-          <TouchableOpacity style={styles.playBtn} activeOpacity={0.9} onPress={openTrailer}>
-            <LinearGradient colors={[colors.teal, '#0d9488']} style={styles.playBtnGradient}>
-              <Ionicons name="play" size={32} color="#fff" />
-            </LinearGradient>
-          </TouchableOpacity>
+          <Animated.Image
+            source={{ uri: posterUri }}
+            style={[styles.poster, { opacity: posterFade }]}
+            resizeMode="cover"
+          />
+
+          {/* Multi-layer gradient for cinematic depth */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.35)', isLight ? 'rgba(245,245,247,1)' : 'rgba(10,10,14,1)']}
+            locations={[0, 0.5, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Side vignette */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.3)']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={StyleSheet.absoluteFill}
+          />
+
+          {/* Trailer play button */}
+          <Animated.View style={[styles.playBtnWrap, { transform: [{ scale: playBtnScale }] }]}>
+            <TouchableOpacity onPress={openTrailer} activeOpacity={0.88}>
+              <LinearGradient
+                colors={['rgba(255,255,255,0.18)', 'rgba(255,255,255,0.06)']}
+                style={styles.playBtn}
+              >
+                <View style={styles.playBtnInner}>
+                  <Ionicons name="play" size={28} color="#FFF" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+            <Text style={styles.trailerLabel}>TRAILER</Text>
+          </Animated.View>
+
+          {/* Hero text overlay at bottom of poster */}
+          <View style={styles.posterOverlayContent}>
+            <View style={styles.genresRow}>
+              {genres.map(g => (
+                <View key={g} style={styles.genrePill}>
+                  <Text style={styles.genrePillText}>{g}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={styles.heroTitle} numberOfLines={2}>{movie.title}</Text>
+            <View style={styles.heroMeta}>
+              {movie.rating && (
+                <View style={styles.starBadge}>
+                  <Ionicons name="star" size={11} color="#0A0A0E" />
+                  <Text style={styles.starText}>{movie.rating}</Text>
+                </View>
+              )}
+              {movie.duration && <Text style={styles.heroMetaText}>{movie.duration}</Text>}
+              {movie.ageRating && <Text style={styles.heroMetaText}>· {movie.ageRating}</Text>}
+              {movie.releaseDate && (
+                <Text style={styles.heroMetaText}>· {new Date(movie.releaseDate).getFullYear()}</Text>
+              )}
+            </View>
+          </View>
         </View>
 
-        <View style={styles.infoCard}>
-          <View style={styles.headerRow}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.title}>{movie.title}</Text>
-              <View style={styles.genreContainer}>
-                {(Array.isArray(movie.genre) ? movie.genre : [movie.genre]).filter(Boolean).map((genre: string) => (
-                  <View key={genre} style={styles.genreTag}>
-                    <Text style={styles.genreText}>{genre}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-            <View style={styles.ratingBox}>
-              <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.ratingText}>{movie.rating || 'PG'}</Text>
-            </View>
-          </View>
+        {/* ── INFO CARD ── */}
+        <Animated.View style={[
+          styles.infoCard,
+          {
+            backgroundColor: isLight ? '#F5F5F7' : '#0A0A0E',
+            opacity: infoFade,
+            transform: [{ translateY: infoSlide }],
+          },
+        ]}>
 
-          <View style={styles.metaRow}>
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={16} color={colors.textSub} />
-              <Text style={styles.metaText}>{movie.duration || 'Тодорхойгүй'}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={16} color={colors.textSub} />
-              <Text style={styles.metaText}>{movie.releaseDate ? new Date(movie.releaseDate).getFullYear() : 'Тодорхойгүй'}</Text>
-            </View>
+          {/* Meta chips row */}
+          <View style={styles.metaChipsRow}>
             {movie.language && (
-              <View style={styles.metaItem}>
-                <Ionicons name="globe-outline" size={16} color={colors.textSub} />
-                <Text style={styles.metaText}>{movie.language}</Text>
+              <View style={[styles.metaChip, { backgroundColor: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', borderColor: isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)' }]}>
+                <Ionicons name="globe-outline" size={13} color={colors.textSub} />
+                <Text style={[styles.metaChipText, { color: colors.textSub }]}>{movie.language}</Text>
               </View>
             )}
+            <View style={[styles.metaChip, { backgroundColor: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)', borderColor: isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)' }]}>
+              <Ionicons name="time-outline" size={13} color={colors.textSub} />
+              <Text style={[styles.metaChipText, { color: colors.textSub }]}>{movie.duration || 'Тодорхойгүй'}</Text>
+            </View>
+            <View style={[styles.metaChip, { backgroundColor: isLight ? 'rgba(20,184,166,0.08)' : 'rgba(20,184,166,0.1)', borderColor: 'rgba(20,184,166,0.25)' }]}>
+              <Ionicons name="film-outline" size={13} color={colors.teal} />
+              <Text style={[styles.metaChipText, { color: colors.teal }]}>HD Чанар</Text>
+            </View>
           </View>
 
-          <TouchableOpacity style={styles.trailerAction} onPress={openTrailer} activeOpacity={0.86}>
-            <Ionicons name="play-circle-outline" size={22} color="#fff" />
-            <Text style={styles.trailerActionText}>Trailer үзэх</Text>
-          </TouchableOpacity>
-
-          <View style={styles.descriptionSection}>
-            <Text style={styles.sectionTitle}>Тайлбар</Text>
-            <Text style={styles.description} numberOfLines={expanded ? undefined : 4}>{description}</Text>
+          {/* ── Description ── */}
+          <View style={styles.section}>
+            <SectionHeading title="Тайлбар" color={isLight ? '#333' : '#FFF'} delay={200} />
+            <Text style={[styles.description, { color: colors.textDim }]} numberOfLines={expanded ? undefined : 4}>
+              {description}
+            </Text>
             {description.length > 150 && (
-              <TouchableOpacity onPress={() => setExpanded(!expanded)}>
-                <Text style={styles.readMore}>{expanded ? 'Багасгах' : 'Дэлгэрэнгүй'}</Text>
+              <TouchableOpacity onPress={() => setExpanded(e => !e)} style={styles.readMoreBtn}>
+                <Text style={[styles.readMoreText, { color: colors.teal }]}>
+                  {expanded ? '↑ Багасгах' : '↓ Дэлгэрэнгүй'}
+                </Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {movie.cast?.length > 0 && (
-            <View style={styles.castSection}>
-              <Text style={styles.sectionTitle}>Жүжигчид</Text>
+          {/* ── Cast ── */}
+          {Array.isArray(movie.cast) && movie.cast.length > 0 && (
+            <View style={styles.section}>
+              <SectionHeading title="Жүжигчид" color={isLight ? '#333' : '#FFF'} delay={280} />
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.castRow}>
-                {movie.cast.map((person: any, index: number) => (
-                  <View key={`${person.name}-${index}`} style={styles.castCard}>
-                    <View style={styles.avatarPlaceholder}>
-                      <Text style={styles.avatarText}>{person.name ? person.name.charAt(0) : '?'}</Text>
-                    </View>
-                    <View style={styles.castInfo}>
-                      <Text style={styles.castName} numberOfLines={1}>{person.name}</Text>
-                      <Text style={styles.castRole} numberOfLines={1}>{person.role || 'Жүжигчин'}</Text>
-                    </View>
-                  </View>
+                {movie.cast.map((person: any, i: number) => (
+                  <CastCard
+                    key={`${person?.name ?? 'cast'}-${i}`}
+                    person={person}
+                    index={i}
+                    colors={colors}
+                    isLight={isLight}
+                  />
                 ))}
               </ScrollView>
             </View>
           )}
 
-          <View style={styles.showtimeSection}>
-            <Text style={styles.sectionTitle}>Үзвэрийн хуваарь</Text>
+          {/* ── Showtimes ── */}
+          <View style={styles.section}>
+            <SectionHeading title="Үзвэрийн хуваарь" color={isLight ? '#333' : '#FFF'} delay={360} />
 
             {Object.keys(groupedSchedules).length > 0 ? (
               <>
+                {/* Date selector */}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.dateStrip}>
-                  {Object.keys(groupedSchedules).map((date) => (
-                    <TouchableOpacity key={date} onPress={() => setSelectedDate(date)} style={[styles.dateBtn, selectedDate === date && styles.dateBtnActive]}>
-                      <Text style={[styles.dateText, selectedDate === date && styles.dateTextActive]}>{date}</Text>
-                      <Text style={[styles.dateCount, selectedDate === date && styles.dateCountActive]}>{groupedSchedules[date].length} цаг</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                <View style={styles.timeGrid}>
-                  {selectedDate && groupedSchedules[selectedDate]?.map((schedule) => {
-                    const showTime = formatTime(schedule.showTime);
-                    const hour = parseInt(showTime.split(':')[0], 10);
-                    const price = hour >= 18 ? PRICES.prime.adult : PRICES.standard.adult;
-                    const scheduleId = schedule._id || schedule.id;
+                  {Object.keys(groupedSchedules).map(dateKey => {
+                    const isActive = selectedDate === dateKey;
                     return (
                       <TouchableOpacity
-                        key={scheduleId}
-                        style={styles.timeChip}
-                        onPress={() => router.push({
-                          pathname: '/booking/seats',
-                          params: {
-                            scheduleId,
-                            movieId: id,
-                            movieTitle: movie.title,
-                            posterUrl: posterUri,
-                            date: selectedDate,
-                            time: showTime,
+                        key={dateKey}
+                        onPress={() => setSelectedDate(dateKey)}
+                        activeOpacity={0.8}
+                        style={[
+                          styles.dateBtn,
+                          {
+                            backgroundColor: isActive
+                              ? colors.teal
+                              : (isLight ? '#FFF' : 'rgba(255,255,255,0.04)'),
+                            borderColor: isActive
+                              ? colors.teal
+                              : (isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'),
                           },
-                        })}
+                        ]}
                       >
-                        <Text style={styles.timeText}>{showTime}</Text>
-                        <Text style={styles.hallText}>{schedule.hall?.hallName || schedule.hallName || 'Кино танхим'}</Text>
-                        <Text style={styles.priceText}>{price.toLocaleString()}₮</Text>
+                        <Text style={[styles.dateBtnText, { color: isActive ? '#0A0A0E' : (isLight ? '#555' : 'rgba(255,255,255,0.6)') }]}>
+                          {dateKey}
+                        </Text>
+                        <Text style={[styles.dateBtnCount, { color: isActive ? 'rgba(10,10,14,0.6)' : colors.textSub }]}>
+                          {groupedSchedules[dateKey].length} цаг
+                        </Text>
                       </TouchableOpacity>
                     );
                   })}
+                </ScrollView>
+
+                {/* Time chips grid */}
+                <View style={styles.timeGrid}>
+                  {(groupedSchedules[selectedDate] ?? []).map((s: any, i: number) => (
+                    <TimeChip
+                      key={s._id || s.id || i}
+                      schedule={s}
+                      index={i}
+                      movieId={id}
+                      movie={movie}
+                      posterUri={posterUri}
+                      selectedDate={selectedDate}
+                      router={router}
+                      colors={colors}
+                      isLight={isLight}
+                    />
+                  ))}
                 </View>
+
               </>
             ) : (
-              <View style={styles.noScheduleContainer}>
-                <Ionicons name="calendar-outline" size={48} color={colors.textSub} />
-                <Text style={styles.noSchedule}>Одоогоор үзвэрийн хуваарь байхгүй байна.</Text>
-                <Text style={styles.noScheduleSub}>Түр хүлээгээд дахин оролдоно уу</Text>
+              <View style={styles.noSchedule}>
+                <Ionicons name="calendar-outline" size={42} color={colors.textSub} />
+                <Text style={[styles.noScheduleText, { color: colors.textDim }]}>
+                  Одоогоор хуваарь байхгүй байна
+                </Text>
+                <Text style={[styles.noScheduleSub, { color: colors.textSub }]}>
+                  Түр хүлээгээд дахин оролдоно уу
+                </Text>
               </View>
             )}
           </View>
-        </View>
+
+          <View style={{ height: 120 }} />
+        </Animated.View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.bookmarkBtn}>
-          <Ionicons name="bookmark-outline" size={24} color={colors.text} />
+      {/* ── FOOTER CTA ── */}
+      <View style={[styles.footer, {
+        backgroundColor: isLight ? 'rgba(245,245,247,0.96)' : 'rgba(10,10,14,0.96)',
+        borderTopColor: isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)',
+      }]}>
+        <TouchableOpacity style={[styles.bookmarkBtn, {
+          backgroundColor: isLight ? '#FFF' : 'rgba(255,255,255,0.05)',
+          borderColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)',
+        }]}>
+          <Ionicons name="bookmark-outline" size={20} color={isLight ? '#333' : 'rgba(255,255,255,0.7)'} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.bookBtn} onPress={() => router.push({ pathname: '/booking/date', params: { movieId: id } })}>
-          <LinearGradient colors={[colors.teal, '#0d9488']} style={styles.bookBtnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-            <Ionicons name="ticket-outline" size={20} color="#fff" />
+
+        <TouchableOpacity
+          style={styles.bookBtn}
+          onPress={() => {
+            if (schedules.length === 0) {
+              Alert.alert('Анхааруулга', 'Захиалах боломжтой үзвэр алга байна.');
+              return;
+            }
+            router.push({ pathname: '/booking/date', params: { movieId: id, movieTitle: movie.title, posterUrl: posterUri } });
+          }}
+          activeOpacity={0.88}
+        >
+          <LinearGradient
+            colors={['#1ECFBD', '#0D9488', '#0A7A6E']}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+            style={styles.bookBtnGradient}
+          >
+            <Ionicons name="ticket-outline" size={18} color="#0A0A0E" />
             <Text style={styles.bookBtnText}>Тасалбар захиалах</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -339,110 +551,181 @@ export default function MovieDetailScreen() {
   );
 }
 
-const createStyles = (colors: typeof COLORS, isLight: boolean) => StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.bg },
-  loadingText: { marginTop: SPACING.md, color: colors.textSub, fontSize: 14 },
-  errorText: { marginTop: SPACING.md, color: colors.textSub, fontSize: 16, marginBottom: SPACING.lg },
-  backHomeBtn: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, backgroundColor: colors.teal, borderRadius: RADIUS.md },
-  backHomeText: { color: '#fff', fontWeight: '700' },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
-  videoWrapper: { width: '100%', backgroundColor: 'black' },
-  closeTrailerBtn: { position: 'absolute', top: 40, right: 20, zIndex: 100, padding: 10 },
-  backBtn: {
+// ─── Styles ───────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  container:  { flex: 1 },
+  center:     { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { fontSize: 13, fontWeight: '500' },
+  errorText:  { fontSize: 15, marginTop: 8 },
+  backHomeBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, marginTop: 4 },
+  backHomeTxt: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+
+  // Modal
+  modalOverlay:    { flex: 1, backgroundColor: 'rgba(0,0,0,0.97)', justifyContent: 'center', alignItems: 'center' },
+  videoWrapper:    { width: '100%' },
+  closeTrailerBtn: { position: 'absolute', top: 44, right: 18, zIndex: 100 },
+
+  // Back button
+  backBtn:      { position: 'absolute', top: 50, left: 18, zIndex: 20 },
+  backBtnInner: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+
+  // Poster hero
+  posterSection: { width: W, height: POSTER_H, position: 'relative' },
+  poster:        { width: W, height: POSTER_H, position: 'absolute' },
+
+  // Play button
+  playBtnWrap: {
     position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
-    width: 40,
-    height: 40,
+    top: '38%',
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  playBtn: {
+    width: 68, height: 68, borderRadius: 34,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)',
+  },
+  playBtnInner: {
+    width: 54, height: 54, borderRadius: 27,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  trailerLabel: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 9, fontWeight: '800', letterSpacing: 2.5,
+  },
+
+  // Hero overlay text
+  posterOverlayContent: {
+    position: 'absolute', bottom: 24,
+    left: 20, right: 20,
+  },
+  genresRow:     { flexDirection: 'row', gap: 6, marginBottom: 10, flexWrap: 'wrap' },
+  genrePill:     {
+    paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
   },
-  posterSection: { width: '100%', height: 500, position: 'relative' },
-  poster: { width: '100%', height: '100%', resizeMode: 'cover' },
-  posterGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 150 },
-  playBtn: { position: 'absolute', bottom: -30, alignSelf: 'center', zIndex: 20 },
-  playBtnGradient: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.teal,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+  genrePillText: { color: '#FFF', fontSize: 11, fontWeight: '600' },
+  heroTitle:     {
+    color: '#FFF', fontSize: 28,
+    fontWeight: '900', letterSpacing: -0.8,
+    lineHeight: 33, marginBottom: 10,
   },
-  infoCard: {
-    marginTop: -30,
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    backgroundColor: colors.bg,
-    paddingHorizontal: SPACING.lg,
-    paddingTop: SPACING.xl,
-    paddingBottom: 100,
+  heroMeta:      { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  starBadge:     {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: '#C5A880',
+    paddingHorizontal: 7, paddingVertical: 3,
+    borderRadius: 6,
   },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SPACING.md },
-  titleContainer: { flex: 1, marginRight: SPACING.md },
-  title: { fontSize: 26, fontWeight: '800', color: colors.white, marginBottom: SPACING.sm },
-  genreContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.xs },
-  genreTag: { backgroundColor: isLight ? 'rgba(15,159,143,0.1)' : 'rgba(255,255,255,0.1)', paddingHorizontal: SPACING.sm, paddingVertical: 4, borderRadius: RADIUS.sm },
-  genreText: { color: isLight ? colors.teal : 'rgba(255,255,255,0.7)', fontSize: 11 },
-  ratingBox: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.bgCard, paddingHorizontal: SPACING.sm, paddingVertical: 6, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: colors.border },
-  ratingText: { fontSize: 14, fontWeight: '700', color: colors.white },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.md, marginBottom: SPACING.md, paddingBottom: SPACING.md, borderBottomWidth: 1, borderBottomColor: colors.border },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaText: { color: colors.textSub, fontSize: 13 },
-  trailerAction: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, backgroundColor: colors.coral, paddingVertical: SPACING.md, borderRadius: RADIUS.md, marginBottom: SPACING.xl },
-  trailerActionText: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  descriptionSection: { marginBottom: SPACING.xl },
-  sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.white, marginBottom: SPACING.md },
-  description: { fontSize: 14, color: colors.textDim, lineHeight: 22 },
-  readMore: { color: colors.teal, fontSize: 13, fontWeight: '700', marginTop: SPACING.sm },
-  castSection: { marginBottom: SPACING.xl },
-  castRow: { gap: SPACING.md, paddingRight: SPACING.lg },
-  castCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.bgCard, padding: SPACING.sm, borderRadius: RADIUS.md, width: 160, borderWidth: 1, borderColor: colors.border },
-  avatarPlaceholder: { width: 45, height: 45, borderRadius: RADIUS.sm, backgroundColor: colors.bgElevate, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '700', color: colors.white },
-  castInfo: { marginLeft: SPACING.sm, flex: 1 },
-  castName: { fontWeight: '700', fontSize: 13, color: colors.white },
-  castRole: { fontSize: 11, color: colors.textSub },
-  showtimeSection: { marginBottom: SPACING.xl },
-  dateStrip: { gap: SPACING.sm, paddingBottom: SPACING.md },
-  dateBtn: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, borderRadius: RADIUS.md, backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
-  dateBtnActive: { backgroundColor: colors.teal, borderColor: colors.teal },
-  dateText: { fontWeight: '700', color: colors.textDim, fontSize: 13 },
-  dateTextActive: { color: '#fff' },
-  dateCount: { fontSize: 10, color: colors.textSub, marginTop: 2 },
-  dateCountActive: { color: 'rgba(255,255,255,0.8)' },
-  timeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
-  timeChip: { width: '31%', backgroundColor: colors.bgCard, paddingVertical: SPACING.md, borderRadius: RADIUS.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-  timeText: { fontSize: 15, fontWeight: '800', color: colors.white },
-  hallText: { fontSize: 10, color: colors.textSub, marginTop: 2 },
-  priceText: { fontSize: 11, color: colors.teal, fontWeight: '700', marginTop: 2 },
-  noScheduleContainer: { alignItems: 'center', justifyContent: 'center', paddingVertical: SPACING.xxl },
-  noSchedule: { textAlign: 'center', color: colors.textDim, marginTop: SPACING.md, fontSize: 14 },
-  noScheduleSub: { textAlign: 'center', color: colors.textSub, marginTop: SPACING.xs, fontSize: 12 },
+  starText:      { color: '#0A0A0E', fontSize: 11, fontWeight: '800' },
+  heroMetaText:  { color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '500' },
+
+  // Info card
+  infoCard: { marginTop: -4, paddingHorizontal: 20, paddingTop: 20 },
+
+  // Meta chips
+  metaChipsRow:  { flexDirection: 'row', gap: 8, marginBottom: 24, flexWrap: 'wrap' },
+  metaChip:      {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 6,
+    borderRadius: 10, borderWidth: 1,
+  },
+  metaChipText:  { fontSize: 12, fontWeight: '600' },
+
+  // Section
+  section: { marginBottom: 28 },
+  sectionHeadingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 },
+  sectionAccent: { width: 3, height: 18, borderRadius: 2 },
+  sectionTitle:  { fontSize: 17, fontWeight: '800', letterSpacing: -0.3 },
+
+  description:   { fontSize: 14, lineHeight: 22 },
+  readMoreBtn:   { marginTop: 8 },
+  readMoreText:  { fontSize: 13, fontWeight: '700' },
+
+  // Cast
+  castRow:       { gap: 10, paddingRight: 4 },
+  castCard:      {
+    width: 90, alignItems: 'center',
+    borderRadius: 16, borderWidth: 1,
+    padding: 12, gap: 6,
+  },
+  castAvatar:    {
+    width: 48, height: 48, borderRadius: 24,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 2,
+  },
+  castAvatarLetter: { fontSize: 20, fontWeight: '800' },
+  castName:      { fontSize: 11, fontWeight: '700', textAlign: 'center' },
+  castRole:      { fontSize: 10, textAlign: 'center' },
+
+  // Date strip
+  dateStrip:     { gap: 8, paddingBottom: 16, paddingRight: 4 },
+  dateBtn:       {
+    paddingHorizontal: 16, paddingVertical: 10,
+    borderRadius: 14, borderWidth: 1,
+    alignItems: 'center', minWidth: 88,
+  },
+  dateBtnText:   { fontSize: 13, fontWeight: '700' },
+  dateBtnCount:  { fontSize: 10, fontWeight: '600', marginTop: 2 },
+
+  // Time grid
+  timeGrid:      { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  timeChip:      {
+    width: (W - 40 - 20) / 3,
+    borderRadius: 14, borderWidth: 1,
+    paddingVertical: 12, paddingHorizontal: 8,
+    alignItems: 'center', position: 'relative',
+    overflow: 'hidden',
+  },
+  primeChipBadge: {
+    position: 'absolute', top: 0, right: 0,
+    backgroundColor: '#C5A880',
+    paddingHorizontal: 5, paddingVertical: 2,
+    borderBottomLeftRadius: 8,
+  },
+  primeChipText:  { color: '#0A0A0E', fontSize: 7, fontWeight: '900', letterSpacing: 0.5 },
+  timeChipTime:   { fontSize: 17, fontWeight: '900', letterSpacing: -0.5 },
+  timeChipHall:   { fontSize: 9, marginTop: 2, textAlign: 'center' },
+  timeChipPrice:  { fontSize: 11, fontWeight: '700', marginTop: 4 },
+
+  // Legend
+  legend:        { flexDirection: 'row', gap: 16, marginTop: 14 },
+  legendItem:    { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendDot:     { width: 7, height: 7, borderRadius: 3.5 },
+  legendText:    { fontSize: 11, fontWeight: '500' },
+
+  // No schedule
+  noSchedule:    { alignItems: 'center', paddingVertical: 36, gap: 8 },
+  noScheduleText: { fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  noScheduleSub:  { fontSize: 12, textAlign: 'center' },
+
+  // Footer
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.bg,
-    paddingHorizontal: SPACING.lg,
-    paddingBottom: Platform.OS === 'ios' ? 34 : SPACING.lg,
-    paddingTop: SPACING.md,
-    flexDirection: 'row',
-    gap: SPACING.md,
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    flexDirection: 'row', gap: 12,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    paddingTop: 14,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
-  bookmarkBtn: { width: 55, height: 55, borderRadius: RADIUS.md, backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  bookBtn: { flex: 1, borderRadius: RADIUS.md, overflow: 'hidden' },
-  bookBtnGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACING.sm, height: 55 },
-  bookBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  bookmarkBtn: {
+    width: 52, height: 52, borderRadius: 14,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1,
+  },
+  bookBtn:         { flex: 1, borderRadius: 14, overflow: 'hidden' },
+  bookBtnGradient: {
+    height: 52, flexDirection: 'row',
+    alignItems: 'center', justifyContent: 'center', gap: 8,
+  },
+  bookBtnText: { color: '#0A0A0E', fontSize: 15, fontWeight: '900', letterSpacing: -0.2 },
 });

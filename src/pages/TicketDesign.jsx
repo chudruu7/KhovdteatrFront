@@ -122,7 +122,7 @@ export default function TicketDesign({
   const money      = (n) => Number(n).toLocaleString('mn-MN') + '₮';
   const adultCount = tickets.filter(t => t.type === 'adult').length;
   const childCount = tickets.filter(t => t.type === 'child').length;
-  const qrData     = `${orderId}|${date}|${time}|${seats.join(',')}`;
+  const qrData     = `${window.location.origin}/ticket-verify/${orderId}`;
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(orderId).catch(() => {});

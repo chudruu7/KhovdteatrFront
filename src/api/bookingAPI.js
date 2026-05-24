@@ -61,6 +61,26 @@ const bookingAPI = {
       return { success: false, error: err.message };
     }
   },
+
+  getById: async (id) => {
+    try {
+      const data = await api.get(`/bookings/${id}`);
+      return { success: true, booking: data.booking || data };
+    } catch (err) {
+      console.error('bookingAPI.getById error:', err);
+      return { success: false, error: err.message };
+    }
+  },
+
+  verify: async (id) => {
+    try {
+      const data = await api.get(`/bookings/verify/${id}`);
+      return { success: true, data };
+    } catch (err) {
+      console.error('bookingAPI.verify error:', err);
+      return { success: false, error: err.message };
+    }
+  },
 };
 
 export default bookingAPI;

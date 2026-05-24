@@ -12,7 +12,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { scheduleAPI } from '../../api';
-import { COLORS, RADIUS, SPACING } from '../../constants/theme';
+import { RADIUS, SPACING, ThemeColors } from '../../constants/theme';
+import { useTheme } from '../../hooks/useTheme';
+import { isBookableShowTime } from '../../utils/showtime';
 
 const { width: W } = Dimensions.get('window');
 const SEAT_SIZE = 18;
@@ -97,13 +99,16 @@ function normalizeTakenSeats(input: any): Set<string> {
 
 export default function SeatsScreen() {
   const router = useRouter();
-  const { movieId, movieTitle, posterUrl, date, time, scheduleId } = useLocalSearchParams<{
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const { movieId, movieTitle, posterUrl, date, time, scheduleId, showTime } = useLocalSearchParams<{
     movieId: string;
     movieTitle: string;
     posterUrl: string;
     date: string;
     time: string;
     scheduleId: string;
+    showTime?: string;
   }>();
 
   const [takenSeats, setTakenSeats] = useState<Set<string>>(new Set());
@@ -158,6 +163,11 @@ export default function SeatsScreen() {
   };
 
   const handleContinue = async () => {
+    if (!isBookableShowTime(showTime, date, time)) {
+      Alert.alert('Анхааруулга', 'Энэ үзвэрийн цаг өнгөрсөн тул тасалбар захиалах боломжгүй.');
+      router.back();
+      return;
+    }
     if (chosen.length === 0) {
       Alert.alert('Анхааруулга', 'Суудал сонгоно уу');
       return;
@@ -182,6 +192,7 @@ export default function SeatsScreen() {
         posterUrl,
         date,
         time,
+        showTime,
         scheduleId,
         seats: JSON.stringify(chosen),
         totalPrice: String(totalPrice),
@@ -233,7 +244,7 @@ export default function SeatsScreen() {
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator color={COLORS.teal} size="large" />
+          <ActivityIndicator color={colors.teal} size="large" />
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -335,7 +346,7 @@ export default function SeatsScreen() {
           onPress={handleContinue}
           activeOpacity={0.86}
         >
-          <LinearGradient colors={[COLORS.teal, '#13c4a3']} style={styles.continueGrad}>
+          <LinearGradient colors={[colors.teal, '#13c4a3']} style={styles.continueGrad}>
             <Text style={styles.continueText}>Үргэлжлүүлэх →</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -344,8 +355,8 @@ export default function SeatsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
@@ -360,15 +371,15 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: RADIUS.full,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: colors.bgCard,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  backText: { color: COLORS.white, fontSize: 18, fontWeight: '800' },
-  headerTitle: { color: COLORS.white, fontSize: 16, fontWeight: '800' },
-  headerSub: { color: COLORS.textSub, fontSize: 12, marginTop: 2 },
+  backText: { color: colors.white, fontSize: 18, fontWeight: '800' },
+  headerTitle: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  headerSub: { color: colors.textSub, fontSize: 12, marginTop: 2 },
   screenWrap: {
     alignItems: 'center',
     marginBottom: SPACING.md,
@@ -382,7 +393,7 @@ const styles = StyleSheet.create({
     opacity: 0.9,
   },
   screenLabel: {
-    color: COLORS.textSub,
+    color: colors.textSub,
     fontSize: 10,
     letterSpacing: 4,
     marginTop: -22,
@@ -397,9 +408,9 @@ const styles = StyleSheet.create({
     width: MAP_WIDTH,
     padding: SPACING.md,
     borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   rowWrap: {
     flexDirection: 'row',
@@ -408,7 +419,7 @@ const styles = StyleSheet.create({
   },
   rowLabel: {
     width: 28,
-    color: COLORS.textSub,
+    color: colors.textSub,
     fontSize: 9,
     fontWeight: '900',
     textAlign: 'center',
@@ -428,23 +439,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border2,
+    borderColor: colors.border2,
   },
   phantomSeat: {
     width: SEAT_SIZE,
     height: SEAT_SIZE,
   },
   seatAdult: {
-    backgroundColor: COLORS.teal,
-    borderColor: COLORS.teal,
+    backgroundColor: colors.teal,
+    borderColor: colors.teal,
   },
   seatChild: {
     backgroundColor: '#7ea3ff',
     borderColor: '#7ea3ff',
   },
   seatTaken: {
-    backgroundColor: COLORS.coral,
-    borderColor: COLORS.coral,
+    backgroundColor: colors.coral,
+    borderColor: colors.coral,
     opacity: 0.75,
   },
   seatBroken: {
@@ -469,19 +480,19 @@ const styles = StyleSheet.create({
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1 },
-  legendAdult: { backgroundColor: COLORS.teal, borderColor: COLORS.teal },
+  legendAdult: { backgroundColor: colors.teal, borderColor: colors.teal },
   legendChild: { backgroundColor: '#7ea3ff', borderColor: '#7ea3ff' },
-  legendFree: { backgroundColor: '#393c52', borderColor: COLORS.border2 },
-  legendTaken: { backgroundColor: COLORS.coral, borderColor: COLORS.coral },
+  legendFree: { backgroundColor: '#393c52', borderColor: colors.border2 },
+  legendTaken: { backgroundColor: colors.coral, borderColor: colors.coral },
   legendBroken: { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.08)' },
-  legendText: { color: COLORS.textDim, fontSize: 11, fontWeight: '600' },
+  legendText: { color: colors.textDim, fontSize: 11, fontWeight: '600' },
   cart: {
     margin: SPACING.lg,
     padding: SPACING.md,
     borderRadius: RADIUS.lg,
-    backgroundColor: COLORS.bgCard,
+    backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: COLORS.border2,
+    borderColor: colors.border2,
   },
   cartHeader: {
     flexDirection: 'row',
@@ -489,53 +500,53 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginBottom: SPACING.md,
   },
-  cartKicker: { color: COLORS.teal, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  cartTitle: { color: COLORS.white, fontSize: 16, fontWeight: '900', marginTop: 2 },
-  cartTotal: { color: COLORS.teal, fontSize: 20, fontWeight: '900' },
+  cartKicker: { color: colors.teal, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
+  cartTitle: { color: colors.white, fontSize: 16, fontWeight: '900', marginTop: 2 },
+  cartTotal: { color: colors.teal, fontSize: 20, fontWeight: '900' },
   chips: { gap: 8, paddingBottom: SPACING.md },
   chip: {
     flexDirection: 'row',
     borderRadius: RADIUS.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border2,
-    backgroundColor: COLORS.bgElevate,
+    borderColor: colors.border2,
+    backgroundColor: colors.bgElevate,
   },
   chipMain: { paddingHorizontal: 10, paddingVertical: 8, minWidth: 112 },
-  chipId: { color: COLORS.teal, fontSize: 12, fontWeight: '900' },
-  chipType: { color: COLORS.textDim, fontSize: 10, marginTop: 3, fontWeight: '700' },
+  chipId: { color: colors.teal, fontSize: 12, fontWeight: '900' },
+  chipType: { color: colors.textDim, fontSize: 10, marginTop: 3, fontWeight: '700' },
   chipRemove: {
     width: 34,
     alignItems: 'center',
     justifyContent: 'center',
     borderLeftWidth: 1,
-    borderLeftColor: COLORS.border,
+    borderLeftColor: colors.border,
   },
-  chipRemoveText: { color: COLORS.coral, fontSize: 18, fontWeight: '900' },
+  chipRemoveText: { color: colors.coral, fontSize: 18, fontWeight: '900' },
   sumLine: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 5,
   },
-  sumText: { color: COLORS.textSub, fontSize: 12 },
-  sumValue: { color: COLORS.text, fontSize: 12, fontWeight: '800' },
-  cartHint: { color: COLORS.textSub, fontSize: 10, lineHeight: 15, marginTop: SPACING.sm },
+  sumText: { color: colors.textSub, fontSize: 12 },
+  sumValue: { color: colors.text, fontSize: 12, fontWeight: '800' },
+  cartHint: { color: colors.textSub, fontSize: 10, lineHeight: 15, marginTop: SPACING.sm },
   footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
     padding: SPACING.lg,
-    backgroundColor: COLORS.bg,
+    backgroundColor: colors.bg,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACING.md,
   },
   footerInfo: { flex: 1 },
-  footerCount: { color: COLORS.textSub, fontSize: 12 },
-  footerTotal: { color: COLORS.teal, fontSize: 20, fontWeight: '900' },
+  footerCount: { color: colors.textSub, fontSize: 12 },
+  footerTotal: { color: colors.teal, fontSize: 20, fontWeight: '900' },
   continueBtn: { borderRadius: RADIUS.md, overflow: 'hidden' },
   continueBtnDisabled: { opacity: 0.42 },
   continueGrad: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },

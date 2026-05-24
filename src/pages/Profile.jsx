@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
 import Header from '../components/Header';
 import { getCurrentUser, updateProfile } from '../auth/auth';
 import { api } from '../api/config';
@@ -178,6 +179,7 @@ const ProfilePage = ({ user: userProp, isLoggedIn = true, onLogout }) => {
                                     {[
                                         { id: 'profile', label: 'Миний профайл', icon: FaUserCircle },
                                         { id: 'bookings', label: 'Захиалгын түүх', icon: FaTicketAlt },
+                                        { id: 'tickets', label: 'Миний тасалбарууд', icon: FaTicketAlt },
                                         { id: 'settings', label: 'Тохиргоо', icon: FaCog },
                                     ].map((tab) => (
                                         <button
@@ -210,7 +212,8 @@ const ProfilePage = ({ user: userProp, isLoggedIn = true, onLogout }) => {
                                         transition={{ duration: 0.4 }}
                                     >
                                         {activeTab === 'profile' && <ProfileTab isEditing={isEditing} form={editForm} setForm={setEditForm} onSave={handleSave} />}
-                                        {activeTab === 'bookings' && <BookingsTab bookings={bookings} />}
+                                        {activeTab === 'bookings' && <BookingsTab bookings={bookings} mode="history" />}
+                                        {activeTab === 'tickets' && <BookingsTab bookings={bookings} mode="tickets" />}
                                         {activeTab === 'settings' && <SettingsTab form={editForm} setForm={setEditForm} onSave={handleSave} />}
                                     </motion.div>
                                 </AnimatePresence>
@@ -271,12 +274,36 @@ const ProfileTab = ({ isEditing, form, setForm, onSave }) => (
     </div>
 );
 
-const BookingsTab = ({ bookings }) => {
+const BookingsTab = ({ bookings, mode = 'history' }) => {
     const [selected, setSelected] = useState(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
+    const isTickets = mode === 'tickets';
+    const getTitle = (item) => item?.title || item?.movieTitle || item?.movie?.title || item?.schedule?.movie?.title || 'Тодорхойгүй кино';
+    const getBookingId = (item) => item?.id || item?._id || item?.bookingCode;
+    const getQrValue = (item) => {
+        const bookingId = getBookingId(item);
+        if (bookingId) return `${window.location.origin}/ticket-verify/${bookingId}`;
+        return item?.qrPayload || JSON.stringify({ bookingCode: item?.bookingCode, movie: getTitle(item) });
+    };
+    const handleSelect = async (item) => {
+        if (!isTickets) return;
+        setSelected(item);
+        const bookingId = getBookingId(item);
+        if (!bookingId) return;
+
+        setDetailsLoading(true);
+        const result = await bookingAPI.getById(bookingId);
+        if (result.success && result.booking) {
+            setSelected({ ...item, ...result.booking });
+        }
+        setDetailsLoading(false);
+    };
 
     return (
         <div>
-            <h2 className="text-3xl font-black tracking-tight mb-8">Захиалгууд</h2>
+            <h2 className="text-3xl font-black tracking-tight mb-8">
+                {isTickets ? 'Миний тасалбарууд' : 'Захиалгын түүх'}
+            </h2>
 
             {bookings.length === 0 ? (
                 <div className="text-center py-20 text-slate-400">
@@ -287,21 +314,23 @@ const BookingsTab = ({ bookings }) => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                     {bookings.map((item, index) => {
                         const isPaid = item.paymentStatus === 'paid';
+                        const title = getTitle(item);
                         return (
                             <div
                                 key={item.id || item._id || index}
-                                onClick={() => setSelected(item)}
-                                className="group bg-white/30 dark:bg-white/[0.03] backdrop-blur-xl rounded-[24px] border border-white/40 dark:border-white/10 hover:border-rose-500/40 transition-all cursor-pointer overflow-hidden hover:-translate-y-1"
+                                onClick={() => handleSelect(item)}
+                                className={`group bg-white/30 dark:bg-white/[0.03] backdrop-blur-xl rounded-[24px] border border-white/40 dark:border-white/10 hover:border-rose-500/40 transition-all overflow-hidden hover:-translate-y-1 ${isTickets ? 'cursor-pointer' : ''}`}
                             >
                                 
                                 <div className="p-5">
-                                    <h4 className="font-black text-base mb-3">{item.title}</h4>
+                                    <h4 className="font-black text-base mb-3">{title}</h4>
                                     <div className="space-y-1.5 text-xs text-slate-500 dark:text-slate-400 font-semibold">
                                         <p className="flex items-center gap-2"><FaClock size={11}/> {item.date} {item.time}</p>
                                         <p className="flex items-center gap-2"><FaMapMarkerAlt size={11}/> {item.hall}</p>
+                                        <p className="flex items-center gap-2"><FaTicketAlt size={11}/> {item.seats?.join(', ') || '—'}</p>
                                     </div>
                                     <div className="flex items-center justify-between mt-4">
-                                        <span className="text-xs text-slate-400">Төлбөр:</span>
+                                        <span className="text-xs text-slate-400">{item.totalPrice?.toLocaleString()}₮</span>
                                         <span className={`text-xs font-black px-3 py-1 rounded-full ${
                                             isPaid
                                                 ? 'bg-emerald-500/15 text-emerald-500'
@@ -310,6 +339,11 @@ const BookingsTab = ({ bookings }) => {
                                             {isPaid ? '✓ Төлөгдсөн' : '⏳ Хүлээгдэж буй'}
                                         </span>
                                     </div>
+                                    {isTickets && (
+                                        <div className="mt-4 pt-3 border-t border-white/20 dark:border-white/5 text-right text-xs font-black text-rose-500">
+                                            Дэлгэрэнгүй харах
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         );
@@ -320,6 +354,12 @@ const BookingsTab = ({ bookings }) => {
             {/* Modal */}
             <AnimatePresence>
                 {selected && (
+                    (() => {
+                        const title = getTitle(selected);
+                        const qrPayload = getQrValue(selected);
+                        const ticketStatus = selected.ticketStatus;
+
+                        return (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -336,14 +376,35 @@ const BookingsTab = ({ bookings }) => {
                         >
                             
                             <div className="p-7">
-                                <h3 className="text-xl font-black mb-5">{selected.title}</h3>
+                                <h3 className="text-xl font-black mb-5">{title}</h3>
+                                <div className="flex flex-col items-center mb-6">
+                                    <div className="p-3 bg-white rounded-2xl shadow-inner">
+                                        <QRCodeSVG value={qrPayload} size={150} bgColor="#FFFFFF" fgColor="#0A0A0E" level="H" />
+                                    </div>
+                                    <p className="mt-3 text-xs font-bold text-slate-500">Үүдэнд энэ QR кодыг уншуулна уу</p>
+                                    <span className={`mt-3 text-xs font-black px-3 py-1 rounded-full ${
+                                        ticketStatus?.isActive
+                                            ? 'bg-emerald-500/15 text-emerald-500'
+                                            : 'bg-rose-500/15 text-rose-500'
+                                    }`}>
+                                        {ticketStatus?.label || (selected.status === 'active' ? 'Идэвхтэй' : 'Идэвхгүй')}
+                                    </span>
+                                </div>
+                                {detailsLoading && (
+                                    <div className="mb-4 text-center text-xs font-bold text-slate-400">Дэлгэрэнгүй мэдээлэл татаж байна...</div>
+                                )}
                                 <div className="space-y-3">
                                     {[
+                                        { label: 'Захиалгын код', value: selected.bookingCode || selected.id || selected._id },
                                         { label: 'Огноо', value: selected.date },
                                         { label: 'Цаг', value: selected.time },
                                         { label: 'Танхим', value: selected.hall },
                                         { label: 'Суудал', value: selected.seats?.join(', ') },
                                         { label: 'Нийт үнэ', value: `${selected.totalPrice?.toLocaleString()}₮` },
+                                        { label: 'Төлбөрийн хэлбэр', value: selected.paymentMethod || '—' },
+                                        { label: 'Нэр', value: selected.customerName || '—' },
+                                        { label: 'Имэйл', value: selected.customerEmail || '—' },
+                                        { label: 'Утас', value: selected.customerPhone || '—' },
                                     ].map(row => (
                                         <div key={row.label} className="flex justify-between items-center py-2.5 border-b border-white/10 dark:border-white/5 text-sm">
                                             <span className="text-slate-500">{row.label}</span>
@@ -370,6 +431,8 @@ const BookingsTab = ({ bookings }) => {
                             </div>
                         </motion.div>
                     </motion.div>
+                        );
+                    })()
                 )}
             </AnimatePresence>
         </div>

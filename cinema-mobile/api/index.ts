@@ -1,9 +1,16 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+
+const getDevApiUrl = () => {
+  const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoClient?.hostUri;
+  const host = hostUri?.split(':')[0];
+  return host ? `http://${host}:5000/api` : 'http://localhost:5000/api';
+};
 
 export const BASE_URL = __DEV__
-  ? 'http://192.168.1.74:5000/api'
+  ? getDevApiUrl()
   : 'https://khovdteatrbackend.onrender.com/api';
 
 export const USER_KEY = 'user';
@@ -145,6 +152,10 @@ export const bookingAPI = {
   },
   getMine: async () => {
     const { data } = await api.get('/bookings/my-history');
+    return data;
+  },
+  getById: async (bookingId: string) => {
+    const { data } = await api.get(`/bookings/${bookingId}`);
     return data;
   },
 };

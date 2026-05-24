@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { movieAPI } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
+import { useTheme } from '../../hooks/useTheme';
+import { ThemeColors } from '../../constants/theme';
 
 const { width: W, height: H } = Dimensions.get('window');
 const SPOTLIGHT_HEIGHT = H * 0.70;
@@ -31,7 +33,19 @@ const getGenres = (movie: any): string[] => {
 };
 
 // Premium Vertical Poster Tile
-function NowPlayingTile({ item, active, onPress }: { item: any; active?: boolean; onPress: () => void }) {
+function NowPlayingTile({
+  item,
+  active,
+  onPress,
+  styles,
+  colors,
+}: {
+  item: any;
+  active?: boolean;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}) {
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={[styles.posterTile, active && styles.posterTileActive]}>
       <Image source={{ uri: getPoster(item) }} style={styles.posterImage} resizeMode="cover" />
@@ -41,7 +55,7 @@ function NowPlayingTile({ item, active, onPress }: { item: any; active?: boolean
       </View>
       {active && (
         <View style={styles.activeIndicator}>
-          <Ionicons name="play" size={10} color="#0A0A0E" />
+          <Ionicons name="play" size={10} color={colors.bg} />
         </View>
       )}
     </TouchableOpacity>
@@ -49,7 +63,17 @@ function NowPlayingTile({ item, active, onPress }: { item: any; active?: boolean
 }
 
 // Minimalist Luxury Coming Soon Row
-function ComingSoonRow({ item, onPress }: { item: any; onPress: () => void }) {
+function ComingSoonRow({
+  item,
+  onPress,
+  styles,
+  colors,
+}: {
+  item: any;
+  onPress: () => void;
+  styles: ReturnType<typeof createStyles>;
+  colors: ThemeColors;
+}) {
   return (
     <TouchableOpacity style={styles.comingCard} activeOpacity={0.85} onPress={onPress}>
       <Image source={{ uri: getPoster(item) }} style={styles.comingImg} resizeMode="cover" />
@@ -63,7 +87,7 @@ function ComingSoonRow({ item, onPress }: { item: any; onPress: () => void }) {
         </View>
       </View>
       <View style={styles.comingArrow}>
-        <Ionicons name="arrow-forward-outline" size={18} color="rgba(255,255,255,0.4)" />
+        <Ionicons name="arrow-forward-outline" size={18} color={colors.textDim} />
       </View>
     </TouchableOpacity>
   );
@@ -72,6 +96,8 @@ function ComingSoonRow({ item, onPress }: { item: any; onPress: () => void }) {
 export default function Index() {
   const router = useRouter();
   const { user } = useAuth();
+  const { colors, isLight } = useTheme();
+  const styles = useMemo(() => createStyles(colors, isLight), [colors, isLight]);
   const [movies, setMovies] = useState<any[]>([]);
   const [comingSoon, setComingSoon] = useState<any[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -100,9 +126,9 @@ export default function Index() {
   if (loading) {
     return (
       <View style={styles.loaderFull}>
-        <StatusBar barStyle="light-content" backgroundColor="#0A0A0E" />
-        <ActivityIndicator size="small" color="#C5A880" />
-        <Text style={styles.loaderText}>LUXURY CINEMA</Text>
+        <StatusBar barStyle={isLight ? 'dark-content' : 'light-content'} backgroundColor={colors.bg} />
+        <ActivityIndicator size="small" color={colors.gold} />
+        <Text style={styles.loaderText}>Түр хүлээнэ үү...</Text>
       </View>
     );
   }
@@ -110,7 +136,7 @@ export default function Index() {
   if (!heroMovie) {
     return (
       <View style={styles.loaderFull}>
-        <Ionicons name="film-outline" size={40} color="rgba(255,255,255,0.15)" />
+        <Ionicons name="film-outline" size={40} color={colors.textDim} />
         <Text style={styles.emptyTitle}>Кино олдсонгүй</Text>
       </View>
     );
@@ -118,14 +144,16 @@ export default function Index() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle={isLight ? 'dark-content' : 'light-content'} translucent backgroundColor="transparent" />
       <ScrollView showsVerticalScrollIndicator={false} bounces={true}>
         
         {/* CINEMATIC SPOTLIGHT HERO */}
         <View style={styles.spotlightContainer}>
           <Image source={{ uri: getPoster(heroMovie) }} style={styles.spotlightBackdrop} resizeMode="cover" />
           <LinearGradient
-            colors={['rgba(10,10,14,0.1)', 'rgba(10,10,14,0.6)', '#0A0A0E']}
+            colors={isLight
+              ? ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.30)', colors.bg]
+              : ['rgba(10,10,14,0.1)', 'rgba(10,10,14,0.6)', colors.bg]}
             locations={[0, 0.4, 1]}
             style={StyleSheet.absoluteFill}
           />
@@ -133,11 +161,11 @@ export default function Index() {
           {/* Floating Luxury Header */}
           <View style={styles.floatingHeader}>
             <View style={styles.brandContainer}>
-              <Text style={styles.brandSub}>KHOVD ENTERTAINMENT</Text>
-              <Text style={styles.brandMain}>Хөгжимт Драмын Театр</Text>
+              <Text style={styles.brandSub}>ХОВД АЙМГИЙН</Text>
+              <Text style={styles.brandMain}>ХӨГЖИМТ ДРАМЫН ТЕАТР</Text>
             </View>
             <TouchableOpacity style={styles.avatarWrapper} activeOpacity={0.8} onPress={() => router.push('/(tabs)/profile')}>
-              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : <Ionicons name="person-outline" size={16} color="#FFF" />}
+              {avatarUrl ? <Image source={{ uri: avatarUrl }} style={styles.avatar} /> : <Ionicons name="person-outline" size={16} color={colors.white} />}
             </TouchableOpacity>
           </View>
 
@@ -172,7 +200,7 @@ export default function Index() {
               activeOpacity={0.9} 
               onPress={() => router.push(`/movie/${heroMovie._id || heroMovie.id}`)}
             >
-              <Ionicons name="ticket-outline" size={20} color="#0A0A0E" />
+              <Ionicons name="ticket-outline" size={20} color={colors.bg} />
               <Text style={styles.primaryCTAText}>Суудал захиалах</Text>
             </TouchableOpacity>
           </View>
@@ -201,6 +229,8 @@ export default function Index() {
                 item={item}
                 active={index === activeIndex}
                 onPress={() => setActiveIndex(index)}
+                styles={styles}
+                colors={colors}
               />
             )}
           />
@@ -219,6 +249,8 @@ export default function Index() {
                 key={item._id || item.id || item.title} 
                 item={item} 
                 onPress={() => router.push(`/movie/${item._id || item.id}`)} 
+                styles={styles}
+                colors={colors}
               />
             ))}
           </View>
@@ -230,17 +262,17 @@ export default function Index() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0A0A0E' },
+const createStyles = (colors: ThemeColors, isLight: boolean) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
   loaderFull: {
     flex: 1,
-    backgroundColor: '#0A0A0E',
+    backgroundColor: colors.bg,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 12,
   },
-  loaderText: { color: '#C5A880', fontSize: 10, fontWeight: '700', letterSpacing: 4 },
-  emptyTitle: { color: 'rgba(255,255,255,0.3)', marginTop: 8, fontSize: 14 },
+  loaderText: { color: colors.gold, fontSize: 10, fontWeight: '700', letterSpacing: 4 },
+  emptyTitle: { color: colors.textDim, marginTop: 8, fontSize: 14 },
   
   // Spotlight Styles
   spotlightContainer: {
@@ -262,14 +294,14 @@ const styles = StyleSheet.create({
   },
   brandContainer: { flex: 1 },
   brandSub: {
-    color: '#C5A880',
+    color: colors.gold,
     fontSize: 9,
     fontWeight: '700',
     letterSpacing: 2,
     marginBottom: 2,
   },
   brandMain: {
-    color: '#FFF',
+    color: colors.white,
     fontSize: 18,
     fontWeight: '800',
     letterSpacing: -0.5,
@@ -278,9 +310,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -297,10 +329,10 @@ const styles = StyleSheet.create({
     gap: 6,
     marginBottom: 8,
   },
-  goldDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#C5A880' },
-  tagText: { color: '#C5A880', fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
+  goldDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: colors.gold },
+  tagText: { color: colors.gold, fontSize: 9, fontWeight: '800', letterSpacing: 1.5 },
   spotlightTitle: {
-    color: '#FFF',
+    color: colors.white,
     fontSize: 34,
     lineHeight: 40,
     fontWeight: '900',
@@ -313,39 +345,39 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   ratingBadge: {
-    backgroundColor: '#C5A880',
+    backgroundColor: colors.gold,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
   },
-  ratingText: { color: '#0A0A0E', fontSize: 11, fontWeight: '800' },
-  metaInfoText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: '500' },
+  ratingText: { color: colors.bg, fontSize: 11, fontWeight: '800' },
+  metaInfoText: { color: colors.textSub, fontSize: 13, fontWeight: '500' },
   genresContainer: { flexDirection: 'row', gap: 10, marginTop: 12, marginBottom: 24 },
-  genreLink: { color: 'rgba(255,255,255,0.4)', fontSize: 13, fontWeight: '500' },
+  genreLink: { color: colors.textDim, fontSize: 13, fontWeight: '500' },
   
   primaryCTA: {
     height: 54,
     borderRadius: 27,
-    backgroundColor: '#FFF',
+    backgroundColor: colors.white,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#FFF',
+    shadowColor: colors.white,
     shadowOpacity: 0.15,
     shadowRadius: 15,
     shadowOffset: { width: 0, height: 10 },
     elevation: 8,
   },
-  primaryCTAText: { color: '#0A0A0E', fontSize: 15, fontWeight: '700', letterSpacing: -0.2 },
+  primaryCTAText: { color: colors.bg, fontSize: 15, fontWeight: '700', letterSpacing: -0.2 },
 
   // Sections Common
   section: { paddingTop: 36 },
   sectionHeader: { paddingHorizontal: 24, marginBottom: 18 },
   titleLine: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  sectionTitle: { color: '#FFF', fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
-  sectionCount: { color: '#C5A880', fontSize: 12, fontWeight: '600' },
-  sectionSubtitle: { color: 'rgba(255,255,255,0.35)', fontSize: 13, marginTop: 4, fontWeight: '400' },
+  sectionTitle: { color: colors.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5 },
+  sectionCount: { color: colors.gold, fontSize: 12, fontWeight: '600' },
+  sectionSubtitle: { color: colors.textDim, fontSize: 13, marginTop: 4, fontWeight: '400' },
 
   // Now Playing Carousel
   carouselContainer: { paddingLeft: 24, paddingRight: 8, gap: 16 },
@@ -354,18 +386,18 @@ const styles = StyleSheet.create({
     height: POSTER_H,
     borderRadius: 16,
     overflow: 'hidden',
-    backgroundColor: '#14141C',
+    backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: colors.border,
   },
   posterTileActive: {
-    borderColor: '#C5A880',
+    borderColor: colors.gold,
     transform: [{ scale: 1.02 }],
   },
   posterImage: { width: '100%', height: '100%' },
   posterShade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '60%' },
   posterInfo: { position: 'absolute', left: 12, right: 12, bottom: 12 },
-  posterTitle: { color: '#FFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  posterTitle: { color: colors.white, fontSize: 13, fontWeight: '600', textAlign: 'center' },
   activeIndicator: {
     position: 'absolute',
     top: 10,
@@ -373,7 +405,7 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#C5A880',
+    backgroundColor: colors.gold,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -383,17 +415,17 @@ const styles = StyleSheet.create({
   comingCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    backgroundColor: colors.bgCard,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
+    borderColor: colors.border,
     borderRadius: 16,
     padding: 10,
     gap: 14,
   },
   comingImg: { width: 60, height: 80, borderRadius: 10 },
   comingInfo: { flex: 1, justifyContent: 'center' },
-  comingTitle: { color: '#FFF', fontSize: 15, fontWeight: '700', letterSpacing: -0.2 },
-  comingGenre: { color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 4, marginBottom: 8 },
+  comingTitle: { color: colors.text, fontSize: 15, fontWeight: '700', letterSpacing: -0.2 },
+  comingGenre: { color: colors.textDim, fontSize: 12, marginTop: 4, marginBottom: 8 },
   comingBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 6,
@@ -401,6 +433,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(197,168,128,0.12)',
     borderRadius: 4,
   },
-  comingBadgeText: { color: '#C5A880', fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
+  comingBadgeText: { color: colors.gold, fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
   comingArrow: { paddingRight: 6 },
 });
