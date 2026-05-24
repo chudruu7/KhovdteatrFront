@@ -76,6 +76,15 @@ const isMobileWeb = () =>
   typeof navigator !== 'undefined' &&
   /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
+const restoreMobilePublicPathForRedirect = () => {
+  if (typeof window === 'undefined') return;
+
+  const publicPath = (window as any).__CINEMA_MOBILE_PUBLIC_PATH__;
+  if (publicPath && window.location.pathname === '/') {
+    window.history.replaceState(null, '', publicPath);
+  }
+};
+
 const makeProvider = () => {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
@@ -184,6 +193,7 @@ export const useGoogleAuth = (
       const provider = makeProvider();
 
       if (isMobileWeb()) {
+        restoreMobilePublicPathForRedirect();
         await signInWithRedirect(firebaseAuth, provider);
         return;
       }
@@ -197,6 +207,7 @@ export const useGoogleAuth = (
       }
 
       if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+        restoreMobilePublicPathForRedirect();
         await signInWithRedirect(firebaseAuth, makeProvider());
         return;
       }

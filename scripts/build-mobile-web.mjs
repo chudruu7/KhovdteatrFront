@@ -40,6 +40,7 @@ if (!html.includes("window.history.replaceState(null, '', '/')")) {
     `<body>
     <script>
       if (window.location.pathname.startsWith('/mobile')) {
+        window.__CINEMA_MOBILE_PUBLIC_PATH__ = '/mobile';
         window.history.replaceState(null, '', '/');
       }
     </script>`
