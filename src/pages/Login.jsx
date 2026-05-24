@@ -7,6 +7,7 @@ import { auth } from '../auth/firebaseConfig';
 import {
   GoogleAuthProvider,
   getRedirectResult,
+  onAuthStateChanged,
   signInWithPopup,
   signInWithRedirect,
 } from 'firebase/auth';
@@ -104,6 +105,7 @@ const CinematicLogin = ({ onLogin }) => {
   const particlesRef = useRef(initParticles());
   const canvasRef    = useRef(null);
   const rafRef       = useRef(null);
+  const syncedGoogleUidRef = useRef(null);
 
   useEffect(() => {
     const currentUser = getCurrentUser();
@@ -155,6 +157,8 @@ const CinematicLogin = ({ onLogin }) => {
   };
 
   const syncGoogleUser = useCallback(async (firebaseUser) => {
+    if (syncedGoogleUidRef.current === firebaseUser.uid) return;
+
     if (!firebaseUser.email) {
       throw new Error('Google account did not provide an email address.');
     }
@@ -175,6 +179,7 @@ const CinematicLogin = ({ onLogin }) => {
     }
 
     if (onLogin && syncResult.user) onLogin(syncResult.user);
+    syncedGoogleUidRef.current = firebaseUser.uid;
     const target = syncResult.user?.role === 'admin' ? '/admin' : '/';
     navigate(target);
   }, [navigate, onLogin]);
@@ -198,6 +203,28 @@ const CinematicLogin = ({ onLogin }) => {
 
     return () => {
       alive = false;
+    };
+  }, [syncGoogleUser]);
+
+  useEffect(() => {
+    let alive = true;
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!alive || !firebaseUser) return;
+
+      setIsLoading(true);
+      setError('');
+      syncGoogleUser(firebaseUser)
+        .catch((err) => {
+          if (alive) setError(err.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+        })
+        .finally(() => {
+          if (alive) setIsLoading(false);
+        });
+    });
+
+    return () => {
+      alive = false;
+      unsubscribe();
     };
   }, [syncGoogleUser]);
 

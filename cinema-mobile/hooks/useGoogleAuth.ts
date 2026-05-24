@@ -6,6 +6,7 @@ import Constants from 'expo-constants';
 import {
   GoogleAuthProvider,
   getRedirectResult,
+  onAuthStateChanged,
   signInWithPopup,
   signInWithRedirect,
   type User,
@@ -100,6 +101,7 @@ export const useGoogleAuth = (
   const [loading, setLoading] = useState(false);
 
   const onSuccessRef = useRef(onSuccess);
+  const syncedFirebaseUidRef = useRef<string | null>(null);
   useEffect(() => {
     onSuccessRef.current = onSuccess;
   }, [onSuccess]);
@@ -125,6 +127,18 @@ export const useGoogleAuth = (
     });
   }, []);
 
+  const syncFirebaseUser = useCallback(async (firebaseUser: User) => {
+    if (syncedFirebaseUidRef.current === firebaseUser.uid) return;
+
+    setLoading(true);
+    try {
+      await handleFirebaseUser(firebaseUser);
+      syncedFirebaseUidRef.current = firebaseUser.uid;
+    } finally {
+      setLoading(false);
+    }
+  }, [handleFirebaseUser]);
+
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
@@ -132,8 +146,7 @@ export const useGoogleAuth = (
     getRedirectResult(firebaseAuth)
       .then(async (result) => {
         if (!alive || !result?.user) return;
-        setLoading(true);
-        await handleFirebaseUser(result.user);
+        await syncFirebaseUser(result.user);
       })
       .catch((err: any) => {
         if (alive) {
@@ -147,7 +160,27 @@ export const useGoogleAuth = (
     return () => {
       alive = false;
     };
-  }, [handleFirebaseUser]);
+  }, [syncFirebaseUser]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    let alive = true;
+    const unsubscribe = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+      if (!alive || !firebaseUser) return;
+
+      syncFirebaseUser(firebaseUser).catch((err: any) => {
+        if (alive) {
+          Alert.alert('Aldaa', err?.message || 'Google login failed.');
+        }
+      });
+    });
+
+    return () => {
+      alive = false;
+      unsubscribe();
+    };
+  }, [syncFirebaseUser]);
 
   // ── Native: promptAsync response ──────────────────────────────────────────
   useEffect(() => {
@@ -205,7 +238,7 @@ export const useGoogleAuth = (
 
       const result = await signInWithPopup(firebaseAuth, makeProvider());
       if (result.user) {
-        await handleFirebaseUser(result.user);
+        await syncFirebaseUser(result.user);
       }
     } catch (err: any) {
       const code = err?.code ?? '';
@@ -251,7 +284,7 @@ export const useGoogleAuth = (
     if (Platform.OS === 'web') return startWebAuth();
     return startNativeAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request, promptAsync, handleFirebaseUser]);
+  }, [request, promptAsync, syncFirebaseUser]);
 
   return { startGoogleAuth, googleLoading: loading, googleRequest: request };
 };
