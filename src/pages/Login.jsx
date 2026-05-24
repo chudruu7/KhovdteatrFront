@@ -1,12 +1,14 @@
 // src/pages/Login.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { login, register, socialLogin, getCurrentUser } from '../auth/auth';
 import { auth } from '../auth/firebaseConfig';
 import {
   GoogleAuthProvider,
+  getRedirectResult,
   signInWithPopup,
+  signInWithRedirect,
 } from 'firebase/auth';
 import { SYSTEM_AVATARS } from '../data/avatars'; // ← DEFAULT_AVATAR хэрэгтэй үгүй
 
@@ -64,6 +66,15 @@ const AvatarSelector = ({ selectedId, onSelect, disabled }) => {
 
 // ── Particles (өмнөхтэй адил) ────────────────────────────────────
 const PARTICLE_COUNT = 50;
+const isMobileBrowser = () =>
+  /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent);
+
+const createGoogleProvider = () => {
+  const authProvider = new GoogleAuthProvider();
+  authProvider.setCustomParameters({ prompt: 'select_account' });
+  return authProvider;
+};
+
 const initParticles = () =>
   Array.from({ length: PARTICLE_COUNT }, (_, i) => ({
     id: i,
@@ -143,6 +154,53 @@ const CinematicLogin = ({ onLogin }) => {
     setSuccess('');
   };
 
+  const syncGoogleUser = useCallback(async (firebaseUser) => {
+    if (!firebaseUser.email) {
+      throw new Error('Google account did not provide an email address.');
+    }
+    if (!firebaseUser.email.toLowerCase().endsWith('@gmail.com')) {
+      throw new Error('Зөвхөн Gmail хаягаар нэвтрэх боломжтой.');
+    }
+
+    const syncResult = await socialLogin({
+      name: firebaseUser.displayName ?? 'Google user',
+      email: firebaseUser.email,
+      avatarUrl: firebaseUser.photoURL ?? SYSTEM_AVATARS[0].url,
+      provider: 'google',
+      providerId: firebaseUser.uid,
+    });
+
+    if (!syncResult.success) {
+      throw new Error(syncResult.message || 'Нэвтрэхэд алдаа гарлаа.');
+    }
+
+    if (onLogin && syncResult.user) onLogin(syncResult.user);
+    const target = syncResult.user?.role === 'admin' ? '/admin' : '/';
+    navigate(target);
+  }, [navigate, onLogin]);
+
+  useEffect(() => {
+    let alive = true;
+
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (!alive || !result?.user) return;
+        setIsLoading(true);
+        setError('');
+        await syncGoogleUser(result.user);
+      })
+      .catch((err) => {
+        if (alive) setError(err.message || 'Google-ээр нэвтрэхэд алдаа гарлаа.');
+      })
+      .finally(() => {
+        if (alive) setIsLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [syncGoogleUser]);
+
   const validateForm = () => {
     if (!formData.email || !formData.email.includes('@')) {
       setError('Хүчинтэй имэйл хаяг оруулна уу.');
@@ -211,34 +269,15 @@ const CinematicLogin = ({ onLogin }) => {
   setIsLoading(true);
   setError('');
   try {
-    const authProvider = new GoogleAuthProvider();
-    authProvider.setCustomParameters({ prompt: 'select_account' });
+    const authProvider = createGoogleProvider();
+
+    if (isMobileBrowser()) {
+      await signInWithRedirect(auth, authProvider);
+      return;
+    }
 
     const result = await signInWithPopup(auth, authProvider);
-    const firebaseUser = result.user;
-
-    if (!firebaseUser.email) {
-      throw new Error('Google account did not provide an email address.');
-    }
-    if (!firebaseUser.email.toLowerCase().endsWith('@gmail.com')) {
-      throw new Error('Зөвхөн Gmail хаягаар нэвтрэх боломжтой.');
-    }
-
-    const syncResult = await socialLogin({
-      name: firebaseUser.displayName ?? 'Google user',
-      email: firebaseUser.email,
-      avatarUrl: firebaseUser.photoURL ?? SYSTEM_AVATARS[0].url,
-      provider: 'google',
-      providerId: firebaseUser.uid,
-    });
-
-    if (syncResult.success) {
-      if (onLogin && syncResult.user) onLogin(syncResult.user);
-      const target = syncResult.user?.role === 'admin' ? '/admin' : '/';
-      navigate(target);
-    } else {
-      setError(syncResult.message || 'Нэвтрэхэд алдаа гарлаа.');
-    }
+    await syncGoogleUser(result.user);
   } catch (err) {
     if (err.code === 'auth/popup-closed-by-user') {
       setError('Нэвтрэх цонхыг хаалаа.');

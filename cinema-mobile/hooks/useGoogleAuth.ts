@@ -5,7 +5,9 @@ import * as WebBrowser from 'expo-web-browser';
 import Constants from 'expo-constants';
 import {
   GoogleAuthProvider,
+  getRedirectResult,
   signInWithPopup,
+  signInWithRedirect,
   type User,
 } from 'firebase/auth';
 import { firebaseAuth } from '../api/firebase';
@@ -46,11 +48,23 @@ const CLIENT_IDS = {
 
 const PLACEHOLDER = 'missing-client-id.apps.googleusercontent.com';
 
+const getGoogleRedirectUri = (clientId?: string) => {
+  const prefix = clientId?.replace('.apps.googleusercontent.com', '');
+  return prefix ? `com.googleusercontent.apps.${prefix}:/oauthredirect` : undefined;
+};
+
+const isMobileWeb = () => {
+  if (Platform.OS !== 'web' || typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+};
+
 const getNativeClientId = (): string | undefined => {
   if (Platform.OS === 'ios') return CLIENT_IDS.ios;
   if (Platform.OS === 'android') return CLIENT_IDS.android;
   return CLIENT_IDS.web;
 };
+
+const nativeRedirectUri = getGoogleRedirectUri(getNativeClientId());
 
 const getGoogleProfile = async (accessToken: string): Promise<GoogleProfile> => {
   const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
@@ -94,6 +108,7 @@ export const useGoogleAuth = (
     webClientId:     CLIENT_IDS.web     || PLACEHOLDER,
     iosClientId:     CLIENT_IDS.ios     || PLACEHOLDER,
     androidClientId: CLIENT_IDS.android || PLACEHOLDER,
+    redirectUri: Platform.OS === 'web' ? undefined : nativeRedirectUri,
     scopes: ['openid', 'profile', 'email'],
     selectAccount: true,
   });
@@ -109,6 +124,30 @@ export const useGoogleAuth = (
       providerId: firebaseUser.uid,
     });
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    let alive = true;
+    getRedirectResult(firebaseAuth)
+      .then(async (result) => {
+        if (!alive || !result?.user) return;
+        setLoading(true);
+        await handleFirebaseUser(result.user);
+      })
+      .catch((err: any) => {
+        if (alive) {
+          Alert.alert('Aldaa', err?.message || 'Google login failed.');
+        }
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, [handleFirebaseUser]);
 
   // ── Native: promptAsync response ──────────────────────────────────────────
   useEffect(() => {
@@ -159,6 +198,11 @@ export const useGoogleAuth = (
   const startWebAuth = async () => {
     setLoading(true);
     try {
+      if (isMobileWeb()) {
+        await signInWithRedirect(firebaseAuth, makeProvider());
+        return;
+      }
+
       const result = await signInWithPopup(firebaseAuth, makeProvider());
       if (result.user) {
         await handleFirebaseUser(result.user);
