@@ -41,7 +41,7 @@ if (!html.includes("window.history.replaceState(null, '', '/')")) {
     <script>
       if (window.location.pathname.startsWith('/mobile')) {
         window.__CINEMA_MOBILE_PUBLIC_PATH__ = '/mobile';
-        window.history.replaceState(null, '', '/');
+        window.history.replaceState(null, '', '/' + window.location.search + window.location.hash);
       }
     </script>`
   );

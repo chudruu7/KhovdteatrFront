@@ -6,7 +6,6 @@ import Constants from 'expo-constants';
 import {
   getRedirectResult,
   GoogleAuthProvider,
-  signInWithPopup,
   signInWithRedirect,
   type User,
 } from 'firebase/auth';
@@ -71,10 +70,6 @@ const getGoogleProfile = async (accessToken: string): Promise<GoogleProfile> => 
     providerId: profile.id,
   };
 };
-
-const isMobileWeb = () =>
-  typeof navigator !== 'undefined' &&
-  /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 
 const restoreMobilePublicPathForRedirect = () => {
   if (typeof window === 'undefined') return;
@@ -190,28 +185,13 @@ export const useGoogleAuth = (
   const startWebAuth = async () => {
     setLoading(true);
     try {
-      const provider = makeProvider();
-
-      if (isMobileWeb()) {
-        restoreMobilePublicPathForRedirect();
-        await signInWithRedirect(firebaseAuth, provider);
-        return;
-      }
-
-      const result = await signInWithPopup(firebaseAuth, provider);
-      await handleFirebaseUser(result.user);
+      restoreMobilePublicPathForRedirect();
+      await signInWithRedirect(firebaseAuth, makeProvider());
     } catch (err: any) {
       const code = err?.code ?? '';
-      if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+      if (code === 'auth/cancelled-popup-request') {
         return;
       }
-
-      if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
-        restoreMobilePublicPathForRedirect();
-        await signInWithRedirect(firebaseAuth, makeProvider());
-        return;
-      }
-
       Alert.alert('Aldaa', err?.response?.data?.message || err?.message || 'Google login failed.');
     } finally {
       setLoading(false);
