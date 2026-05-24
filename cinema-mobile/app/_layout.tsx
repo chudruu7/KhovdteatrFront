@@ -13,23 +13,28 @@ function AuthGuard() {
   const router            = useRouter();
   const segments          = useSegments();
 
-  // Prevent rapid repeated navigation calls on quick re-renders
-  const didRedirect = useRef(false);
+  // Prevent only identical repeated redirects; auth state changes must navigate.
+  const lastRedirectKey = useRef('');
 
   useEffect(() => {
     if (loading) {
-      didRedirect.current = false;   // reset so next stable state redirects
+      lastRedirectKey.current = '';
       return;
     }
-    if (didRedirect.current) return;
 
     const inAuth = segments[0] === '(auth)';
+    const redirectKey = `${user ? 'user' : 'guest'}:${inAuth ? 'auth' : 'app'}`;
+
+    if (lastRedirectKey.current === redirectKey) return;
+
     if (!user && !inAuth) {
-      didRedirect.current = true;
+      lastRedirectKey.current = redirectKey;
       router.replace('/(auth)/login');
     } else if (user && inAuth) {
-      didRedirect.current = true;
+      lastRedirectKey.current = redirectKey;
       router.replace('/(tabs)');
+    } else {
+      lastRedirectKey.current = '';
     }
   }, [user, loading, segments]);
 
