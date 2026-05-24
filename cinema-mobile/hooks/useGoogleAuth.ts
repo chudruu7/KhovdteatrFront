@@ -198,7 +198,7 @@ export const useGoogleAuth = (
 
   // ── Native: promptAsync response ──────────────────────────────────────────
   useEffect(() => {
-    if (!response || Platform.OS === 'web') return;
+    if (!response) return;
 
     const handle = async () => {
       if (response.type === 'cancel' || response.type === 'dismiss') {
@@ -245,6 +245,15 @@ export const useGoogleAuth = (
   const startWebAuth = async () => {
     setLoading(true);
     try {
+      if (isMobileWeb() && CLIENT_IDS.web) {
+        restoreMobilePublicPath();
+        await promptAsync({
+          preferEphemeralSession: false,
+          windowName: '_self',
+        });
+        return;
+      }
+
       if (isMobileWeb()) {
         restoreMobilePublicPath();
         await signInWithRedirect(firebaseAuth, makeProvider());

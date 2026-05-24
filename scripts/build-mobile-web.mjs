@@ -12,7 +12,7 @@ const publicMobileFonts = path.join(frontRoot, 'public', 'mobile-fonts');
 
 const result = spawnSync(
   process.platform === 'win32' ? 'npm.cmd' : 'npm',
-  ['exec', 'expo', 'export', '--', '--platform', 'web', '--output-dir', mobileOutFromMobile],
+  ['exec', 'expo', 'export', '--', '--platform', 'web', '--output-dir', mobileOutFromMobile, '--clear'],
   { cwd: mobileRoot, stdio: 'inherit', shell: process.platform === 'win32' }
 );
 
