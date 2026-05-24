@@ -59,6 +59,20 @@ const isMobileWeb = () => {
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 };
 
+const restoreMobilePublicPath = () => {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+
+  const publicPath = (window as unknown as { __CINEMA_MOBILE_PUBLIC_PATH__?: string })
+    .__CINEMA_MOBILE_PUBLIC_PATH__;
+  if (publicPath && window.location.pathname === '/') {
+    window.history.replaceState(
+      null,
+      '',
+      `${publicPath}${window.location.search}${window.location.hash}`,
+    );
+  }
+};
+
 const getNativeClientId = (): string | undefined => {
   if (Platform.OS === 'ios') return CLIENT_IDS.ios;
   if (Platform.OS === 'android') return CLIENT_IDS.android;
@@ -232,6 +246,7 @@ export const useGoogleAuth = (
     setLoading(true);
     try {
       if (isMobileWeb()) {
+        restoreMobilePublicPath();
         await signInWithRedirect(firebaseAuth, makeProvider());
         return;
       }
