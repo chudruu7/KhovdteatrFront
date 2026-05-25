@@ -4,9 +4,11 @@ import { getAuth } from "firebase/auth";
 const getAuthDomain = () => {
   if (typeof window === "undefined") return "teatr-b7904.firebaseapp.com";
 
-  if (window.location.hostname === "khovdteatr-web-pied.vercel.app") {
-    return window.location.hostname;
-  }
+  const configuredAuthDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+  if (configuredAuthDomain) return configuredAuthDomain;
+
+  const { hostname } = window.location;
+  if (hostname.endsWith(".vercel.app")) return hostname;
 
   return "teatr-b7904.firebaseapp.com";
 };

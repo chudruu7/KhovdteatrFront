@@ -16,11 +16,12 @@ const { width, height } = Dimensions.get('window');
 // ─── Typed Icon helper ───────────────────────────────────────────────────────
 type IconName = React.ComponentProps<typeof Ionicons>['name'];
 const ICONS: Record<string, IconName> = {
-  mail:     'mail-outline',
-  lock:     'lock-closed-outline',
-  eye:      'eye-outline',
-  'eye-off':'eye-off-outline',
-  google:   'logo-google',
+  mail:      'mail-outline',
+  lock:      'lock-closed-outline',
+  eye:       'eye-outline',
+  'eye-off': 'eye-off-outline',
+  google:    'logo-google',
+  arrow:     'arrow-forward-outline',
 };
 const Icon = ({ name, size, color }: { name: string; size: number; color: string }) => (
   <Ionicons name={ICONS[name] ?? 'ellipse-outline'} size={size} color={color} />
@@ -28,11 +29,10 @@ const Icon = ({ name, size, color }: { name: string; size: number; color: string
 
 // ─── Animated Input Field ────────────────────────────────────────────────────
 function AnimatedInput({
-  label, iconName, placeholder, value, onChangeText,
+  iconName, placeholder, value, onChangeText,
   secureTextEntry, keyboardType, autoCapitalize,
   rightElement, delay = 0,
 }: {
-  label: string;
   iconName: string;
   placeholder: string;
   value: string;
@@ -45,35 +45,35 @@ function AnimatedInput({
 }) {
   const focusAnim   = useRef(new Animated.Value(0)).current;
   const entranceAnim = useRef(new Animated.Value(0)).current;
-  const translateAnim = useRef(new Animated.Value(18)).current;
+  const translateAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
     Animated.parallel([
       Animated.timing(entranceAnim, {
-        toValue: 1, duration: 500, delay, useNativeDriver: true,
+        toValue: 1, duration: 600, delay, useNativeDriver: true,
       }),
       Animated.timing(translateAnim, {
-        toValue: 0, duration: 500, delay, useNativeDriver: true,
+        toValue: 0, duration: 600, delay, useNativeDriver: true,
       }),
     ]).start();
   }, []);
 
   const onFocus = () =>
-    Animated.timing(focusAnim, { toValue: 1, duration: 220, useNativeDriver: false }).start();
+    Animated.timing(focusAnim, { toValue: 1, duration: 250, useNativeDriver: false }).start();
   const onBlur  = () =>
-    Animated.timing(focusAnim, { toValue: 0, duration: 220, useNativeDriver: false }).start();
+    Animated.timing(focusAnim, { toValue: 0, duration: 250, useNativeDriver: false }).start();
 
   const borderColor = focusAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(255,255,255,0.07)', COLORS.teal],
+    outputRange: ['rgba(255,255,255,0.08)', '#14B8A6'],
   });
   const bgColor = focusAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(255,255,255,0.03)', 'rgba(20,184,166,0.05)'],
+    outputRange: ['rgba(255,255,255,0.02)', 'rgba(20,184,166,0.08)'],
   });
-  const iconColor = focusAnim.interpolate({
+  const scale = focusAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(255,255,255,0.25)', COLORS.teal],
+    outputRange: [1, 1.02],
   });
 
   return (
@@ -81,22 +81,20 @@ function AnimatedInput({
       styles.inputWrapper,
       { opacity: entranceAnim, transform: [{ translateY: translateAnim }] }
     ]}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <Animated.View style={[styles.inputContainer, { borderColor, backgroundColor: bgColor }]}>
-        <Animated.View style={{ marginRight: 12 }}>
-          {/* Ionicons can't take Animated color directly — use JS interpolation via listener */}
+      <Animated.View style={[styles.inputContainer, { borderColor, backgroundColor: bgColor, transform: [{ scale }] }]}>
+        <View style={{ marginRight: 12 }}>
           <AnimatedIcon name={iconName} focusAnim={focusAnim} />
-        </Animated.View>
+        </View>
         <TextInput
           style={styles.input}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.18)"
+          placeholderTextColor="rgba(255,255,255,0.25)"
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
-          selectionColor={COLORS.teal}
+          selectionColor="#14B8A6"
           onFocus={onFocus}
           onBlur={onBlur}
         />
@@ -119,10 +117,10 @@ function AnimatedIcon({ name, focusAnim }: { name: string; focusAnim: Animated.V
     });
     return () => focusAnim.removeListener(id);
   }, [focusAnim]);
-  return <Icon name={name} size={16} color={color} />;
+  return <Icon name={name} size={18} color={color} />;
 }
 
-// ─── Pressable Button with scale feedback ────────────────────────────────────
+// ─── Modern Gradient Button with shine effect ────────────────────────────────
 function PressButton({
   onPress, disabled, loading, label, style, textStyle, colors,
 }: {
@@ -135,10 +133,16 @@ function PressButton({
   colors?: readonly [string, string, ...string[]];
 }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
-  const onPressIn  = () =>
-    Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, speed: 40 }).start();
+  const shineAnim = useRef(new Animated.Value(-100)).current;
+  
+  const onPressIn = () => {
+    Animated.spring(scaleAnim, { toValue: 0.96, useNativeDriver: true, bounciness: 0 }).start();
+    // Trigger shine animation
+    Animated.timing(shineAnim, { toValue: width, duration: 600, useNativeDriver: true }).start();
+    setTimeout(() => shineAnim.setValue(-100), 600);
+  };
   const onPressOut = () =>
-    Animated.spring(scaleAnim, { toValue: 1,    useNativeDriver: true, speed: 40 }).start();
+    Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true, bounciness: 0 }).start();
 
   return (
     <Animated.View style={[{ transform: [{ scale: scaleAnim }] }, style]}>
@@ -149,23 +153,62 @@ function PressButton({
         disabled={disabled}
         activeOpacity={1}
       >
-        {colors ? (
-          <LinearGradient colors={colors} style={styles.gradientButton}>
-            {loading
-              ? <ActivityIndicator color="#0A0A0E" size="small" />
-              : <Text style={[styles.loginButtonText, textStyle]}>{label}</Text>
-            }
-          </LinearGradient>
-        ) : (
-          <View style={styles.gradientButton}>
-            {loading
-              ? <ActivityIndicator color="#fff" size="small" />
-              : <Text style={[styles.socialButtonText, textStyle]}>{label}</Text>
-            }
-          </View>
-        )}
+        <LinearGradient 
+          colors={colors || ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']} 
+          style={styles.gradientButton}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          {loading ? (
+            <ActivityIndicator color={colors ? "#000" : "#14B8A6"} size="small" />
+          ) : (
+            <>
+              <Text style={[colors ? styles.loginButtonText : styles.socialButtonText, textStyle]}>{label}</Text>
+              {colors && (
+                <View style={styles.buttonArrow}>
+                  <Icon name="arrow" size={16} color="#0A0D14" />
+                </View>
+              )}
+            </>
+          )}
+        </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
+  );
+}
+
+// ─── Animated dots background ─────────────────────────────────────────────────
+function AnimatedBackground() {
+  const dotsAnim = useRef(new Animated.Value(0)).current;
+  
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(dotsAnim, { toValue: 1, duration: 8000, useNativeDriver: true }),
+        Animated.timing(dotsAnim, { toValue: 0, duration: 8000, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+  
+  const translateX = dotsAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, width * 0.3],
+  });
+  
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <LinearGradient
+        colors={['#0A0D14', '#05070A', '#020305']}
+        style={StyleSheet.absoluteFill}
+      />
+      <Animated.View style={[styles.dotsGrid, { transform: [{ translateX }] }]}>
+        {[...Array(50)].map((_, i) => (
+          <View key={i} style={styles.dot} />
+        ))}
+      </Animated.View>
+      <View style={styles.glowOrb} />
+      <View style={styles.glowOrb2} />
+    </View>
   );
 }
 
@@ -180,21 +223,25 @@ export default function LoginScreen() {
 
   // Entrance animations
   const logoAnim   = useRef(new Animated.Value(0)).current;
-  const logoSlide  = useRef(new Animated.Value(-24)).current;
+  const logoSlide  = useRef(new Animated.Value(-40)).current;
   const formAnim   = useRef(new Animated.Value(0)).current;
-  const formSlide  = useRef(new Animated.Value(32)).current;
+  const formSlide  = useRef(new Animated.Value(50)).current;
   const ornamentAnim = useRef(new Animated.Value(0)).current;
+  const fadeIn = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.stagger(120, [
+    // Initial fade in
+    Animated.timing(fadeIn, { toValue: 1, duration: 1000, useNativeDriver: true }).start();
+    
+    Animated.stagger(200, [
       Animated.parallel([
-        Animated.timing(logoAnim,  { toValue: 1, duration: 600, useNativeDriver: true }),
-        Animated.timing(logoSlide, { toValue: 0, duration: 600, useNativeDriver: true }),
+        Animated.timing(logoAnim,  { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(logoSlide, { toValue: 0, duration: 800, useNativeDriver: true }),
       ]),
-      Animated.timing(ornamentAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+      Animated.timing(ornamentAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
       Animated.parallel([
-        Animated.timing(formAnim,  { toValue: 1, duration: 550, useNativeDriver: true }),
-        Animated.timing(formSlide, { toValue: 0, duration: 550, useNativeDriver: true }),
+        Animated.timing(formAnim,  { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(formSlide, { toValue: 0, duration: 700, useNativeDriver: true }),
       ]),
     ]).start();
   }, []);
@@ -222,35 +269,31 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
-
-      {/* Layered background */}
-      <View style={StyleSheet.absoluteFill}>
-        <LinearGradient
-          colors={['#0D1117', '#0A0A0E', '#080808']}
-          style={StyleSheet.absoluteFill}
-        />
-        {/* Decorative teal glow orb */}
-        <View style={styles.glowOrb} />
-      </View>
-
+      
+      <AnimatedBackground />
+      
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
-          bounces={false}
         >
           {/* ── Brand Logo ── */}
           <Animated.View style={[
             styles.logoContainer,
             { opacity: logoAnim, transform: [{ translateY: logoSlide }] }
           ]}>
-            {/* Decorative film-reel dots */}
             <Animated.View style={[styles.reelRow, { opacity: ornamentAnim }]}>
-              {[...Array(5)].map((_, i) => <View key={i} style={styles.reelDot} />)}
+              <LinearGradient colors={['#C5A880', '#E8D5A4']} style={styles.reelDotBig} />
+              <LinearGradient colors={['#14B8A6', '#0D9488']} style={styles.reelDotBig} />
+              <LinearGradient colors={['#C5A880', '#E8D5A4']} style={styles.reelDotBig} />
             </Animated.View>
 
             <View style={styles.logoBorder}>
+              <LinearGradient
+                colors={['rgba(197,168,128,0.2)', 'rgba(20,184,166,0.2)']}
+                style={styles.logoGradient}
+              />
               <Image
                 source={require('../../assets/kdt.png')}
                 style={styles.brandLogo}
@@ -260,8 +303,6 @@ export default function LoginScreen() {
 
             <Text style={styles.brandTitle}>ХОВД АЙМГИЙН</Text>
             <Text style={styles.brandSubtitle}>ХӨГЖИМТ ДРАМЫН ТЕАТР</Text>
-
-            {/* Gold accent line */}
             <View style={styles.goldLine} />
           </Animated.View>
 
@@ -270,100 +311,100 @@ export default function LoginScreen() {
             styles.formCard,
             { opacity: formAnim, transform: [{ translateY: formSlide }] }
           ]}>
-            {/* Card top accent */}
-            <View style={styles.cardAccentBar} />
+            <LinearGradient
+              colors={['rgba(25,30,40,0.95)', 'rgba(13,16,23,0.95)']}
+              style={styles.cardGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.cardInner}>
+                <Text style={styles.welcomeTitle}>Welcome Back</Text>
+                <Text style={styles.welcomeSubtitle}>Sign in to continue</Text>
 
-            <View style={styles.cardInner}>
-              <Text style={styles.welcomeTitle}>Нэвтрэх</Text>
-              <Text style={styles.welcomeSubtitle}>
-                Нэвтэрнэ үү
-              </Text>
+                {/* Inputs */}
+                <AnimatedInput
+                  iconName="mail"
+                  placeholder="Email address"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  delay={100}
+                />
 
-              {/* Inputs */}
-              <AnimatedInput
-                label="ИМЭЙЛ ХАЯГ"
-                iconName="mail"
-                placeholder="И-мэйл хаягаа оруулна уу"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                delay={200}
-              />
+                <AnimatedInput
+                  iconName="lock"
+                  placeholder="Password"
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={!showPwd}
+                  delay={200}
+                  rightElement={
+                    <TouchableOpacity
+                      onPress={() => setShowPwd(p => !p)}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                    >
+                      <Icon
+                        name={showPwd ? 'eye-off' : 'eye'}
+                        size={18}
+                        color="rgba(255,255,255,0.3)"
+                      />
+                    </TouchableOpacity>
+                  }
+                />
 
-              <AnimatedInput
-                label="НУУЦ ҮГ"
-                iconName="lock"
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPwd}
-                delay={300}
-                rightElement={
-                  <TouchableOpacity
-                    onPress={() => setShowPwd(p => !p)}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Icon
-                      name={showPwd ? 'eye-off' : 'eye'}
-                      size={16}
-                      color="rgba(255,255,255,0.3)"
-                    />
-                  </TouchableOpacity>
-                }
-              />
+                {/* Forgot */}
+                <TouchableOpacity style={styles.forgotButton} activeOpacity={0.7}>
+                  <Text style={styles.forgotText}>Forgot password?</Text>
+                </TouchableOpacity>
 
-              {/* Forgot */}
-              <TouchableOpacity style={styles.forgotButton} activeOpacity={0.7}>
-                <Text style={styles.forgotText}>Нууц үгээ мартсан уу?</Text>
-              </TouchableOpacity>
+                {/* Login CTA */}
+                <PressButton
+                  onPress={handleLogin}
+                  disabled={loading}
+                  loading={loading}
+                  label="SIGN IN"
+                  style={styles.loginButton}
+                  colors={['#14B8A6', '#0D9488']}
+                />
 
-              {/* Login CTA */}
-              <PressButton
-                onPress={handleLogin}
-                disabled={loading}
-                loading={loading}
-                label="НЭВТРЭХ"
-                style={styles.loginButton}
-                colors={['#1ECFBD', '#0D9488', '#0A7A6E']}
-              />
+                {/* Divider */}
+                <View style={styles.divider}>
+                  <View style={styles.dividerLine} />
+                  <Text style={styles.dividerText}>OR</Text>
+                  <View style={styles.dividerLine} />
+                </View>
 
-              {/* Divider */}
-              <View style={styles.divider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>эсвэл</Text>
-                <View style={styles.dividerLine} />
+                {/* Google Button */}
+                <TouchableOpacity
+                  style={styles.socialButton}
+                  onPress={startGoogleAuth}
+                  disabled={loading || googleLoading}
+                  activeOpacity={0.8}
+                >
+                  {googleLoading ? (
+                    <ActivityIndicator color="#14B8A6" size="small" />
+                  ) : (
+                    <View style={styles.socialInner}>
+                      <Icon name="google" size={20} color="#EA4335" />
+                      <Text style={styles.socialButtonText}>Continue with Google</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Register */}
+                <TouchableOpacity
+                  onPress={() => router.push('/(auth)/register')}
+                  style={styles.registerLink}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.registerText}>
+                    Don't have an account?{' '}
+                    <Text style={styles.registerHighlight}>Sign Up</Text>
+                  </Text>
+                </TouchableOpacity>
               </View>
-
-              {/* Google Button */}
-              <TouchableOpacity
-                style={styles.socialButton}
-                onPress={startGoogleAuth}
-                disabled={loading || googleLoading}
-                activeOpacity={0.8}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <View style={styles.socialInner}>
-                    <Icon name="google" size={17} color="#EA4335" />
-                    <Text style={styles.socialButtonText}>Google-ээр нэвтрэх</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-
-              {/* Register */}
-              <TouchableOpacity
-                onPress={() => router.push('/(auth)/register')}
-                style={styles.registerLink}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.registerText}>
-                  Шинэ хэрэглэгч үү?{' '}
-                  <Text style={styles.registerHighlight}>Бүртгэл үүсгэх</Text>
-                </Text>
-              </TouchableOpacity>
-            </View>
+            </LinearGradient>
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -375,58 +416,96 @@ export default function LoginScreen() {
 const TEAL   = '#14B8A6';
 const GOLD   = '#C5A880';
 const WHITE  = '#FFFFFF';
-const BG     = '#0A0A0E';
+const BG     = '#05070A';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
 
-  // Glow orb behind form
+  // Animated Background
+  dotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    opacity: 0.03,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  dot: {
+    width: 2,
+    height: 2,
+    backgroundColor: WHITE,
+    margin: 8,
+    borderRadius: 1,
+  },
   glowOrb: {
     position: 'absolute',
     width: width * 1.2,
     height: width * 1.2,
-    borderRadius: width * 0.6,
-    backgroundColor: 'rgba(20,184,166,0.045)',
-    top: height * 0.15,
-    alignSelf: 'center',
+    borderRadius: (width * 1.2) / 2,
+    backgroundColor: 'rgba(20,184,166,0.08)',
+    top: -height * 0.3,
+    right: -width * 0.5,
+    shadowColor: TEAL,
+    shadowRadius: 120,
+    shadowOpacity: 0.3,
+  },
+  glowOrb2: {
+    position: 'absolute',
+    width: width * 0.8,
+    height: width * 0.8,
+    borderRadius: (width * 0.8) / 2,
+    backgroundColor: 'rgba(197,168,128,0.05)',
+    bottom: -height * 0.2,
+    left: -width * 0.3,
+    shadowColor: GOLD,
+    shadowRadius: 100,
+    shadowOpacity: 0.2,
   },
 
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 56 : 36,
-    paddingBottom: 44,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingBottom: 30,
   },
 
   // ── Logo block ──
   logoContainer: { alignItems: 'center', marginBottom: 28 },
 
-  reelRow: { flexDirection: 'row', gap: 6, marginBottom: 16 },
-  reelDot: {
-    width: 5, height: 5, borderRadius: 2.5,
-    backgroundColor: 'rgba(197,168,128,0.35)',
+  reelRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  reelDotBig: {
+    width: 6, height: 6, borderRadius: 3,
   },
 
   logoBorder: {
-    width: 96, height: 96,
-    borderRadius: 48,
-    borderWidth: 1,
-    borderColor: 'rgba(197,168,128,0.2)',
+    width: 110, height: 110,
+    borderRadius: 55,
     alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    marginBottom: 14,
+    marginBottom: 20,
     shadowColor: TEAL,
-    shadowOpacity: 0.15,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 10,
+    overflow: 'hidden',
   },
-  brandLogo: { width: 80, height: 80 },
+  logoGradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+  },
+  brandLogo: { width: 90, height: 90 },
 
   brandTitle: {
-    fontSize: 20, fontWeight: '900',
-    color: WHITE, letterSpacing: 6,
-    marginBottom: 4,
+    fontSize: 20, fontWeight: '800',
+    color: WHITE, letterSpacing: 4,
+    marginBottom: 6,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 8,
   },
   brandSubtitle: {
     fontSize: 9, fontWeight: '700',
@@ -434,102 +513,105 @@ const styles = StyleSheet.create({
     textAlign: 'center', marginBottom: 14,
   },
   goldLine: {
-    width: 40, height: 1,
-    backgroundColor: 'rgba(197,168,128,0.45)',
+    width: 60, height: 2,
+    backgroundColor: 'rgba(197,168,128,0.4)',
+    borderRadius: 1,
   },
 
-  // ── Form Card ──
+  // ── Form Card (Premium Glassmorphism) ──
   formCard: {
-    borderRadius: 24,
+    borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(255,255,255,0.1)',
     shadowColor: '#000',
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.5,
     shadowRadius: 30,
     shadowOffset: { width: 0, height: 20 },
-    elevation: 12,
+    elevation: 15,
   },
-  cardAccentBar: {
-    height: 2,
-    backgroundColor: TEAL,
-    opacity: 0.6,
+  cardGradient: {
+    borderRadius: 32,
   },
   cardInner: {
-    backgroundColor: 'rgba(15,16,20,0.95)',
-    padding: 24,
+    padding: 28,
   },
 
   welcomeTitle: {
-    fontSize: 22, fontWeight: '900',
+    fontSize: 28, fontWeight: '800',
     color: WHITE, letterSpacing: -0.5,
-    marginBottom: 4,
+    marginBottom: 8,
   },
   welcomeSubtitle: {
-    fontSize: 13, color: 'rgba(255,255,255,0.35)',
-    marginBottom: 24, lineHeight: 18,
-    fontStyle: 'italic',
+    fontSize: 14, color: 'rgba(255,255,255,0.4)',
+    marginBottom: 32,
+    fontWeight: '500',
   },
 
   // ── Inputs ──
-  inputWrapper: { marginBottom: 18 },
-  inputLabel: {
-    fontSize: 9, fontWeight: '800',
-    letterSpacing: 1.8,
-    color: 'rgba(255,255,255,0.3)',
-    marginBottom: 7,
-  },
+  inputWrapper: { marginBottom: 16 },
   inputContainer: {
     flexDirection: 'row', alignItems: 'center',
-    borderRadius: 12, borderWidth: 1,
-    paddingHorizontal: 14, height: 50,
+    borderRadius: 20, borderWidth: 1,
+    paddingHorizontal: 18, height: 58,
+    transition: 'all 0.2s ease',
   },
   input: {
     flex: 1, height: '100%',
-    color: WHITE, fontSize: 14, fontWeight: '500',
+    color: WHITE, fontSize: 15, fontWeight: '500',
+    letterSpacing: 0.3,
   },
 
   // Forgot
-  forgotButton: { alignSelf: 'flex-end', marginBottom: 22, marginTop: 2 },
-  forgotText: { color: TEAL, fontSize: 12, fontWeight: '600' },
+  forgotButton: { alignSelf: 'flex-end', marginBottom: 28, marginTop: 8 },
+  forgotText: { color: TEAL, fontSize: 13, fontWeight: '600', letterSpacing: 0.5 },
 
   // Login button
   loginButton: {
-    borderRadius: 12, overflow: 'hidden',
-    marginBottom: 22,
+    borderRadius: 20, overflow: 'hidden',
+    marginBottom: 24,
     shadowColor: TEAL,
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 10 },
+    elevation: 8,
   },
-  gradientButton: { height: 50, alignItems: 'center', justifyContent: 'center' },
+  gradientButton: { 
+    height: 58, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    flexDirection: 'row',
+    gap: 8,
+  },
   loginButtonText: {
-    color: '#0A0A0E', fontWeight: '900',
-    fontSize: 13, letterSpacing: 1.5,
+    color: '#020305', fontWeight: '800',
+    fontSize: 15, letterSpacing: 1.5,
+  },
+  buttonArrow: {
+    marginLeft: 8,
   },
 
   // Divider
-  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
   dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
   dividerText: {
-    marginHorizontal: 12, color: 'rgba(255,255,255,0.22)',
-    fontSize: 10, fontWeight: '600', letterSpacing: 0.5,
+    marginHorizontal: 16, color: 'rgba(255,255,255,0.3)',
+    fontSize: 11, fontWeight: '600', letterSpacing: 1.5,
   },
 
   // Social button
   socialButton: {
-    height: 50, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    height: 54, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
-    marginBottom: 26,
+    marginBottom: 28,
   },
-  socialInner: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  socialButtonText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600' },
+  socialInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  socialButtonText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600', letterSpacing: 0.5 },
 
   // Register
   registerLink: { alignItems: 'center' },
-  registerText: { color: 'rgba(255,255,255,0.35)', fontSize: 13 },
-  registerHighlight: { color: TEAL, fontWeight: '700' },
+  registerText: { color: 'rgba(255,255,255,0.4)', fontSize: 14, fontWeight: '500' },
+  registerHighlight: { color: TEAL, fontWeight: '700', letterSpacing: 0.3 },
 });

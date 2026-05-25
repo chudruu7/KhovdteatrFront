@@ -14,10 +14,11 @@ const getWebAuthDomain = () => {
     return 'teatr-b7904.firebaseapp.com';
   }
 
+  const configuredAuthDomain = process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN;
+  if (configuredAuthDomain) return configuredAuthDomain;
+
   const hostname = window.location.hostname;
-  if (hostname === 'khovdteatr-web-pied.vercel.app') {
-    return hostname;
-  }
+  if (hostname.endsWith('.vercel.app')) return hostname;
 
   return 'teatr-b7904.firebaseapp.com';
 };

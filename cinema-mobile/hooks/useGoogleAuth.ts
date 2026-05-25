@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
-import {
-  GoogleSignin,
-  statusCodes,
-} from '@react-native-google-signin/google-signin';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import {
   GoogleAuthProvider,
   getRedirectResult,
@@ -13,6 +11,8 @@ import {
   type User,
 } from 'firebase/auth';
 import { firebaseAuth } from '../api/firebase';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export type GoogleProfile = {
   name: string;
@@ -29,14 +29,10 @@ const cleanId = (value?: string): string | undefined => {
 const GOOGLE_WEB_CLIENT_ID = cleanId(process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID);
 const GOOGLE_IOS_CLIENT_ID = cleanId(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID);
 const GOOGLE_ANDROID_CLIENT_ID = cleanId(process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID);
-
-GoogleSignin.configure({
-  webClientId: GOOGLE_WEB_CLIENT_ID,
-  iosClientId: GOOGLE_IOS_CLIENT_ID,
-  offlineAccess: true,
-  forceCodeForRefreshToken: true,
-  profileImageSize: 256,
-});
+const GOOGLE_NATIVE_CLIENT_ID =
+  Platform.OS === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_ANDROID_CLIENT_ID;
+const GOOGLE_AUTH_SESSION_CLIENT_ID =
+  GOOGLE_NATIVE_CLIENT_ID || GOOGLE_WEB_CLIENT_ID || 'missing-google-client-id';
 
 const isMobileWeb = () => {
   if (Platform.OS !== 'web' || typeof navigator === 'undefined') return false;
@@ -173,6 +169,19 @@ export const useGoogleAuth = (
   const [loading, setLoading] = useState(false);
   const syncedFirebaseUidRef = useRef<string | null>(null);
   const onSuccessRef = useRef(onSuccess);
+  const [nativeRequest, , promptNativeGoogleAuth] = Google.useAuthRequest(
+    {
+      clientId: GOOGLE_AUTH_SESSION_CLIENT_ID,
+      iosClientId: GOOGLE_IOS_CLIENT_ID,
+      androidClientId: GOOGLE_ANDROID_CLIENT_ID,
+      webClientId: GOOGLE_WEB_CLIENT_ID,
+      scopes: ['openid', 'profile', 'email'],
+      selectAccount: true,
+    },
+    {
+      scheme: 'khovdteatr',
+    },
+  );
 
   useEffect(() => {
     onSuccessRef.current = onSuccess;
@@ -247,8 +256,7 @@ export const useGoogleAuth = (
   }, [syncFirebaseUser]);
 
   const startNativeAuth = async () => {
-    const clientId = Platform.OS === 'ios' ? GOOGLE_IOS_CLIENT_ID : GOOGLE_ANDROID_CLIENT_ID;
-    if (!clientId || !GOOGLE_WEB_CLIENT_ID) {
+    if (!GOOGLE_NATIVE_CLIENT_ID || !GOOGLE_WEB_CLIENT_ID) {
       Alert.alert(
         'Google OAuth config missing',
         'Set EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID and the platform Google client ID in .env.',
@@ -258,26 +266,24 @@ export const useGoogleAuth = (
 
     setLoading(true);
     try {
-      if (Platform.OS === 'android') {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      if (!nativeRequest) {
+        throw new Error('Google login is still preparing. Please try again.');
       }
 
-      await GoogleSignin.signOut().catch(() => {});
-      const result = await GoogleSignin.signIn();
-      const user = result.data?.user;
-
-      if (!user?.email) {
-        throw new Error('Google account did not provide an email address.');
+      const result = await promptNativeGoogleAuth();
+      if (result.type === 'cancel' || result.type === 'dismiss') return;
+      if (result.type !== 'success') {
+        throw new Error(result.type === 'error' ? result.error?.message : 'Google login failed.');
       }
 
-      await onSuccessRef.current({
-        name: user.name || user.email,
-        email: user.email,
-        avatarUrl: user.photo ?? null,
-        providerId: user.id,
-      });
+      const accessToken = result.authentication?.accessToken;
+      if (!accessToken) {
+        throw new Error('Google access token was not returned.');
+      }
+
+      const profile = await getGoogleProfile(accessToken);
+      await onSuccessRef.current(profile);
     } catch (err: any) {
-      if (err?.code === statusCodes.SIGN_IN_CANCELLED) return;
       Alert.alert('Aldaa', err?.message || 'Google login failed.');
     } finally {
       setLoading(false);
