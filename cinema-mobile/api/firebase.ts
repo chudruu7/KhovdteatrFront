@@ -9,9 +9,22 @@ declare const require: (moduleName: string) => {
 
 const { getReactNativePersistence } = require('@firebase/auth');
 
+const getWebAuthDomain = () => {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') {
+    return 'teatr-b7904.firebaseapp.com';
+  }
+
+  const hostname = window.location.hostname;
+  if (hostname === 'khovdteatr-web-pied.vercel.app') {
+    return hostname;
+  }
+
+  return 'teatr-b7904.firebaseapp.com';
+};
+
 const firebaseConfig = {
   apiKey: 'AIzaSyA9Aj_4W7LvkjHjqM8YU4Xe248MnKwkYlk',
-  authDomain: 'teatr-b7904.firebaseapp.com',
+  authDomain: getWebAuthDomain(),
   projectId: 'teatr-b7904',
   storageBucket: 'teatr-b7904.firebasestorage.app',
   messagingSenderId: '922943907436',
