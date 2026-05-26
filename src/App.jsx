@@ -69,7 +69,8 @@ function App() {
   const ProtectedRoute = ({ children }) => {
     const location = useLocation();
     if (!isLoggedIn) {
-      return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+      const from = `${location.pathname}${location.search}`;
+      return <Navigate to={`/login?redirect=${encodeURIComponent(from)}`} replace state={{ from }} />;
     }
     return children;
   };
@@ -77,7 +78,8 @@ function App() {
   const AdminRoute = ({ children }) => {
     const location = useLocation();
     if (!isLoggedIn) {
-      return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+      const from = `${location.pathname}${location.search}`;
+      return <Navigate to={`/login?redirect=${encodeURIComponent(from)}`} replace state={{ from }} />;
     }
     if (user?.role !== 'admin') {
       return <Navigate to="/" replace />;
@@ -88,7 +90,8 @@ function App() {
   const CashierRoute = ({ children }) => {
     const location = useLocation();
     if (!isLoggedIn) {
-      return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+      const from = `${location.pathname}${location.search}`;
+      return <Navigate to={`/login?redirect=${encodeURIComponent(from)}`} replace state={{ from }} />;
     }
     if (!['admin', 'cashier'].includes(user?.role)) {
       return <Navigate to="/" replace />;

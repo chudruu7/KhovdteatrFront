@@ -19,7 +19,9 @@
         var isMobileDevice = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
         var isMobileWidth = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
         var isCashierScanner = path.startsWith('/cashier') && window.location.search.includes('scan=1');
-        var shouldUseMobileApp = (isMobileDevice || isMobileWidth) && !path.startsWith('/mobile') && !path.startsWith('/admin') && !isCashierScanner;
+        var redirect = new URLSearchParams(window.location.search).get('redirect') || '';
+        var isCashierScannerLogin = path.startsWith('/login') && redirect.startsWith('/cashier') && redirect.includes('scan=1');
+        var shouldUseMobileApp = (isMobileDevice || isMobileWidth) && !path.startsWith('/mobile') && !path.startsWith('/admin') && !isCashierScanner && !isCashierScannerLogin;
 
         if (shouldUseMobileApp) {
           window.location.replace('/mobile/index.html');

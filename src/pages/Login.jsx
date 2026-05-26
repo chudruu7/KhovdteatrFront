@@ -102,7 +102,7 @@ const CinematicLogin = ({ onLogin }) => {
   const [success, setSuccess]       = useState('');
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectTo = location.state?.from;
+  const redirectTo = new URLSearchParams(location.search).get('redirect') || location.state?.from;
 
   const particlesRef = useRef(initParticles());
   const canvasRef    = useRef(null);

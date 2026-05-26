@@ -151,6 +151,7 @@ const MobileScanner = ({ stationKey }) => {
   const [message, setMessage] = useState('');
   const [cameraError, setCameraError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [startingCamera, setStartingCamera] = useState(false);
 
   const submitScan = useCallback(async (value) => {
     const qrData = String(value || '').trim();
@@ -170,9 +171,35 @@ const MobileScanner = ({ stationKey }) => {
     }
   }, [stationKey, submitting]);
 
-  useEffect(() => {
-    let alive = true;
+  const startCamera = useCallback(async () => {
+    setStartingCamera(true);
+    setCameraError('');
+    try {
+      controlsRef.current?.stop?.();
+      const reader = new BrowserQRCodeReader();
+      controlsRef.current = await reader.decodeFromVideoDevice(
+        undefined,
+        videoRef.current,
+        (result) => {
+          if (!result) return;
+          submitScan(result.getText());
+        },
+      );
+    } catch (err) {
+      setCameraError(err.message || 'Камер нээж чадсангүй. Permission зөвшөөрөөд дахин оролдоно уу.');
+    } finally {
+      setStartingCamera(false);
+    }
+  }, [submitScan]);
 
+  useEffect(() => {
+    startCamera();
+    return () => {
+      controlsRef.current?.stop?.();
+    };
+  }, [startCamera]);
+
+  /* Removed legacy auto-start camera effect.
     const start = async () => {
       try {
         const reader = new BrowserQRCodeReader();
@@ -195,6 +222,7 @@ const MobileScanner = ({ stationKey }) => {
       controlsRef.current?.stop?.();
     };
   }, [submitScan]);
+  */
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-6 text-white">
@@ -214,6 +242,13 @@ const MobileScanner = ({ stationKey }) => {
             {cameraError}
           </div>
         )}
+        <button
+          onClick={startCamera}
+          disabled={startingCamera}
+          className="mt-4 w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-black disabled:bg-slate-700 disabled:text-slate-400"
+        >
+          {startingCamera ? 'Камер нээж байна...' : 'Камер нээх'}
+        </button>
         {message && (
           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-200">
             {message}
