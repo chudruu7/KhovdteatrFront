@@ -108,6 +108,7 @@ export default function CheckoutScreen() {
     cleanup();
     try {
       await qpayAPI.testComplete(invoiceId, bookingId);
+      await qpayAPI.confirmBooking(bookingId);
     } catch (error: any) {
       paidRef.current = false;
       setErrMsg(error?.response?.data?.message || 'Тест төлбөр баталгаажуулахад алдаа гарлаа.');

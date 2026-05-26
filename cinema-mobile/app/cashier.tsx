@@ -35,7 +35,9 @@ const getParam = (value?: string | string[]) => Array.isArray(value) ? value[0] 
 function StationScanner({ stationKey, onLogout, user }: { stationKey: string; onLogout: () => void; user?: any }) {
   const videoRef = useRef<any>(null);
   const controlsRef = useRef<any>(null);
+  const scanLoopRef = useRef<number | null>(null);
   const lastValueRef = useRef('');
+  const submittingRef = useRef(false);
   const [manualCode, setManualCode] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -43,10 +45,11 @@ function StationScanner({ stationKey, onLogout, user }: { stationKey: string; on
 
   const submitScan = useCallback(async (value: string) => {
     const qrData = String(value || '').trim();
-    if (!qrData || submitting) return;
+    if (!qrData || submittingRef.current) return;
     if (lastValueRef.current === qrData) return;
 
     lastValueRef.current = qrData;
+    submittingRef.current = true;
     setSubmitting(true);
     setError('');
     try {
@@ -56,12 +59,13 @@ function StationScanner({ stationKey, onLogout, user }: { stationKey: string; on
     } catch (err: any) {
       setError(err?.response?.data?.message || err?.message || 'QR уншихад алдаа гарлаа.');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
       setTimeout(() => {
         lastValueRef.current = '';
-      }, 2500);
+      }, 900);
     }
-  }, [stationKey, submitting]);
+  }, [stationKey]);
 
   useEffect(() => {
     if (Platform.OS !== 'web') {
@@ -72,12 +76,53 @@ function StationScanner({ stationKey, onLogout, user }: { stationKey: string; on
     let alive = true;
     const startScanner = async () => {
       try {
+        const video = videoRef.current;
+        const BarcodeDetectorCtor = (globalThis as any).BarcodeDetector;
+
+        if (BarcodeDetectorCtor && video) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+            audio: false,
+          });
+          video.srcObject = stream;
+          await video.play?.();
+
+          const detector = new BarcodeDetectorCtor({ formats: ['qr_code'] });
+          const scan = async () => {
+            if (!alive) return;
+            try {
+              if (video.readyState >= 2) {
+                const codes = await detector.detect(video);
+                const value = codes?.[0]?.rawValue;
+                if (value) submitScan(value);
+              }
+            } catch {
+              // Transient frame decode failures are normal while the camera moves.
+            }
+            scanLoopRef.current = requestAnimationFrame(scan);
+          };
+
+          scanLoopRef.current = requestAnimationFrame(scan);
+          controlsRef.current = {
+            stop: () => stream.getTracks().forEach((track: MediaStreamTrack) => track.stop()),
+          };
+          return;
+        }
+
+        // @ts-ignore Optional web-only fallback; package may be injected by the web bundle.
         const { BrowserQRCodeReader } = await import('@zxing/browser');
-        const reader = new BrowserQRCodeReader();
+        const reader = new BrowserQRCodeReader(undefined, {
+          delayBetweenScanAttempts: 100,
+          delayBetweenScanSuccess: 650,
+        });
         controlsRef.current = await reader.decodeFromVideoDevice(
           undefined,
-          videoRef.current,
-          (result) => {
+          video,
+          (result: any) => {
             if (!alive || !result) return;
             submitScan(result.getText());
           }
@@ -91,6 +136,7 @@ function StationScanner({ stationKey, onLogout, user }: { stationKey: string; on
 
     return () => {
       alive = false;
+      if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
       controlsRef.current?.stop?.();
     };
   }, [submitScan]);

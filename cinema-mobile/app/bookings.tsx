@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator, ScrollView, StyleSheet,
   Modal, Text, TouchableOpacity, View,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import { bookingAPI } from '../api';
@@ -126,6 +126,24 @@ export default function BookingsScreen() {
   const [selected, setSelected] = useState<BookingItem | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
+  const loadBookings = useCallback(async (isMounted = true) => {
+    setLoading(true);
+    setError('');
+    try {
+      const data: any = await bookingAPI.getMine();
+      if (!isMounted) return;
+      const list: BookingItem[] = Array.isArray(data)
+        ? data
+        : data.bookings ?? data.data ?? [];
+      setBookings(list);
+    } catch (err: any) {
+      if (!isMounted) return;
+      setError(err?.response?.data?.message || 'Захиалгын түүх татахад алдаа гарлаа.');
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  }, []);
+
   const openTicketDetails = async (booking: BookingItem, fallbackId: string) => {
     if (mode !== 'tickets') return;
 
@@ -143,25 +161,13 @@ export default function BookingsScreen() {
     }
   };
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let mounted = true;
 
-    bookingAPI.getMine()
-      .then((data: any) => {
-        if (!mounted) return;
-        const list: BookingItem[] = Array.isArray(data)
-          ? data
-          : data.bookings ?? data.data ?? [];
-        setBookings(list);
-      })
-      .catch((err: any) => {
-        if (!mounted) return;
-        setError(err?.response?.data?.message || 'Захиалгын түүх татахад алдаа гарлаа.');
-      })
-      .finally(() => { if (mounted) setLoading(false); });
+    loadBookings(mounted);
 
     return () => { mounted = false; };
-  }, []);
+  }, [loadBookings]));
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (

@@ -41,10 +41,10 @@ function AuthGuard() {
       );
     } else if (user?.role === 'cashier' && segments[0] !== 'cashier') {
       lastRedirectKey.current = redirectKey;
-      router.replace(redirectTarget || '/cashier');
+      router.replace((redirectTarget || '/cashier') as any);
     } else if (user && inAuth) {
       lastRedirectKey.current = redirectKey;
-      router.replace(redirectTarget || (user.role === 'cashier' ? '/cashier' : '/(tabs)'));
+      router.replace((redirectTarget || (user.role === 'cashier' ? '/cashier' : '/(tabs)')) as any);
     } else {
       lastRedirectKey.current = '';
     }
