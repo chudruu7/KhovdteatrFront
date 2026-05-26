@@ -1,7 +1,7 @@
 // src/pages/Login.jsx
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { login, register, socialLogin, getCurrentUser } from '../auth/auth';
 import { auth } from '../auth/firebaseConfig';
 import {
@@ -101,6 +101,8 @@ const CinematicLogin = ({ onLogin }) => {
   const [error, setError]           = useState('');
   const [success, setSuccess]       = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.from;
 
   const particlesRef = useRef(initParticles());
   const canvasRef    = useRef(null);
@@ -109,8 +111,8 @@ const CinematicLogin = ({ onLogin }) => {
 
   useEffect(() => {
     const currentUser = getCurrentUser();
-    if (currentUser) navigate('/');
-  }, [navigate]);
+    if (currentUser) navigate(redirectTo || '/');
+  }, [navigate, redirectTo]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -180,9 +182,9 @@ const CinematicLogin = ({ onLogin }) => {
 
     if (onLogin && syncResult.user) onLogin(syncResult.user);
     syncedGoogleUidRef.current = firebaseUser.uid;
-    const target = syncResult.user?.role === 'admin' ? '/admin' : syncResult.user?.role === 'cashier' ? '/cashier' : '/';
+    const target = redirectTo || (syncResult.user?.role === 'admin' ? '/admin' : syncResult.user?.role === 'cashier' ? '/cashier' : '/');
     navigate(target);
-  }, [navigate, onLogin]);
+  }, [navigate, onLogin, redirectTo]);
 
   useEffect(() => {
     let alive = true;
@@ -279,7 +281,7 @@ const CinematicLogin = ({ onLogin }) => {
       if (result.success) {
         setSuccess(isLogin ? 'Амжилттай нэвтэрлээ!' : 'Амжилттай бүртгүүллээ!');
         if (onLogin && result.user) onLogin(result.user);
-        const target = result.user?.role === 'admin' ? '/admin' : result.user?.role === 'cashier' ? '/cashier' : '/';
+        const target = redirectTo || (result.user?.role === 'admin' ? '/admin' : result.user?.role === 'cashier' ? '/cashier' : '/');
         setTimeout(() => navigate(target), 600);
       } else {
         setError(result.message || 'Алдаа гарлаа');

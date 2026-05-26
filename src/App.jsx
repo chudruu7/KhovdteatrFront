@@ -1,6 +1,6 @@
 // src/App.jsx
 import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Home from './pages/Home';
 import About from './pages/about';
@@ -20,7 +20,11 @@ import './index.css';
 
 // Хэрэглэгч нэвтэрсэн эсэхийг шалгах компонент
 const AuthRedirect = ({ children, isLoggedIn, user }) => {
+  const location = useLocation();
   if (isLoggedIn) {
+    const from = location.state?.from;
+    if (from) return <Navigate to={from} replace />;
+
     const target = user?.role === 'admin' ? '/admin' : user?.role === 'cashier' ? '/cashier' : '/';
     return <Navigate to={target} replace />;
   }
@@ -63,15 +67,17 @@ function App() {
   };
 
   const ProtectedRoute = ({ children }) => {
+    const location = useLocation();
     if (!isLoggedIn) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
     }
     return children;
   };
 
   const AdminRoute = ({ children }) => {
+    const location = useLocation();
     if (!isLoggedIn) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
     }
     if (user?.role !== 'admin') {
       return <Navigate to="/" replace />;
@@ -80,8 +86,9 @@ function App() {
   };
 
   const CashierRoute = ({ children }) => {
+    const location = useLocation();
     if (!isLoggedIn) {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
     }
     if (!['admin', 'cashier'].includes(user?.role)) {
       return <Navigate to="/" replace />;
