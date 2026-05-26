@@ -188,7 +188,7 @@ const Header = ({ onSearchResults, isLoggedIn, user, onLogout }) => {
                                             {['admin', 'cashier'].includes(user?.role) && (
                                                 <DropdownItem
                                                     icon={ScanLine}
-                                                    label="Cashier шалгах"
+                                                    label="Тасалбар шалгах"
                                                     onClick={() => {
                                                         navigate('/cashier');
                                                         setIsProfileDropdownOpen(false);

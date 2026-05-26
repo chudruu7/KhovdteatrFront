@@ -203,10 +203,15 @@ const MobileScanner = ({ stationKey }) => {
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-6 text-white">
       <div className="mx-auto max-w-md">
-        <div className="mb-5">
-          <p className="text-xs font-black uppercase tracking-[0.25em] text-emerald-400">Cashier mobile scanner</p>
-          <h1 className="mt-2 text-2xl font-black">QR уншуулах</h1>
-          <p className="mt-1 text-sm text-slate-400">Station: {stationKey}</p>
+        <div className="mb-5 flex items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-white p-1.5">
+            <img src="/kdt.png" alt="KDT Logo" className="h-full w-full object-contain" />
+          </div>
+          <div>
+            <p className="text-xs font-black text-emerald-400">Ховд аймгийн Хөгжимт драмын театр</p>
+            <h1 className="mt-1 text-2xl font-black">QR уншуулах</h1>
+            <p className="mt-1 text-sm text-slate-400">Station: {stationKey}</p>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-slate-800 bg-black p-3">
@@ -285,6 +290,17 @@ export default function Cashier({ user, onLogout }) {
     };
   }, [stationKey, isScanner, scan?._id]);
 
+  const refreshLatestScan = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const data = await cashierAPI.getLatestScan(stationKey);
+      setScan(data.scan || null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetStation = () => {
     const key = randomStationKey();
     localStorage.setItem('cashierStationKey', key);
@@ -328,15 +344,23 @@ export default function Cashier({ user, onLogout }) {
       <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-5 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-500/15 text-emerald-300">
-              <ScanLine className="h-7 w-7" />
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-500/20 bg-white p-1.5 shadow-lg shadow-emerald-950/30">
+              <img src="/kdt.png" alt="KDT Logo" className="h-full w-full object-contain" />
             </div>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.25em] text-emerald-400">Gate control</p>
-              <h1 className="text-2xl font-black">Cashier тасалбар шалгах</h1>
+              <p className="text-xs font-black text-emerald-400">Ховд аймгийн Хөгжимт драмын театр</p>
+              <h1 className="text-2xl font-black">Тасалбар шалгах дэлгэц</h1>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={refreshLatestScan}
+              disabled={loading}
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-bold text-emerald-300 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
             {user?.role === 'admin' && (
               <button onClick={() => navigate('/admin')} className="rounded-xl border border-slate-700 px-4 py-2 text-sm font-bold text-slate-200 hover:bg-slate-800">
                 Admin

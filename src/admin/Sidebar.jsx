@@ -22,7 +22,7 @@ const Sidebar = ({ activeModule: externalActive, setActiveModule: externalSet })
     { id: 'halls', label: 'Танхимууд', icon: MapPin, badge: null },
     { id: 'users', label: 'Хэрэглэгчид', icon: Users, badge: '3' },
     { id: 'tickets', label: 'Тасалбарууд', icon: Ticket, badge: null },
-    { id: 'cashier', label: 'Cashier шалгалт', icon: ScanLine, badge: null },
+    { id: 'cashier', label: 'Тасалбар шалгах', icon: ScanLine, badge: null },
   ];
 
   const secondaryItems = [
