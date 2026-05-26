@@ -25,7 +25,7 @@ function AuthGuard() {
 
     const inAuth = segments[0] === '(auth)';
     const redirectTarget = params.redirect || (
-      segments[0] === 'cashier' && params.station && params.scan
+      params.station && params.scan === '1'
         ? `/cashier?station=${encodeURIComponent(params.station)}&scan=${encodeURIComponent(params.scan)}`
         : ''
     );
@@ -41,7 +41,7 @@ function AuthGuard() {
       );
     } else if (user?.role === 'cashier' && segments[0] !== 'cashier') {
       lastRedirectKey.current = redirectKey;
-      router.replace('/cashier');
+      router.replace(redirectTarget || '/cashier');
     } else if (user && inAuth) {
       lastRedirectKey.current = redirectKey;
       router.replace(redirectTarget || (user.role === 'cashier' ? '/cashier' : '/(tabs)'));
