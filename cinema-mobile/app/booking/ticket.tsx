@@ -11,6 +11,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { COLORS } from '../../constants/theme';
 
 const { width: W } = Dimensions.get('window');
+const TICKET_QR_SIZE = Math.min(280, Math.max(230, W - 92));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const money = (n: number) => n.toLocaleString() + ' ₮';
@@ -292,7 +293,7 @@ export default function TicketScreen() {
             <View style={styles.qrBox}>
               <QRCode
                 value={qrPayload}
-                size={160}
+                size={TICKET_QR_SIZE}
                 backgroundColor="#FFFFFF"
                 color="#0A0A0E"
                 ecl="H"
@@ -531,10 +532,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#0C0C18',
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.05)',
-    paddingVertical: 24,
-    paddingHorizontal: 22,
+    paddingVertical: 28,
+    paddingHorizontal: 16,
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
   },
   qrHeaderRow: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -545,9 +546,9 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.3)',
   },
   qrBox: {
-    padding: 14,
+    padding: 16,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 18,
     shadowColor: '#14B8A6',
     shadowOpacity: 0.15,
     shadowRadius: 20,

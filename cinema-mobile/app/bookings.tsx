@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator, ScrollView, StyleSheet,
-  Modal, Text, TouchableOpacity, View,
+  Dimensions, Modal, Text, TouchableOpacity, View,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,9 @@ import QRCode from 'react-native-qrcode-svg';
 import { bookingAPI } from '../api';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { useTheme } from '../hooks/useTheme';
+
+const { width: SCREEN_W } = Dimensions.get('window');
+const TICKET_MODAL_QR_SIZE = Math.min(260, Math.max(220, SCREEN_W - 112));
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type BookingStatus = 'active' | 'used' | 'cancelled' | 'expired' | 'pending';
@@ -354,7 +357,7 @@ function TicketDetailsModal({
               <View style={styles.qrWrap}>
                 <QRCode
                   value={qrPayload}
-                  size={150}
+                  size={TICKET_MODAL_QR_SIZE}
                   backgroundColor="#FFFFFF"
                   color="#0A0A0E"
                   ecl="H"
@@ -423,7 +426,7 @@ const createStyles = (colors: typeof COLORS) => StyleSheet.create({
   modalTitle:      { color: colors.white, fontSize: 20, fontWeight: '900', maxWidth: 250 },
   closeButton:     { width: 36, height: 36, borderRadius: RADIUS.full, backgroundColor: colors.bgElevate, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
   modalLoading:    { paddingVertical: SPACING.xl, alignItems: 'center' },
-  qrWrap:          { alignSelf: 'center', padding: 12, backgroundColor: '#fff', borderRadius: RADIUS.md, marginBottom: SPACING.sm },
+  qrWrap:          { alignSelf: 'center', padding: 14, backgroundColor: '#fff', borderRadius: RADIUS.lg, marginBottom: SPACING.sm },
   qrHint:          { color: colors.textSub, textAlign: 'center', fontSize: 12, marginBottom: SPACING.md },
   ticketStatusBadge: { alignSelf: 'center', paddingHorizontal: SPACING.md, paddingVertical: 6, borderRadius: RADIUS.full, marginBottom: SPACING.md },
   ticketStatusActive: { backgroundColor: 'rgba(29,233,182,0.14)' },
