@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useGlobalSearchParams, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
@@ -12,6 +12,7 @@ function AuthGuard() {
   const { colors }        = useTheme();
   const router            = useRouter();
   const segments          = useSegments();
+  const params            = useGlobalSearchParams<{ redirect?: string; station?: string; scan?: string }>();
 
   // Prevent only identical repeated redirects; auth state changes must navigate.
   const lastRedirectKey = useRef('');
@@ -23,23 +24,31 @@ function AuthGuard() {
     }
 
     const inAuth = segments[0] === '(auth)';
-    const redirectKey = `${user ? 'user' : 'guest'}:${inAuth ? 'auth' : 'app'}`;
+    const redirectTarget = params.redirect || (
+      segments[0] === 'cashier' && params.station && params.scan
+        ? `/cashier?station=${encodeURIComponent(params.station)}&scan=${encodeURIComponent(params.scan)}`
+        : ''
+    );
+    const redirectKey = `${user ? 'user' : 'guest'}:${inAuth ? 'auth' : 'app'}:${redirectTarget}`;
 
     if (lastRedirectKey.current === redirectKey) return;
 
     if (!user && !inAuth) {
       lastRedirectKey.current = redirectKey;
-      router.replace('/(auth)/login');
+      router.replace(redirectTarget
+        ? { pathname: '/(auth)/login', params: { redirect: redirectTarget } }
+        : '/(auth)/login'
+      );
     } else if (user?.role === 'cashier' && segments[0] !== 'cashier') {
       lastRedirectKey.current = redirectKey;
       router.replace('/cashier');
     } else if (user && inAuth) {
       lastRedirectKey.current = redirectKey;
-      router.replace(user.role === 'cashier' ? '/cashier' : '/(tabs)');
+      router.replace(redirectTarget || (user.role === 'cashier' ? '/cashier' : '/(tabs)'));
     } else {
       lastRedirectKey.current = '';
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, params.redirect, params.station, params.scan]);
 
   if (loading) {
     return (
