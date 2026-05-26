@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Search, ShieldCheck, Trash2, UserRound, Users } from 'lucide-react';
+import { RefreshCw, ScanLine, Search, ShieldCheck, Trash2, UserRound, Users } from 'lucide-react';
 import { adminAPI } from '../../api/adminAPI';
 import toast from '../Toast';
 import { useConfirm } from '../modals/ConfirmModal';
@@ -20,6 +20,7 @@ export default function UserManagementModule() {
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
   const [deletingId, setDeletingId] = useState(null);
+  const [updatingRoleId, setUpdatingRoleId] = useState(null);
 
   const loadUsers = async () => {
     try {
@@ -73,6 +74,20 @@ export default function UserManagementModule() {
     }
   };
 
+  const updateRole = async (user, role) => {
+    if (user.role === role) return;
+    try {
+      setUpdatingRoleId(user._id);
+      const data = await adminAPI.updateUserRole(user._id, role);
+      setUsers((prev) => prev.map((item) => item._id === user._id ? { ...item, ...(data.user || {}), role } : item));
+      toast.success('Хэрэглэгчийн эрх шинэчлэгдлээ');
+    } catch (err) {
+      toast.error(err.message || 'Хэрэглэгчийн эрх шинэчлэхэд алдаа гарлаа.');
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -107,8 +122,8 @@ export default function UserManagementModule() {
           <p className="mt-2 text-3xl font-bold text-amber-400">{users.filter((u) => u.role === 'admin').length}</p>
         </div>
         <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
-          <p className="text-sm text-slate-400">Энгийн хэрэглэгч</p>
-          <p className="mt-2 text-3xl font-bold text-emerald-400">{users.filter((u) => u.role !== 'admin').length}</p>
+          <p className="text-sm text-slate-400">Cashier эрхтэй</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-400">{users.filter((u) => u.role === 'cashier').length}</p>
         </div>
       </div>
 
@@ -174,23 +189,38 @@ export default function UserManagementModule() {
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
                       user.role === 'admin'
                         ? 'bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/30'
-                        : 'bg-slate-700/70 text-slate-300'
+                        : user.role === 'cashier'
+                          ? 'bg-emerald-500/10 text-emerald-300 ring-1 ring-emerald-500/30'
+                          : 'bg-slate-700/70 text-slate-300'
                     }`}>
                       {user.role === 'admin' && <ShieldCheck className="h-3 w-3" />}
+                      {user.role === 'cashier' && <ScanLine className="h-3 w-3" />}
                       {user.role}
                     </span>
                   </td>
                   <td className="px-4 py-4 text-sm text-slate-300">{user.points || 0}</td>
                   <td className="px-4 py-4 text-sm text-slate-300">{formatDate(user.createdAt)}</td>
                   <td className="px-4 py-4">
-                    <button
-                      onClick={() => deleteUser(user)}
-                      disabled={deletingId === user._id}
-                      className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Устгах
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={user.role}
+                        onChange={(event) => updateRole(user, event.target.value)}
+                        disabled={updatingRoleId === user._id}
+                        className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-amber-500 disabled:opacity-60"
+                      >
+                        <option value="user">user</option>
+                        <option value="cashier">cashier</option>
+                        <option value="admin">admin</option>
+                      </select>
+                      <button
+                        onClick={() => deleteUser(user)}
+                        disabled={deletingId === user._id}
+                        className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Устгах
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -94,7 +94,15 @@ export const adminAPI = {
     getAlerts:           async () => handleResponse(await fetch(`${API_BASE_URL}/admin/alerts`,           { headers: getHeaders(), credentials: 'include' })),
     getSparklines:       async () => handleResponse(await fetch(`${API_BASE_URL}/admin/sparklines`,       { headers: getHeaders(), credentials: 'include' })),
     getUsers:            async () => handleResponse(await fetch(`${API_BASE_URL}/admin/users`,            { headers: getHeaders(), credentials: 'include' })),
+    updateUserRole:      async (id, role) => handleResponse(await fetch(`${API_BASE_URL}/admin/users/${id}/role`, { method: 'PATCH', headers: getHeaders(), credentials: 'include', body: JSON.stringify({ role }) })),
     deleteUser:          async (id) => handleResponse(await fetch(`${API_BASE_URL}/admin/users/${id}`,     { method: 'DELETE', headers: getHeaders(), credentials: 'include' })),
+};
+
+export const cashierAPI = {
+    getTicket: async (bookingId) => handleResponse(await fetch(`${API_BASE_URL}/cashier/tickets/${bookingId}`, { headers: getHeaders(), credentials: 'include' })),
+    admitTicket: async (bookingId) => handleResponse(await fetch(`${API_BASE_URL}/cashier/tickets/${bookingId}/admit`, { method: 'POST', headers: getHeaders(), credentials: 'include' })),
+    getLatestScan: async (stationKey) => handleResponse(await fetch(`${API_BASE_URL}/cashier/stations/${stationKey}/latest`, { headers: getHeaders(), credentials: 'include' })),
+    submitScan: async (stationKey, qrData) => handleResponse(await fetch(`${API_BASE_URL}/cashier/stations/${stationKey}/scans`, { method: 'POST', headers: getHeaders(), credentials: 'include', body: JSON.stringify({ qrData }) })),
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

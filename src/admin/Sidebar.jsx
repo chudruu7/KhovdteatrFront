@@ -3,7 +3,7 @@ import { ADMIN_DEFAULT_AVATAR } from '../data/avatars';
 import {
   LayoutDashboard, Film, Calendar, MapPin,
   Users, Ticket, Percent, BarChart3,
-  Info, Newspaper, ChevronLeft, ChevronRight
+  Info, Newspaper, ChevronLeft, ChevronRight, ScanLine
 } from 'lucide-react';
 
 const Sidebar = ({ activeModule: externalActive, setActiveModule: externalSet }) => {
@@ -22,6 +22,7 @@ const Sidebar = ({ activeModule: externalActive, setActiveModule: externalSet })
     { id: 'halls', label: 'Танхимууд', icon: MapPin, badge: null },
     { id: 'users', label: 'Хэрэглэгчид', icon: Users, badge: '3' },
     { id: 'tickets', label: 'Тасалбарууд', icon: Ticket, badge: null },
+    { id: 'cashier', label: 'Cashier шалгалт', icon: ScanLine, badge: null },
   ];
 
   const secondaryItems = [

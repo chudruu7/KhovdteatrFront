@@ -13,6 +13,7 @@ import toast, { ToastContainer } from './Toast';
 import { ConfirmModalContainer, useConfirm } from './modals/ConfirmModal';
 import ReportsModule from './modules/ReportsModule';
 import UserManagementModule from './modules/UserManagementModule';
+import Cashier from '../pages/Cashier';
 // ✅ ScheduleModal import
 import ScheduleModal from './modals/ScheduleModal';
 
@@ -76,6 +77,7 @@ const AdminPanelContent = ({ onLogout }) => {
       case 'movies':   return <MovieManagementModule />;
       case 'schedule': return <ScheduleManagementModule />;
       case 'tickets':  return <TicketManagementModule />;
+      case 'cashier':  return <Cashier />;
       case 'news':     return <NewsManagementModule />;
       case 'cinema':   return <CinemaInfoModule />;
       case 'users':    return <UserManagementModule />;

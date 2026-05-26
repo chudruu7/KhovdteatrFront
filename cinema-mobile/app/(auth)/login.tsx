@@ -318,13 +318,13 @@ export default function LoginScreen() {
               end={{ x: 1, y: 1 }}
             >
               <View style={styles.cardInner}>
-                <Text style={styles.welcomeTitle}>Welcome Back</Text>
-                <Text style={styles.welcomeSubtitle}>Sign in to continue</Text>
+                <Text style={styles.welcomeTitle}>Нэвтрэх</Text>
+                <Text style={styles.welcomeSubtitle}>Үргэлжлүүлэхийн тулд нэвтэрнэ үү</Text>
 
                 {/* Inputs */}
                 <AnimatedInput
                   iconName="mail"
-                  placeholder="Email address"
+                  placeholder="Имэйл хаягаа оруулна уу"
                   value={email}
                   onChangeText={setEmail}
                   keyboardType="email-address"
@@ -334,7 +334,7 @@ export default function LoginScreen() {
 
                 <AnimatedInput
                   iconName="lock"
-                  placeholder="Password"
+                  placeholder="Нууц үгээ оруулна уу"
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={!showPwd}
@@ -355,7 +355,7 @@ export default function LoginScreen() {
 
                 {/* Forgot */}
                 <TouchableOpacity style={styles.forgotButton} activeOpacity={0.7}>
-                  <Text style={styles.forgotText}>Forgot password?</Text>
+                  <Text style={styles.forgotText}>Нууц үгээ мартсан уу?</Text>
                 </TouchableOpacity>
 
                 {/* Login CTA */}
@@ -363,7 +363,7 @@ export default function LoginScreen() {
                   onPress={handleLogin}
                   disabled={loading}
                   loading={loading}
-                  label="SIGN IN"
+                  label="НЭВТРЭХ"
                   style={styles.loginButton}
                   colors={['#14B8A6', '#0D9488']}
                 />
@@ -387,7 +387,7 @@ export default function LoginScreen() {
                   ) : (
                     <View style={styles.socialInner}>
                       <Icon name="google" size={20} color="#EA4335" />
-                      <Text style={styles.socialButtonText}>Continue with Google</Text>
+                      <Text style={styles.socialButtonText}>Google-р нэвтрэх</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -399,8 +399,8 @@ export default function LoginScreen() {
                   activeOpacity={0.7}
                 >
                   <Text style={styles.registerText}>
-                    Don't have an account?{' '}
-                    <Text style={styles.registerHighlight}>Sign Up</Text>
+                    Бүртгэлгүй хэрэглэгч үү?{' '}
+                    <Text style={styles.registerHighlight}>Бүртгүүлэх</Text>
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -554,7 +554,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     borderRadius: 20, borderWidth: 1,
     paddingHorizontal: 18, height: 58,
-    transition: 'all 0.2s ease',
   },
   input: {
     flex: 1, height: '100%',

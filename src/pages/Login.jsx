@@ -180,7 +180,7 @@ const CinematicLogin = ({ onLogin }) => {
 
     if (onLogin && syncResult.user) onLogin(syncResult.user);
     syncedGoogleUidRef.current = firebaseUser.uid;
-    const target = syncResult.user?.role === 'admin' ? '/admin' : '/';
+    const target = syncResult.user?.role === 'admin' ? '/admin' : syncResult.user?.role === 'cashier' ? '/cashier' : '/';
     navigate(target);
   }, [navigate, onLogin]);
 
@@ -279,7 +279,7 @@ const CinematicLogin = ({ onLogin }) => {
       if (result.success) {
         setSuccess(isLogin ? 'Амжилттай нэвтэрлээ!' : 'Амжилттай бүртгүүллээ!');
         if (onLogin && result.user) onLogin(result.user);
-        const target = result.user?.role === 'admin' ? '/admin' : '/';
+        const target = result.user?.role === 'admin' ? '/admin' : result.user?.role === 'cashier' ? '/cashier' : '/';
         setTimeout(() => navigate(target), 600);
       } else {
         setError(result.message || 'Алдаа гарлаа');

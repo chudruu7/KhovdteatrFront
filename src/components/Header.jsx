@@ -1,7 +1,7 @@
 // src/components/Header.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, User, Calendar, Settings, ChevronDown, Home, Clock, Newspaper, Info, Gift } from 'lucide-react';
+import { LogOut, User, Calendar, Settings, ChevronDown, Home, Clock, Newspaper, Info, Gift, ScanLine } from 'lucide-react';
 import SearchBar from './SearchBar';
 import ThemeToggle from './ThemeToggle';
 import { movies } from '../data/movies';
@@ -185,6 +185,16 @@ const Header = ({ onSearchResults, isLoggedIn, user, onLogout }) => {
                                                     setIsProfileDropdownOpen(false);
                                                 }}
                                             />
+                                            {['admin', 'cashier'].includes(user?.role) && (
+                                                <DropdownItem
+                                                    icon={ScanLine}
+                                                    label="Cashier шалгах"
+                                                    onClick={() => {
+                                                        navigate('/cashier');
+                                                        setIsProfileDropdownOpen(false);
+                                                    }}
+                                                />
+                                            )}
                                             
                                            
                                             <div className="h-[1px] bg-black/5 dark:bg-white/5 my-1" />

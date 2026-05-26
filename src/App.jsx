@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import BookingPage from './pages/BookingPage';
 import ProfilePage from './pages/Profile';
 import TicketVerify from './pages/TicketVerify';
+import Cashier from './pages/Cashier';
 import Adminpanel from './admin/AdminPanel';
 import { movies, news } from './data/movies';
 import { getCurrentUser, setUser, logout } from './auth/auth'; // setCurrentUser -> setUser
@@ -20,7 +21,7 @@ import './index.css';
 // Хэрэглэгч нэвтэрсэн эсэхийг шалгах компонент
 const AuthRedirect = ({ children, isLoggedIn, user }) => {
   if (isLoggedIn) {
-    const target = user?.role === 'admin' ? '/admin' : '/';
+    const target = user?.role === 'admin' ? '/admin' : user?.role === 'cashier' ? '/cashier' : '/';
     return <Navigate to={target} replace />;
   }
   return children;
@@ -73,6 +74,16 @@ function App() {
       return <Navigate to="/login" replace />;
     }
     if (user?.role !== 'admin') {
+      return <Navigate to="/" replace />;
+    }
+    return children;
+  };
+
+  const CashierRoute = ({ children }) => {
+    if (!isLoggedIn) {
+      return <Navigate to="/login" replace />;
+    }
+    if (!['admin', 'cashier'].includes(user?.role)) {
       return <Navigate to="/" replace />;
     }
     return children;
@@ -174,6 +185,20 @@ function App() {
                 <Adminpanel onLogout={handleLogout} />
               </motion.div>
             </AdminRoute>
+          } />
+
+          <Route path="/cashier" element={
+            <CashierRoute>
+              <motion.div
+                key="cashier"
+                variants={pageVariants}
+                initial="initial"
+                animate="animate"
+                exit="exit"
+              >
+                <Cashier user={user} onLogout={handleLogout} />
+              </motion.div>
+            </CashierRoute>
           } />
 
           <Route path="/promotions" element={

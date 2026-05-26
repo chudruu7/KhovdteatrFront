@@ -72,6 +72,21 @@ export const authAPI = {
   },
 };
 
+export const cashierAPI = {
+  getTicket: async (bookingId: string) => {
+    const { data } = await api.get(`/cashier/tickets/${bookingId}`);
+    return data;
+  },
+  admitTicket: async (bookingId: string) => {
+    const { data } = await api.post(`/cashier/tickets/${bookingId}/admit`, {});
+    return data;
+  },
+  submitStationScan: async (stationKey: string, qrData: string) => {
+    const { data } = await api.post(`/cashier/stations/${stationKey}/scans`, { qrData });
+    return data;
+  },
+};
+
 // ─── MOVIE API ─────────────────────────────────────────────────────────────────
 export const movieAPI = {
   getAll: async () => {

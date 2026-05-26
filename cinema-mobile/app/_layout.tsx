@@ -30,9 +30,12 @@ function AuthGuard() {
     if (!user && !inAuth) {
       lastRedirectKey.current = redirectKey;
       router.replace('/(auth)/login');
+    } else if (user?.role === 'cashier' && segments[0] !== 'cashier') {
+      lastRedirectKey.current = redirectKey;
+      router.replace('/cashier');
     } else if (user && inAuth) {
       lastRedirectKey.current = redirectKey;
-      router.replace('/(tabs)');
+      router.replace(user.role === 'cashier' ? '/cashier' : '/(tabs)');
     } else {
       lastRedirectKey.current = '';
     }
@@ -70,6 +73,7 @@ function AppStack() {
         <Stack.Screen name="(auth)"   options={{ gestureEnabled: false }} />
         <Stack.Screen name="(tabs)"   options={{ gestureEnabled: false }} />
         <Stack.Screen name="bookings" />
+        <Stack.Screen name="cashier" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="contact" />
         <Stack.Screen name="booking" />
