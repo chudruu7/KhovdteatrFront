@@ -29,7 +29,8 @@
   <body>
     <script>
       if (window.location.pathname.startsWith('/mobile')) {
-        window.history.replaceState(null, '', '/');
+        window.__CINEMA_MOBILE_PUBLIC_PATH__ = '/mobile';
+        window.history.replaceState(null, '', '/' + window.location.search + window.location.hash);
       }
     </script>
     <!-- Use static rendering with Expo Router to support running without JavaScript. -->
@@ -38,6 +39,6 @@
     </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
-  <script src="/_expo/static/js/web/entry-ef76efa71517d51c831ee879f220e877.js" defer></script>
+  <script src="/_expo/static/js/web/entry-0921fbbe37cc430ab0377ced875d9b6b.js" defer></script>
 </body>
 </html>

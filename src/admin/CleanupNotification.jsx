@@ -42,6 +42,24 @@ export default function CleanupNotification() {
     }
   };
 
+  const handleReject = async () => {
+    setLoading(true);
+    try {
+      const data = await cleanupAPI.reject(request._id);
+      setMessage({
+        type: "success",
+        text: "Хүсэлт алгасагдлаа",
+        details: data.message || "7 хоногийн дараа дахин мэдэгдэнэ."
+      });
+      setRequest(null);
+    } catch (err) {
+      setMessage({ type: "error", text: "Алдаа гарлаа", details: err.message });
+    } finally {
+      setLoading(false);
+      setTimeout(() => setMessage(null), 5000);
+    }
+  };
+
   return (
     <div className="fixed bottom-8 right-8 z-[60] w-[380px] flex flex-col gap-4 pointer-events-none">
       
