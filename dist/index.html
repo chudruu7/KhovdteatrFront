@@ -20,7 +20,8 @@
         var userAgent = (window.navigator && window.navigator.userAgent) || '';
         var isMobileDevice = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
         var isMobileWidth = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
-        var shouldUseMobileApp = (isMobileDevice || isMobileWidth) && !path.startsWith('/mobile') && !path.startsWith('/admin');
+        var isCashierScanner = path.startsWith('/cashier') && window.location.search.includes('scan=1');
+        var shouldUseMobileApp = (isMobileDevice || isMobileWidth) && !path.startsWith('/mobile') && !path.startsWith('/admin') && !isCashierScanner;
 
         if (shouldUseMobileApp) {
           window.location.replace('/mobile/index.html');
