@@ -42,6 +42,15 @@ const qpayAPI = {
   },
 
   // ── Invoice цуцлах ───────────────────────────────────────────────────────
+  testComplete: async (invoiceId, bookingId) => {
+    const res = await axios.post(
+      `${API_URL}/qpay/test-complete/${invoiceId}`,
+      { bookingId },
+      { headers: getAuthHeader() }
+    );
+    return res.data;
+  },
+
   cancelInvoice: async (invoiceId) => {
     const res = await axios.delete(`${API_URL}/qpay/invoice/${invoiceId}`, {
       headers: getAuthHeader(),

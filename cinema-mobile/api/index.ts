@@ -188,6 +188,10 @@ export const qpayAPI = {
     const { data } = await api.post(`/bookings/${bookingId}/confirm`, {});
     return data;
   },
+  testComplete: async (invoiceId: string, bookingId: string) => {
+    const { data } = await api.post(`/qpay/test-complete/${invoiceId}`, { bookingId });
+    return data;
+  },
   cancelBooking: async (bookingId: string) => {
     const { data } = await api.post(`/bookings/${bookingId}/cancel`, {});
     return data;

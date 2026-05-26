@@ -107,6 +107,19 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
     clearInterval(timerRef.current);
   };
 
+  const completeTestPayment = async () => {
+    if (!invoiceId) return;
+    cleanup();
+    try {
+      await qpayAPI.testComplete(invoiceId, bookingId);
+      setStep("success");
+      setTimeout(() => onSuccess?.(), 2500);
+    } catch (e) {
+      setErrorMsg(e?.response?.data?.message || "Тест төлбөр баталгаажуулахад алдаа гарлаа.");
+      setStep("error");
+    }
+  };
+
   const handleClose = async () => {
   cleanup();
   if (invoiceId && step === "qr") {
@@ -229,24 +242,9 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
               <p className="text-xs text-gray-400">Банкны аппликейшнаараа QR уншуулна уу</p>
 
               {/* DEV тест товч */}
-              {import.meta.env.DEV && (
+              {invoiceId && (
   <button
-    onClick={async () => {
-      cleanup();
-      try {
-        await fetch(`${API_BASE_URL}/bookings/${bookingId}/confirm`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
-      } catch (e) {
-        console.error('Confirm error:', e);
-      }
-      setStep("success");
-      setTimeout(() => onSuccess?.(), 2500);
-    }}
+    onClick={completeTestPayment}
     className="w-full rounded-xl border border-dashed border-green-400 bg-green-50 py-2 text-xs font-medium text-green-700 hover:bg-green-100 transition-colors"
   >
     ✅ [TEST] Төлөгдсөн болгох

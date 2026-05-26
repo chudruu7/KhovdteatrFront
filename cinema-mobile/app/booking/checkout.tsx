@@ -19,9 +19,6 @@ function fmt(s: number) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-// In DEV on a real device, auto-confirm payment for testing
-const isMobilePaymentTestPaid = __DEV__ && Platform.OS !== 'web';
-
 // ── Types ─────────────────────────────────────────────────────────────────────
 type QpayStep = 'idle' | 'loading' | 'qr' | 'success' | 'error';
 
@@ -103,6 +100,22 @@ export default function CheckoutScreen() {
     }
     setQpayStep('success');
     setTimeout(() => goToTicket(bId, name, email), 1200);
+  };
+
+  const completeTestPayment = async () => {
+    if (!invoiceId || !bookingId || paidRef.current) return;
+    paidRef.current = true;
+    cleanup();
+    try {
+      await qpayAPI.testComplete(invoiceId, bookingId);
+    } catch (error: any) {
+      paidRef.current = false;
+      setErrMsg(error?.response?.data?.message || 'Тест төлбөр баталгаажуулахад алдаа гарлаа.');
+      setQpayStep('error');
+      return;
+    }
+    setQpayStep('success');
+    setTimeout(() => goToTicket(bookingId, name, email), 1200);
   };
 
   // ── QPay: create invoice ─────────────────────────────────────────────────
@@ -203,11 +216,7 @@ export default function CheckoutScreen() {
 
       setBookingId(bId);
 
-      if (isMobilePaymentTestPaid) {
-        await completePaidBooking(bId);
-      } else {
-        await initQPay(bId);
-      }
+      await initQPay(bId);
     } finally {
       setLoading(false);
     }
@@ -290,6 +299,14 @@ export default function CheckoutScreen() {
                 )}
 
                 <Text style={styles.qpayHint}>Банкны аппаараа QR уншуулна уу</Text>
+
+                <TouchableOpacity
+                  style={styles.testPayBtn}
+                  onPress={completeTestPayment}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.testPayText}>[TEST] Төлөгдсөн болгох</Text>
+                </TouchableOpacity>
               </>
             )}
 
@@ -430,7 +447,7 @@ export default function CheckoutScreen() {
                 <ActivityIndicator color="#0f261c" />
               ) : (
                 <Text style={styles.payText}>
-                  {isMobilePaymentTestPaid ? 'Тест төлбөр батлах' : 'QPay-р төлөх'} · {money(totalPrice)}
+                  QPay-р төлөх · {money(totalPrice)}
                 </Text>
               )}
             </LinearGradient>
@@ -487,6 +504,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   banksGrid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   bankBtn:           { paddingHorizontal: SPACING.sm, paddingVertical: 6, borderRadius: RADIUS.sm, backgroundColor: colors.bgElevate, borderWidth: 1, borderColor: colors.border },
   bankText:          { color: colors.textDim, fontSize: 11 },
+  testPayBtn:        { width: '100%', paddingVertical: 11, borderRadius: RADIUS.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.teal, backgroundColor: 'rgba(29,233,182,0.08)', alignItems: 'center' },
+  testPayText:       { color: colors.teal, fontSize: 13, fontWeight: '800' },
   qpayHint:          { color: colors.textSub, fontSize: 12, textAlign: 'center' },
   resultIcon:        { width: 72, height: 72, borderRadius: RADIUS.full, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   resultIconSuccess: { backgroundColor: 'rgba(29,233,182,0.12)', borderColor: colors.teal },
