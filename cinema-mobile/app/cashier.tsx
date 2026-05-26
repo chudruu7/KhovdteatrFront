@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Platform,
   ScrollView,
   StyleSheet,
@@ -145,7 +146,7 @@ function StationScanner({ stationKey, onLogout, user }: { stationKey: string; on
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.kicker}>Gate scanner</Text>
+          <Text style={styles.kicker}>Ховд аймгийн Хөгжимт драмын театр</Text>
           <Text style={styles.title}>QR уншуулах</Text>
           <Text style={styles.userText}>{user?.name || user?.email}</Text>
         </View>
@@ -253,19 +254,36 @@ export default function CashierScreen() {
     }
   };
 
+  const refreshTicket = async () => {
+    if (loading) return;
+    if (!code.trim()) {
+      setBooking(null);
+      return;
+    }
+    await checkTicket();
+  };
+
   const allowed = Boolean(booking?.admission?.allowed);
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View>
-          <Text style={styles.kicker}>Gate control</Text>
-          <Text style={styles.title}>Cashier шалгалт</Text>
-          <Text style={styles.userText}>{user?.name || user?.email}</Text>
+        <View style={styles.brandRow}>
+          <Image source={require('../assets/kdt.png')} style={styles.logo} resizeMode="contain" />
+          <View style={styles.brandText}>
+            <Text style={styles.kicker}>Ховд аймгийн Хөгжимт драмын театр</Text>
+            <Text style={styles.title}>Тасалбар шалгах дэлгэц</Text>
+            <Text style={styles.userText}>{user?.name || user?.email}</Text>
+          </View>
         </View>
-        <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
-          <Ionicons name="log-out-outline" size={22} color={COLORS.coral} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={refreshTicket} style={styles.refreshBtn} disabled={loading}>
+            <Ionicons name="refresh-outline" size={22} color={COLORS.teal} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={logout} style={styles.logoutBtn}>
+            <Ionicons name="log-out-outline" size={22} color={COLORS.coral} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -341,9 +359,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  kicker: { color: COLORS.teal, fontSize: 10, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' },
-  title: { color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 4 },
+  brandRow: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: SPACING.sm },
+  logo: { width: 48, height: 48, flexShrink: 0 },
+  brandText: { flex: 1, minWidth: 0 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, marginLeft: SPACING.sm },
+  kicker: { color: COLORS.teal, fontSize: 11, fontWeight: '900' },
+  title: { color: '#fff', fontSize: 20, fontWeight: '900', marginTop: 4 },
   userText: { color: 'rgba(255,255,255,0.45)', fontSize: 12, marginTop: 3 },
+  refreshBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(20,184,166,0.12)', alignItems: 'center', justifyContent: 'center' },
   logoutBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(232,96,122,0.12)', alignItems: 'center', justifyContent: 'center' },
   content: { padding: SPACING.lg, gap: SPACING.lg, paddingBottom: SPACING.xxl },
   card: { backgroundColor: '#10141D', borderRadius: RADIUS.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', padding: SPACING.lg },
