@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { BrowserQRCodeReader } from '@zxing/browser';
+import { Html5QrcodeScanType, Html5QrcodeScanner } from 'html5-qrcode';
 import {
   CheckCircle2,
   Clock,
@@ -144,20 +144,20 @@ const TicketPanel = ({ booking, scan, onAdmit, admitting }) => {
 };
 
 const MobileScanner = ({ stationKey }) => {
-  const videoRef = useRef(null);
-  const controlsRef = useRef(null);
+  const scannerRef = useRef(null);
   const lastValueRef = useRef('');
+  const submittingRef = useRef(false);
   const [manualCode, setManualCode] = useState('');
   const [message, setMessage] = useState('');
   const [cameraError, setCameraError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [startingCamera, setStartingCamera] = useState(false);
 
   const submitScan = useCallback(async (value) => {
     const qrData = String(value || '').trim();
-    if (!qrData || submitting) return;
+    if (!qrData || submittingRef.current) return;
     if (lastValueRef.current === qrData) return;
     lastValueRef.current = qrData;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const data = await cashierAPI.submitScan(stationKey, qrData);
@@ -167,62 +167,38 @@ const MobileScanner = ({ stationKey }) => {
       setMessage(err.message || 'QR уншихад алдаа гарлаа');
       setTimeout(() => { lastValueRef.current = ''; }, 2500);
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
-  }, [stationKey, submitting]);
-
-  const startCamera = useCallback(async () => {
-    setStartingCamera(true);
-    setCameraError('');
-    try {
-      controlsRef.current?.stop?.();
-      const reader = new BrowserQRCodeReader();
-      controlsRef.current = await reader.decodeFromVideoDevice(
-        undefined,
-        videoRef.current,
-        (result) => {
-          if (!result) return;
-          submitScan(result.getText());
-        },
-      );
-    } catch (err) {
-      setCameraError(err.message || 'Камер нээж чадсангүй. Permission зөвшөөрөөд дахин оролдоно уу.');
-    } finally {
-      setStartingCamera(false);
-    }
-  }, [submitScan]);
+  }, [stationKey]);
 
   useEffect(() => {
-    startCamera();
-    return () => {
-      controlsRef.current?.stop?.();
-    };
-  }, [startCamera]);
+    const scanner = new Html5QrcodeScanner('cashier-mobile-reader', {
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
+      rememberLastUsedCamera: true,
+      aspectRatio: 1,
+      supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+    }, false);
 
-  /* Removed legacy auto-start camera effect.
-    const start = async () => {
-      try {
-        const reader = new BrowserQRCodeReader();
-        controlsRef.current = await reader.decodeFromVideoDevice(
-          undefined,
-          videoRef.current,
-          (result) => {
-            if (!alive || !result) return;
-            submitScan(result.getText());
-          },
-        );
-      } catch (err) {
-        setCameraError(err.message || 'Камер нээж чадсангүй. Permission зөвшөөрөөд дахин оролдоно уу.');
-      }
-    };
+    scannerRef.current = scanner;
+    scanner.render(
+      (decodedText) => {
+        setCameraError('');
+        submitScan(decodedText);
+      },
+      (errorMessage) => {
+        if (String(errorMessage || '').toLowerCase().includes('permission')) {
+          setCameraError('Камерын эрх зөвшөөрөгдөөгүй байна. iPhone дээр Settings -> Safari -> Camera -> Allow болгож, энэ хуудсыг дахин нээгээрэй.');
+        }
+      },
+    );
 
-    start();
     return () => {
-      alive = false;
-      controlsRef.current?.stop?.();
+      scannerRef.current = null;
+      scanner.clear().catch(() => {});
     };
   }, [submitScan]);
-  */
 
   return (
     <div className="min-h-screen bg-slate-950 px-4 py-6 text-white">
@@ -233,22 +209,19 @@ const MobileScanner = ({ stationKey }) => {
           <p className="mt-1 text-sm text-slate-400">Station: {stationKey}</p>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-black">
-          <video ref={videoRef} className="aspect-[3/4] w-full object-cover" muted playsInline />
+        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-black p-3">
+          <div id="cashier-mobile-reader" className="w-full text-slate-100" />
         </div>
+
+        <p className="mt-3 text-xs font-semibold text-slate-500">
+          iPhone Safari дээр камер асуух товч гарч ирэхэд зөвшөөрнө үү. Scanner нь HTTPS дээр ажиллана.
+        </p>
 
         {cameraError && (
           <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-200">
             {cameraError}
           </div>
         )}
-        <button
-          onClick={startCamera}
-          disabled={startingCamera}
-          className="mt-4 w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-black disabled:bg-slate-700 disabled:text-slate-400"
-        >
-          {startingCamera ? 'Камер нээж байна...' : 'Камер нээх'}
-        </button>
         {message && (
           <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm font-bold text-emerald-200">
             {message}
