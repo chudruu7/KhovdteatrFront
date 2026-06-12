@@ -132,7 +132,11 @@ export default function RegisterScreen() {
 
   const handleGoogleSuccess = useCallback(
     async (profile: { name: string; email: string; avatarUrl?: string | null; providerId: string }) => {
-      await googleLogin(profile);
+      const data = await googleLogin(profile);
+      if (data?.isNewUser) {
+        await AsyncStorage.setItem(ONBOARDING_PENDING_KEY, '1');
+        await AsyncStorage.removeItem(ONBOARDING_SEEN_KEY);
+      }
     },
     [googleLogin]
   );

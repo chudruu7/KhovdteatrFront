@@ -30,13 +30,19 @@ function MobileOnboardingGuide({
   onClose,
 }: {
   visible: boolean;
-  onClose: () => void;
+  onClose: (dontShowAgain: boolean) => void;
 }) {
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  useEffect(() => {
+    if (visible) setDontShowAgain(false);
+  }, [visible]);
+
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent>
       <View style={styles.guideBackdrop}>
         <View style={styles.guideCard}>
-          <Pressable onPress={onClose} style={styles.guideClose} hitSlop={10}>
+          <Pressable onPress={() => onClose(dontShowAgain)} style={styles.guideClose} hitSlop={10}>
             <Ionicons name="close" size={22} color="#FFFFFF" />
           </Pressable>
 
@@ -66,7 +72,14 @@ function MobileOnboardingGuide({
             </View>
           </View>
 
-          <Pressable onPress={onClose} style={styles.guideButton}>
+          <Pressable onPress={() => setDontShowAgain((value) => !value)} style={styles.guideCheckRow}>
+            <View style={[styles.guideCheckbox, dontShowAgain && styles.guideCheckboxOn]}>
+              {dontShowAgain && <Ionicons name="checkmark" size={16} color="#111217" />}
+            </View>
+            <Text style={styles.guideCheckText}>Дахиж харахгүй</Text>
+          </Pressable>
+
+          <Pressable onPress={() => onClose(dontShowAgain)} style={styles.guideButton}>
             <Text style={styles.guideButtonText}>Ойлголоо</Text>
           </Pressable>
         </View>
@@ -166,10 +179,12 @@ export default function TabsLayout() {
     };
   }, []);
 
-  const closeGuide = async () => {
+  const closeGuide = async (dontShowAgain: boolean) => {
     setShowGuide(false);
-    await AsyncStorage.setItem(ONBOARDING_SEEN_KEY, '1');
-    await AsyncStorage.removeItem(ONBOARDING_PENDING_KEY);
+    if (dontShowAgain) {
+      await AsyncStorage.setItem(ONBOARDING_SEEN_KEY, '1');
+      await AsyncStorage.removeItem(ONBOARDING_PENDING_KEY);
+    }
   };
 
   return (
@@ -298,6 +313,26 @@ const styles = StyleSheet.create({
     padding: 13,
   },
   guideText: { flex: 1, color: '#E7EAF0', fontSize: 13, lineHeight: 19, fontWeight: '600' },
+  guideCheckRow: {
+    marginTop: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  guideCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 7,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.32)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guideCheckboxOn: {
+    backgroundColor: '#F5C842',
+    borderColor: '#F5C842',
+  },
+  guideCheckText: { color: '#D9DDE7', fontSize: 13, fontWeight: '800' },
   guideButton: {
     marginTop: 20,
     height: 48,

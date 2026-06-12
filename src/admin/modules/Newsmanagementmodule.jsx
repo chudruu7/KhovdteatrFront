@@ -339,7 +339,7 @@ const NewsManagementModule = () => {
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
                   {/* Card Gradient Overlay */}
-                  <div className={`absolute inset-0 bg-gradient-to-br ${categoryColor} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
+                  <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${categoryColor} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
                   
                   {/* Thumbnail */}
                   <div className="relative h-48 overflow-hidden">
@@ -409,20 +409,31 @@ const NewsManagementModule = () => {
                       {/* Actions */}
                       <div className="flex gap-1">
                         <button
+                          type="button"
                           className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-all duration-200 group/btn"
                           title="Харах"
                         >
                           <Eye className="w-4 h-4 text-slate-400 group-hover/btn:text-blue-400 transition-colors" />
                         </button>
                         <button
-                          onClick={() => handleEdit(item)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleEdit(item);
+                          }}
                           className="p-1.5 hover:bg-slate-700/50 rounded-lg transition-all duration-200 group/btn"
                           title="Засах"
                         >
                           <Edit2 className="w-4 h-4 text-slate-400 group-hover/btn:text-green-400 transition-colors" />
                         </button>
                         <button
-                          onClick={() => handleDelete(itemId)}
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(itemId);
+                          }}
                           className="p-1.5 hover:bg-red-500/10 rounded-lg transition-all duration-200 group/btn"
                           title="Устгах"
                         >

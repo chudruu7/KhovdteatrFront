@@ -52,7 +52,7 @@ export default function TicketTypeScreen() {
   const totalPrice = adultCount * prices.adult + childCount * prices.child;
 
   const changeCount = (type: 'adult' | 'child', delta: number) => {
-    if (type === 'adult') setAdultCount((value) => Math.max(1, value + delta));
+    if (type === 'adult') setAdultCount((value) => Math.max(0, value + delta));
     if (type === 'child') setChildCount((value) => Math.max(0, value + delta));
   };
 
@@ -88,7 +88,7 @@ export default function TicketTypeScreen() {
         <TouchableOpacity onPress={() => safeBack(router, '/booking/date')} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Тасалбар сонгох</Text>
+        <Text style={styles.headerTitle}>Тасалбарын ангилал</Text>
         <View style={{ width: 38 }} />
       </View>
 
@@ -137,7 +137,7 @@ export default function TicketTypeScreen() {
           onPress={continueToSeats}
           activeOpacity={0.86}
         >
-          <LinearGradient colors={[colors.teal, '#13c4a3']} style={styles.continueGrad}>
+          <LinearGradient colors={['#e11d48', '#f59e0b']} style={styles.continueGrad}>
             <Text style={styles.continueText}>Суудал сонгох →</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -146,7 +146,9 @@ export default function TicketTypeScreen() {
   );
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const primaryText = colors.mode === 'light' ? colors.textBright : colors.white;
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row',
@@ -166,8 +168,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  backText: { color: colors.white, fontSize: 18, fontWeight: '800' },
-  headerTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },
+  backText: { color: primaryText, fontSize: 18, fontWeight: '800' },
+  headerTitle: { color: primaryText, fontSize: 16, fontWeight: '900' },
   content: { padding: SPACING.lg, paddingBottom: 140 },
   movieCard: {
     flexDirection: 'row',
@@ -181,7 +183,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   poster: { width: 72, height: 104, borderRadius: RADIUS.md, backgroundColor: colors.bgElevate },
   movieInfo: { flex: 1, justifyContent: 'center' },
-  movieTitle: { color: colors.white, fontSize: 18, fontWeight: '900', lineHeight: 23 },
+  movieTitle: { color: primaryText, fontSize: 18, fontWeight: '900', lineHeight: 23 },
   movieMeta: { color: colors.teal, fontSize: 13, fontWeight: '800', marginTop: 8 },
   list: { gap: SPACING.md },
   ticketRow: {
@@ -194,20 +196,20 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  ticketTitle: { color: colors.white, fontSize: 16, fontWeight: '900' },
+  ticketTitle: { color: primaryText, fontSize: 16, fontWeight: '900' },
   ticketPrice: { color: colors.textSub, fontSize: 13, fontWeight: '700', marginTop: 5 },
   counter: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   countBtn: {
     width: 38,
     height: 38,
     borderRadius: RADIUS.full,
-    backgroundColor: colors.teal,
+    backgroundColor: colors.coral,
     alignItems: 'center',
     justifyContent: 'center',
   },
   countBtnDisabled: { opacity: 0.35 },
-  countBtnText: { color: '#0f261c', fontSize: 22, fontWeight: '900', marginTop: -2 },
-  countValue: { color: colors.white, fontSize: 20, fontWeight: '900', minWidth: 24, textAlign: 'center' },
+  countBtnText: { color: '#ffffff', fontSize: 22, fontWeight: '900', marginTop: -2 },
+  countValue: { color: primaryText, fontSize: 20, fontWeight: '900', minWidth: 24, textAlign: 'center' },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -227,5 +229,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   continueBtn: { borderRadius: RADIUS.md, overflow: 'hidden' },
   continueBtnDisabled: { opacity: 0.42 },
   continueGrad: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
-  continueText: { color: '#0f261c', fontSize: 15, fontWeight: '900' },
+  continueText: { color: '#ffffff', fontSize: 15, fontWeight: '900' },
 });
+};

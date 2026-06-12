@@ -245,12 +245,12 @@ export default function BookingDateScreen() {
           onPress={handleContinue}
         >
           <LinearGradient
-            colors={canContinue ? [colors.teal, '#13c4a3'] : [colors.bgElevate, colors.bgElevate]}
+            colors={canContinue ? ['#e11d48', '#f59e0b'] : [colors.bgElevate, colors.bgElevate]}
             style={styles.continueGrad}
           >
             <Text style={[styles.continueText, !canContinue && { color: colors.textSub }]}>
               {canContinue
-                ? `${selectedDate} · ${selectedTime}  →  Тасалбар сонгох`
+                ? `${selectedDate} · ${selectedTime}  →  Тасалбарын төрөл сонгох`
                 : 'Цаг сонгоно уу'}
             </Text>
           </LinearGradient>
@@ -261,38 +261,41 @@ export default function BookingDateScreen() {
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const primaryText = colors.mode === 'light' ? colors.textBright : colors.white;
+  return StyleSheet.create({
   container:    { flex: 1, backgroundColor: colors.bg },
   header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingTop: 60, paddingBottom: SPACING.md },
   backBtn:      { width: 38, height: 38, borderRadius: RADIUS.full, backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  backText:     { color: colors.white, fontSize: 18, fontWeight: '700' },
-  headerTitle:  { color: colors.white, fontSize: 16, fontWeight: '700' },
+  backText:     { color: primaryText, fontSize: 18, fontWeight: '700' },
+  headerTitle:  { color: primaryText, fontSize: 16, fontWeight: '700' },
   movieRow:     { flexDirection: 'row', gap: SPACING.md, padding: SPACING.lg, backgroundColor: colors.bgCard, margin: SPACING.lg, borderRadius: RADIUS.md, borderWidth: 1, borderColor: colors.border },
   miniPoster:   { width: 56, height: 80, borderRadius: RADIUS.sm },
-  movieTitle:   { color: colors.white, fontSize: 16, fontWeight: '700', marginBottom: 4 },
+  movieTitle:   { color: primaryText, fontSize: 16, fontWeight: '700', marginBottom: 4 },
   movieSub:     { color: colors.textSub, fontSize: 12 },
   section:      { paddingHorizontal: SPACING.lg, marginBottom: SPACING.lg },
-  sectionTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.teal, marginBottom: SPACING.md },
+  sectionTitle: { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.coral, marginBottom: SPACING.md },
   daysRow:      { gap: SPACING.sm, paddingRight: SPACING.lg },
   dayCard:      { width: 62, paddingVertical: SPACING.sm, borderRadius: RADIUS.md, backgroundColor: colors.bgCard, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-  dayCardSel:   { backgroundColor: colors.tealDim, borderColor: colors.teal },
+  dayCardSel:   { backgroundColor: colors.coralDim, borderColor: colors.coral },
   dayShort:     { fontSize: 10, fontWeight: '700', color: colors.textSub, textTransform: 'uppercase', letterSpacing: 1 },
-  dayShortSel:  { color: colors.teal },
+  dayShortSel:  { color: colors.coral },
   dayNum:       { fontSize: 22, fontWeight: '800', color: colors.textDim, marginVertical: 2 },
-  dayNumSel:    { color: colors.teal },
+  dayNumSel:    { color: colors.coral },
   dayMonth:     { fontSize: 9, color: colors.textSub },
-  dayMonthSel:  { color: colors.teal },
+  dayMonthSel:  { color: colors.coral },
   emptyWrap:    { padding: SPACING.xl, alignItems: 'center' },
   emptyText:    { color: colors.textSub, fontSize: 14 },
   timesGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm },
   timeCard:     { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm + 2, borderRadius: RADIUS.md, backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border, alignItems: 'center', minWidth: 80 },
-  timeCardSel:  { backgroundColor: colors.teal, borderColor: colors.teal },
+  timeCardSel:  { backgroundColor: colors.coral, borderColor: colors.coral },
   timeText:     { fontSize: 16, fontWeight: '700', color: colors.text, fontVariant: ['tabular-nums'] },
-  timeTextSel:  { color: '#0f261c' },
+  timeTextSel:  { color: '#ffffff' },
   primeBadge:   { marginTop: 3, backgroundColor: 'rgba(245,200,66,0.15)', borderRadius: RADIUS.sm, paddingHorizontal: 6, paddingVertical: 1 },
   primeText:    { fontSize: 9, color: colors.gold, fontWeight: '700' },
   footer:       { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: colors.bg, borderTopWidth: 1, borderTopColor: colors.border },
   continueBtn:  { borderRadius: RADIUS.md, overflow: 'hidden' },
   continueGrad: { padding: SPACING.md, alignItems: 'center' },
-  continueText: { color: '#0f261c', fontWeight: '800', fontSize: 15 },
+  continueText: { color: '#ffffff', fontWeight: '800', fontSize: 15 },
 });
+};

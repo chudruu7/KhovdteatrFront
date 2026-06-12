@@ -15,6 +15,7 @@ import { COLORS, SPACING } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { isFutureShowTime } from '../../utils/showtime';
 import { safeBack } from '../../utils/navigation';
+import { PressScale } from '../../components/ui/Motion';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const { width: W, height: H } = Dimensions.get('window');
@@ -180,7 +181,7 @@ function TimeChip({
         <Text style={[styles.timeChipHall, { color: colors.textSub }]} numberOfLines={1}>
           {schedule.hall?.hallName || schedule.hallName || 'Үзвэр танхим'}
         </Text>
-        <Text style={[styles.timeChipPrice, { color: isPrime ? '#C5A880' : colors.teal }]}>
+        <Text style={[styles.timeChipPrice, { color: isPrime ? '#C5A880' : colors.coral }]}>
           {adultPrice.toLocaleString()}₮
         </Text>
       </TouchableOpacity>
@@ -467,18 +468,18 @@ export default function MovieDetailScreen() {
                           styles.dateBtn,
                           {
                             backgroundColor: isActive
-                              ? colors.teal
+                              ? colors.coral
                               : (isLight ? '#FFF' : 'rgba(255,255,255,0.04)'),
                             borderColor: isActive
-                              ? colors.teal
+                              ? colors.coral
                               : (isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'),
                           },
                         ]}
                       >
-                        <Text style={[styles.dateBtnText, { color: isActive ? '#0A0A0E' : (isLight ? '#555' : 'rgba(255,255,255,0.6)') }]}>
+                        <Text style={[styles.dateBtnText, { color: isActive ? '#FFFFFF' : (isLight ? '#555' : 'rgba(255,255,255,0.6)') }]}>
                           {dateKey}
                         </Text>
-                        <Text style={[styles.dateBtnCount, { color: isActive ? 'rgba(10,10,14,0.6)' : colors.textSub }]}>
+                        <Text style={[styles.dateBtnCount, { color: isActive ? 'rgba(255,255,255,0.72)' : colors.textSub }]}>
                           {groupedSchedules[dateKey].length} цаг
                         </Text>
                       </TouchableOpacity>
@@ -527,14 +528,22 @@ export default function MovieDetailScreen() {
         backgroundColor: isLight ? 'rgba(245,245,247,0.96)' : 'rgba(10,10,14,0.96)',
         borderTopColor: isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)',
       }]}>
-        <TouchableOpacity style={[styles.bookmarkBtn, {
-          backgroundColor: isLight ? '#FFF' : 'rgba(255,255,255,0.05)',
-          borderColor: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)',
-        }]}>
-          <Ionicons name="bookmark-outline" size={20} color={isLight ? '#333' : 'rgba(255,255,255,0.7)'} />
-        </TouchableOpacity>
+        <PressScale
+          style={[
+            styles.ticketShortcutBtn,
+            {
+              backgroundColor: isLight ? '#FFFFFF' : 'rgba(255,255,255,0.06)',
+              borderColor: isLight ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.10)',
+            },
+          ]}
+          activeOpacity={0.82}
+          onPress={() => router.push('/bookings?mode=tickets' as any)}
+        >
+          <Ionicons name="qr-code-outline" size={19} color={isLight ? '#0f172a' : '#FFFFFF'} />
+          <Text style={[styles.ticketShortcutText, { color: isLight ? '#0f172a' : '#FFFFFF' }]}>Миний</Text>
+        </PressScale>
 
-        <TouchableOpacity
+        <PressScale
           style={styles.bookBtn}
           onPress={() => {
             if (schedules.length === 0) {
@@ -546,14 +555,14 @@ export default function MovieDetailScreen() {
           activeOpacity={0.88}
         >
           <LinearGradient
-            colors={['#1ECFBD', '#0D9488', '#0A7A6E']}
+            colors={['#e11d48', '#f97316', '#f59e0b']}
             start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             style={styles.bookBtnGradient}
           >
-            <Ionicons name="ticket-outline" size={18} color="#0A0A0E" />
+            <Ionicons name="ticket-outline" size={18} color="#FFFFFF" />
             <Text style={styles.bookBtnText}>Тасалбар захиалах</Text>
           </LinearGradient>
-        </TouchableOpacity>
+        </PressScale>
       </View>
     </View>
   );
@@ -725,15 +734,16 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     borderTopWidth: 1,
   },
-  bookmarkBtn: {
-    width: 52, height: 52, borderRadius: 14,
+  ticketShortcutBtn: {
+    width: 58, height: 52, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 1, gap: 2,
   },
+  ticketShortcutText: { fontSize: 10, fontWeight: '900' },
   bookBtn:         { flex: 1, borderRadius: 14, overflow: 'hidden' },
   bookBtnGradient: {
     height: 52, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  bookBtnText: { color: '#0A0A0E', fontSize: 15, fontWeight: '900', letterSpacing: -0.2 },
+  bookBtnText: { color: '#FFFFFF', fontSize: 15, fontWeight: '900', letterSpacing: -0.2 },
 });

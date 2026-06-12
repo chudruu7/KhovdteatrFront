@@ -21,6 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { movieAPI } from '../../api';
 import { useTheme } from '../../hooks/useTheme';
 import { ThemeColors } from '../../constants/theme';
+import { FadeInView, PressScale } from '../../components/ui/Motion';
 
 const { width: W, height: H } = Dimensions.get('window');
 const SPOTLIGHT_HEIGHT = H * 0.68;
@@ -49,7 +50,7 @@ function NowPlayingTile({
   colors: ThemeColors;
 }) {
   return (
-    <TouchableOpacity 
+    <PressScale
       activeOpacity={0.9} 
       onPress={onPress} 
       style={[styles.posterTile, active && styles.posterTileActive]}
@@ -64,7 +65,7 @@ function NowPlayingTile({
           <Ionicons name="play" size={11} color={colors.bg} />
         </View>
       )}
-    </TouchableOpacity>
+    </PressScale>
   );
 }
 
@@ -81,7 +82,7 @@ function ComingSoonRow({
   colors: ThemeColors;
 }) {
   return (
-    <TouchableOpacity style={styles.comingCard} activeOpacity={0.8} onPress={onPress}>
+    <PressScale style={styles.comingCard} activeOpacity={0.8} onPress={onPress}>
       <Image source={{ uri: getPoster(item) }} style={styles.comingImg} resizeMode="cover" />
       <View style={styles.comingInfo}>
         <Text style={styles.comingTitle} numberOfLines={1}>{item.title}</Text>
@@ -95,7 +96,7 @@ function ComingSoonRow({
       <View style={styles.comingArrow}>
         <Ionicons name="chevron-forward" size={18} color={colors.textDim} />
       </View>
-    </TouchableOpacity>
+    </PressScale>
   );
 }
 
@@ -117,7 +118,7 @@ function BentoAction({
   styles: ReturnType<typeof createStyles>;
 }) {
   return (
-    <TouchableOpacity
+    <PressScale
       style={[styles.bentoCard, wide && styles.bentoCardWide]}
       activeOpacity={0.84}
       onPress={onPress}
@@ -131,7 +132,7 @@ function BentoAction({
       </View>
       <Text style={styles.bentoTitle}>{title}</Text>
       <Text style={styles.bentoSubtitle} numberOfLines={2}>{subtitle}</Text>
-    </TouchableOpacity>
+    </PressScale>
   );
 }
 
@@ -225,7 +226,7 @@ export default function Index() {
           </View>
 
           {/* Bottom Info inside Spotlight */}
-          <View style={styles.spotlightContent}>
+          <FadeInView style={styles.spotlightContent} delay={120} y={26} scale={0.98}>
             <View style={styles.tagLine}>
               <View style={styles.goldDot} />
               <Text style={styles.tagText}>САНАЛ БОЛГОЖ БУЙ ҮЗВЭР</Text>
@@ -252,19 +253,19 @@ export default function Index() {
             </View>
 
             {/* Premium CTA Button */}
-            <TouchableOpacity 
+            <PressScale
               style={[styles.primaryCTA, isLight && { backgroundColor: '#111217' }]} 
               activeOpacity={0.85} 
               onPress={() => router.push(`/movie/${heroMovie._id || heroMovie.id}`)}
             >
               <Ionicons name="ticket" size={20} color={isLight ? '#FFF' : colors.bg} />
               <Text style={[styles.primaryCTAText, isLight && { color: '#FFF' }]}>Суудал захиалах</Text>
-            </TouchableOpacity>
-          </View>
+            </PressScale>
+          </FadeInView>
         </View>
 
         {/* BENTO QUICK ACTIONS */}
-        <View style={styles.bentoSection}>
+        <FadeInView style={styles.bentoSection} delay={220} y={18}>
           <View style={styles.bentoGrid}>
             <BentoAction
               icon="ticket-outline"
@@ -292,10 +293,10 @@ export default function Index() {
               styles={styles}
             />
           </View>
-        </View>
+        </FadeInView>
 
         {/* SECTION 1: NOW SHOWING CAROUSEL */}
-        <View style={styles.section}>
+        <FadeInView style={styles.section} delay={300} y={20}>
           <View style={styles.sectionHeader}>
             <View style={styles.titleLine}>
               <Text style={styles.sectionTitle}>Дэлгэцнээ гарч буй</Text>
@@ -313,39 +314,42 @@ export default function Index() {
             snapToInterval={POSTER_W + 14}
             decelerationRate="fast"
             renderItem={({ item, index }) => (
-              <NowPlayingTile
-                item={item}
-                active={index === activeIndex}
-                onPress={() => {
-                  setActiveIndex(index);
-                  openMovieDetail(item);
-                }}
-                styles={styles}
-                colors={colors}
-              />
+              <FadeInView delay={360 + index * 45} y={18} scale={0.97}>
+                <NowPlayingTile
+                  item={item}
+                  active={index === activeIndex}
+                  onPress={() => {
+                    setActiveIndex(index);
+                    openMovieDetail(item);
+                  }}
+                  styles={styles}
+                  colors={colors}
+                />
+              </FadeInView>
             )}
           />
-        </View>
+        </FadeInView>
 
         {/* SECTION 2: COMING SOON LIST */}
-        <View style={styles.section}>
+        <FadeInView style={styles.section} delay={420} y={20}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Тун удахгүй</Text>
             <Text style={styles.sectionSubtitle}>Тун бэлтгэгдэж буй шинэ бүтээлүүд</Text>
           </View>
           
           <View style={styles.comingList}>
-            {comingSoon.slice(0, 5).map((item) => (
-              <ComingSoonRow 
-                key={item._id || item.id || item.title} 
-                item={item} 
-                onPress={() => openMovieDetail(item)} 
-                styles={styles}
-                colors={colors}
-              />
+            {comingSoon.slice(0, 5).map((item, index) => (
+              <FadeInView key={item._id || item.id || item.title} delay={480 + index * 55} y={18}>
+                <ComingSoonRow
+                  item={item}
+                  onPress={() => openMovieDetail(item)}
+                  styles={styles}
+                  colors={colors}
+                />
+              </FadeInView>
             ))}
           </View>
-        </View>
+        </FadeInView>
         
         {/* Доод навигацийн бартад хаагдахаас сэргийлсэн зай */}
         <View style={{ height: 100 }} />

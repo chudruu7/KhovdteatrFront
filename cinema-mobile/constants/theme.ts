@@ -107,8 +107,8 @@ export const LIGHT_COLORS = {
   gold:       '#ca8a04',
   goldDim:    'rgba(202, 138, 4, 0.1)',
   
-  // Status
-  success:    '#123a37',
+  // Status – ЗАСВАР: success өнгийг харагдахуйц болгов
+  success:    '#0d9488',   // Өмнө нь: '#123a37' (хар бараан, уншигдахгүй)
   error:      '#e11d48',
   warning:    '#ca8a04',
   info:       '#3b82f6',
@@ -117,7 +117,7 @@ export const LIGHT_COLORS = {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export type ThemeMode   = 'dark' | 'light';
-export type ThemeColors = typeof DARK_COLORS;
+export type ThemeColors = typeof DARK_COLORS | typeof LIGHT_COLORS;
 
 // ── Default ────────────────────────────────────────────────────────────────────
 

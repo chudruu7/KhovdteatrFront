@@ -320,9 +320,9 @@ export default function SeatsScreen() {
                 .catch(() => setFetchError(true))
                 .finally(() => setLoading(false));
             }}
-            style={{ backgroundColor: colors.teal, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 }}
+            style={{ backgroundColor: colors.coral, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 }}
           >
-            <Text style={{ color: '#0f261c', fontWeight: '800', fontSize: 14 }}>Дахин оролдох</Text>
+            <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 14 }}>Дахин оролдох</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -425,7 +425,7 @@ export default function SeatsScreen() {
           onPress={handleContinue}
           activeOpacity={0.86}
         >
-          <LinearGradient colors={[colors.teal, '#13c4a3']} style={styles.continueGrad}>
+          <LinearGradient colors={['#e11d48', '#f59e0b']} style={styles.continueGrad}>
             <Text style={styles.continueText}>Үргэлжлүүлэх →</Text>
           </LinearGradient>
         </TouchableOpacity>
@@ -434,7 +434,11 @@ export default function SeatsScreen() {
   );
 }
 
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
+const createStyles = (colors: ThemeColors) => {
+  const primaryText = colors.mode === 'light' ? colors.textBright : colors.white;
+  const freeSeat = colors.mode === 'light' ? '#d9e0ec' : '#393c52';
+  const takenSeat = '#df4d6c';
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
@@ -456,8 +460,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  backText: { color: colors.white, fontSize: 18, fontWeight: '800' },
-  headerTitle: { color: colors.white, fontSize: 16, fontWeight: '800' },
+  backText: { color: primaryText, fontSize: 18, fontWeight: '800' },
+  headerTitle: { color: primaryText, fontSize: 16, fontWeight: '800' },
   headerSub: { color: colors.textSub, fontSize: 12, marginTop: 2 },
   screenWrap: {
     alignItems: 'center',
@@ -514,7 +518,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     width: SEAT_SIZE,
     height: SEAT_SIZE,
     borderRadius: 4,
-    backgroundColor: '#393c52',
+    backgroundColor: freeSeat,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -535,9 +539,9 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     transform: [{ scale: 1.08 }],
   },
   seatTaken: {
-    backgroundColor: '#2f3442',
-    borderColor: '#424857',
-    opacity: 0.82,
+    backgroundColor: takenSeat,
+    borderColor: takenSeat,
+    opacity: 0.94,
   },
   seatBroken: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -546,11 +550,11 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   seatNum: {
     fontSize: 7,
-    color: 'rgba(255,255,255,0.4)',
+    color: colors.mode === 'light' ? 'rgba(15,23,42,0.55)' : 'rgba(255,255,255,0.4)',
     fontWeight: '800',
   },
   seatNumSelected: {
-    color: '#0f261c',
+    color: '#ffffff',
   },
   legend: {
     flexDirection: 'row',
@@ -563,8 +567,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   legendBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1 },
   legendAdult: { backgroundColor: colors.gold, borderColor: colors.gold },
   legendChild: { backgroundColor: colors.teal, borderColor: colors.teal },
-  legendFree: { backgroundColor: '#393c52', borderColor: colors.border2 },
-  legendTaken: { backgroundColor: '#2f3442', borderColor: '#424857' },
+  legendFree: { backgroundColor: freeSeat, borderColor: colors.border2 },
+  legendTaken: { backgroundColor: takenSeat, borderColor: takenSeat },
   legendBroken: { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.08)' },
   legendText: { color: colors.textDim, fontSize: 11, fontWeight: '600' },
   cart: {
@@ -582,7 +586,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     marginBottom: SPACING.md,
   },
   cartKicker: { color: colors.teal, fontSize: 11, fontWeight: '900', textTransform: 'uppercase' },
-  cartTitle: { color: colors.white, fontSize: 16, fontWeight: '900', marginTop: 2 },
+  cartTitle: { color: primaryText, fontSize: 16, fontWeight: '900', marginTop: 2 },
   cartTotal: { color: colors.teal, fontSize: 20, fontWeight: '900' },
   chips: { gap: 8, paddingBottom: SPACING.md },
   chip: {
@@ -631,5 +635,6 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   continueBtn: { borderRadius: RADIUS.md, overflow: 'hidden' },
   continueBtnDisabled: { opacity: 0.42 },
   continueGrad: { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.md },
-  continueText: { color: '#0f261c', fontWeight: '900', fontSize: 15 },
+  continueText: { color: '#ffffff', fontWeight: '900', fontSize: 15 },
 });
+};

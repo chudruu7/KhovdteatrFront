@@ -407,7 +407,7 @@ const MoviesTab = ({ filters }) => {
         columns={[
           { key: 'rank',         label: '#',          render: (_, i) => i + 1 },
           { key: 'movieTitle',   label: 'Үзвэрийн нэр'  },
-          { key: 'genre',        label: 'Жанр'        },
+          { key: 'genre',        label: 'Ангилал'        },
           { key: 'ticketCount',  label: 'Тасалбар',   right: true, render: r => fmt(r.ticketCount)  },
           { key: 'bookingCount', label: 'Захиалга',   right: true, render: r => fmt(r.bookingCount) },
           { key: 'totalRevenue', label: 'Орлого',     right: true, render: r => `${fmt(r.totalRevenue)}₮` },

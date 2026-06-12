@@ -3,13 +3,38 @@ import { Stack, useGlobalSearchParams, useRouter, useSegments } from 'expo-route
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '../hooks/useAuth';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text, TextInput } from 'react-native';
 import { ThemeProvider, useTheme } from '../hooks/useTheme';
+import {
+  useFonts,
+  Montserrat_300Light,
+  Montserrat_400Regular,
+  Montserrat_500Medium,
+  Montserrat_600SemiBold,
+  Montserrat_700Bold,
+  Montserrat_800ExtraBold,
+  Montserrat_900Black,
+} from '@expo-google-fonts/montserrat';
+
+function applyMontserratDefaults() {
+  const montserratStyle = { fontFamily: 'Montserrat_400Regular' };
+  const textDefaults = (Text as any).defaultProps || {};
+  const inputDefaults = (TextInput as any).defaultProps || {};
+
+  (Text as any).defaultProps = {
+    ...textDefaults,
+    style: [textDefaults.style, montserratStyle],
+  };
+
+  (TextInput as any).defaultProps = {
+    ...inputDefaults,
+    style: [inputDefaults.style, montserratStyle],
+  };
+}
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 function AuthGuard() {
   const { user, loading } = useAuth();
-  const { colors }        = useTheme();
   const router            = useRouter();
   const segments          = useSegments();
   const params            = useGlobalSearchParams<{ redirect?: string; station?: string; scan?: string }>();
@@ -50,20 +75,25 @@ function AuthGuard() {
     }
   }, [user, loading, segments, params.redirect, params.station, params.scan]);
 
-  if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator color={colors.teal} size="large" />
-      </View>
-    );
-  }
-
   return null;
 }
 
 // ── App stack ─────────────────────────────────────────────────────────────────
 function AppStack() {
   const { colors, isLight } = useTheme();
+  const { loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <StatusBar style={isLight ? 'dark' : 'light'} />
+        <ActivityIndicator color={colors.teal} size="large" />
+        <Text style={{ marginTop: 12, color: colors.textSub, fontSize: 13, fontWeight: '700' }}>
+          Түр хүлээнэ үү...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>
@@ -94,6 +124,32 @@ function AppStack() {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({
+    Montserrat_300Light,
+    Montserrat_400Regular,
+    Montserrat_500Medium,
+    Montserrat_600SemiBold,
+    Montserrat_700Bold,
+    Montserrat_800ExtraBold,
+    Montserrat_900Black,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      applyMontserratDefaults();
+    }
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <View style={{ flex: 1, backgroundColor: '#0a0a14', alignItems: 'center', justifyContent: 'center' }}>
+          <ActivityIndicator color="#e11d48" size="large" />
+        </View>
+      </GestureHandlerRootView>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>

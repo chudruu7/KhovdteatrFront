@@ -16,14 +16,14 @@ interface AuthContextType {
     email: string;
     avatarUrl?: string | null;
     providerId: string;
-  }) => Promise<void>;
+  }) => Promise<any>;
   register: (payload: {
     name: string;
     email: string;
     password: string;
     phone?: string;
     avatarUrl?: string;
-  }) => Promise<void>;
+  }) => Promise<any>;
   logout: () => Promise<void>;
 }
 
@@ -120,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       provider: 'google',
     });
     await persistAuth(data);
+    return data;
   };
 
   const register = async (payload: {
@@ -131,6 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }) => {
     const data = await authAPI.register(payload);
     await persistAuth(data);
+    return data;
   };
 
   const logout = async () => {

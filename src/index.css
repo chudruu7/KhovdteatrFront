@@ -69,7 +69,14 @@ html.light {
 html, body {
   background-color: var(--bg-primary);
   color:            var(--text-primary);
+  font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
   transition: background-color 0.25s ease, color 0.2s ease;
+}
+
+html, body, #root,
+*, *::before, *::after,
+button, input, textarea, select {
+  font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
 }
 
 /* ── Header ───────────────────────────────── */

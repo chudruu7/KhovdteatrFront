@@ -85,6 +85,7 @@ export default function TicketScreen() {
   const {
     orderId, movieTitle, date, time,
     seats, totalPrice, customerName,
+    customerEmail, emailStatus, emailReason,
     hall, adultPrice, childPrice, paymentMethod,
   } = useLocalSearchParams<{
     orderId: string;
@@ -94,6 +95,9 @@ export default function TicketScreen() {
     seats: string;
     totalPrice: string;
     customerName: string;
+    customerEmail?: string;
+    emailStatus?: 'sent' | 'failed' | 'unknown';
+    emailReason?: string;
     hall?: string;
     adultPrice?: string;
     childPrice?: string;
@@ -110,6 +114,27 @@ export default function TicketScreen() {
   const adultTicketPrice = parseInt(String(adultPrice || '15000'), 10) || 15000;
   const childTicketPrice = parseInt(String(childPrice || '10000'), 10) || 10000;
   const bookedAt = formatNow();
+  const emailState = emailStatus || 'unknown';
+  const emailBanner = emailState === 'sent'
+    ? {
+        icon: 'mail-open' as const,
+        title: 'Имэйл илгээгдлээ',
+        text: customerEmail ? `Тасалбарын мэдээлэл ${customerEmail} хаяг руу явсан.` : 'Тасалбарын мэдээлэл имэйл рүү илгээгдсэн.',
+        style: styles.emailSent,
+      }
+    : emailState === 'failed'
+      ? {
+          icon: 'alert-circle' as const,
+          title: 'Имэйл илгээгдсэнгүй',
+          text: emailReason || 'Тасалбар хадгалагдсан. Доорх товчоор дахин илгээж болно.',
+          style: styles.emailFailed,
+        }
+      : {
+          icon: 'mail-outline' as const,
+          title: 'Имэйл төлөв шалгагдаагүй',
+          text: 'Тасалбар хадгалагдсан. Шаардлагатай бол доорх товчоор имэйл дахин илгээнэ.',
+          style: styles.emailUnknown,
+        };
 
   const qrPayload = `https://khovdteatr-web-pied.vercel.app/ticket-verify/${orderId}`;
 
@@ -201,6 +226,13 @@ export default function TicketScreen() {
           <SuccessCheck />
           <Text style={styles.successTitle}>Захиалга баталгаажлаа!</Text>
           <Text style={styles.successSub}>Ухаалаг тасалбарыг үүдэнд уншуулж нэвтэрнэ үү.</Text>
+          <View style={[styles.emailBanner, emailBanner.style]}>
+            <Ionicons name={emailBanner.icon} size={19} color="#FFFFFF" />
+            <View style={styles.emailBannerTextWrap}>
+              <Text style={styles.emailBannerTitle}>{emailBanner.title}</Text>
+              <Text style={styles.emailBannerText}>{emailBanner.text}</Text>
+            </View>
+          </View>
         </Animated.View>
 
         {/* ── ТАСАЛБАРЫН КАРТ ── */}
@@ -335,6 +367,22 @@ const styles = StyleSheet.create({
 
   // Амжилттай хэсэг
   successWrap: { alignItems: 'center', marginBottom: 24, width: '100%' },
+  emailBanner: {
+    width: '100%',
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderWidth: 1,
+  },
+  emailSent: { backgroundColor: 'rgba(16,185,129,0.18)', borderColor: 'rgba(52,211,153,0.35)' },
+  emailFailed: { backgroundColor: 'rgba(239,68,68,0.18)', borderColor: 'rgba(248,113,113,0.38)' },
+  emailUnknown: { backgroundColor: 'rgba(59,130,246,0.16)', borderColor: 'rgba(96,165,250,0.34)' },
+  emailBannerTextWrap: { flex: 1 },
+  emailBannerTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: '900', marginBottom: 3 },
+  emailBannerText: { color: '#D1D5DB', fontSize: 12, lineHeight: 17, fontWeight: '600' },
   checkOuter:    { marginBottom: 16, alignItems: 'center', justifyContent: 'center' },
   glowRingOuter: {
     position: 'absolute',

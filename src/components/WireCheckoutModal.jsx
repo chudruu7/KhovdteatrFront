@@ -297,7 +297,7 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
               disabled={checking}
               className="mt-4 w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-60 active:opacity-80"
             >
-              {checking ? 'Шалгаж байна...' : 'Төлбөр шалгах'}
+              {checking ? 'Баталгаажуулж байна...' : 'Төлбөр баталгаажуулах'}
             </button>
           </div>
         )}

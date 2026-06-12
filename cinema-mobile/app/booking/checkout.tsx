@@ -149,7 +149,10 @@ export default function CheckoutScreen() {
   }, [payableTotal]);
 
   // ── Navigate to ticket screen ─────────────────────────────────────────
-  const goToTicket = (bId: string, customerName: string, customerEmail: string) => {
+  const goToTicket = (bId: string, customerName: string, customerEmail: string, emailResult?: any) => {
+    const emailStatus = emailResult
+      ? (emailResult.success ? 'sent' : 'failed')
+      : 'unknown';
     router.replace({
       pathname: '/booking/ticket',
       params: {
@@ -164,20 +167,24 @@ export default function CheckoutScreen() {
         childPrice:    params.childPrice,
         customerName,
         customerEmail,
+        emailStatus,
+        emailReason: emailResult?.reason || emailResult?.error || emailResult?.message || '',
         paymentMethod: 'wire',
       },
     });
   };
 
   // ── Mark booking paid & navigate ──────────────────────────────────────
-  const completePaidBooking = async (bId: string, skipServerConfirm = false) => {
+  const completePaidBooking = async (bId: string, skipServerConfirm = false, knownEmailResult?: any) => {
     if (paidRef.current) return;
     paidRef.current = true;
     cleanup();
 
+    let emailResult = knownEmailResult;
     if (!skipServerConfirm) {
       try {
-        await qpayAPI.confirmBooking(bId);
+        const confirmResult = await qpayAPI.confirmBooking(bId);
+        emailResult = confirmResult?.email;
       } catch (error: any) {
         const alreadyPaid = await isBookingPaid(bId);
         if (!alreadyPaid) {
@@ -190,7 +197,7 @@ export default function CheckoutScreen() {
     }
 
     setQpayStep('success');
-    setTimeout(() => goToTicket(bId, name.trim(), email.trim()), 1200);
+    setTimeout(() => goToTicket(bId, name.trim(), email.trim(), emailResult), 1200);
   };
 
   const isBookingPaid = async (bId: string) => {
@@ -209,7 +216,11 @@ export default function CheckoutScreen() {
     paidRef.current = true;
     cleanup();
     try {
-      await qpayAPI.testComplete(invoiceId, bookingId);
+      const result = await qpayAPI.testComplete(invoiceId, bookingId);
+      const emailResult = result?.email || result?.data?.email;
+      setQpayStep('success');
+      setTimeout(() => goToTicket(bookingId, name.trim(), email.trim(), emailResult), 1200);
+      return;
     } catch (error: any) {
       paidRef.current = false;
       if (await isBookingPaid(bookingId)) {
@@ -220,8 +231,6 @@ export default function CheckoutScreen() {
       setQpayStep('error');
       return;
     }
-    setQpayStep('success');
-    setTimeout(() => goToTicket(bookingId, name.trim(), email.trim()), 1200);
   };
 
   // ── QPay: create invoice ──────────────────────────────────────────────
@@ -265,7 +274,7 @@ export default function CheckoutScreen() {
         successUrl: `https://khovdteatr-web-pied.vercel.app/ticket-verify/${bId}`,
       });
       const action = parseWireAction(res?.data?.nextAction);
-      if (!res.success) throw new Error('Wire checkout үүсгэхэд алдаа гарлаа.');
+      if (!res.success) throw new Error('QR үүсгэхэд алдаа гарлаа.');
       setWireQrImage(action.qrImage);
       setWireQrText(action.qrText);
       setBankUrls(action.banks);
@@ -301,13 +310,13 @@ export default function CheckoutScreen() {
     try {
       const res = await wireAPI.checkPaymentStatus(bookingId);
       if (res.success && res.paid) {
-        await completePaidBooking(bookingId, true);
+        await completePaidBooking(bookingId, true, res.email);
         return true;
       }
       setErrMsg(messageWhenPending);
       return false;
     } catch (e: any) {
-      setErrMsg(e?.response?.data?.message || 'Төлбөр шалгахад алдаа гарлаа. Давхар төлөлтөөс сэргийлж дахин QR уншуулахгүй байна.');
+      setErrMsg(e?.response?.data?.message || 'Төлбөр баталгаажуулахад алдаа гарлаа. Давхар төлөлтөөс сэргийлж дахин QR уншуулахгүй байна.');
       return false;
     } finally {
       setCheckingWire(false);
@@ -413,14 +422,14 @@ export default function CheckoutScreen() {
 
         <View style={styles.qpayCard}>
           {/* ── Header ── */}
-          <LinearGradient colors={[colors.teal, '#13c4a3']} style={styles.qpayHeader}>
+          <LinearGradient colors={['#e11d48', '#f59e0b']} style={styles.qpayHeader}>
             <View style={{ flex: 1 }}>
               <Text style={styles.qpayHeaderTitle}>Төлбөрийн сонголт</Text>
               <Text style={styles.qpayHeaderSub} numberOfLines={1}>{params.movieTitle}</Text>
             </View>
             {qpayStep !== 'success' && (
               <TouchableOpacity onPress={handleCancel} style={styles.qpayClose} hitSlop={8}>
-                <Ionicons name="close" size={18} color="#0f261c" />
+                <Ionicons name="close" size={18} color="#ffffff" />
               </TouchableOpacity>
             )}
           </LinearGradient>
@@ -461,7 +470,7 @@ export default function CheckoutScreen() {
                     </View>
                   )}
                 </View>
-                <Text style={[styles.resultTitle, { color: colors.teal, marginTop: 8 }]}>Wire Checkout</Text>
+                <Text style={[styles.resultTitle, { color: colors.teal, marginTop: 8 }]}></Text>
                 <Text style={styles.qpayHint}>QR уншуулах эсвэл банкны апп сонгож төлбөрөө төлнө үү.</Text>
                 <View style={[styles.timerWrap, { borderColor: timeLeft < 60 ? colors.coral : colors.teal }]}>
                   <Ionicons name="time-outline" size={16} color={timeLeft < 60 ? colors.coral : colors.teal} />
@@ -503,7 +512,7 @@ export default function CheckoutScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="checkmark-circle-outline" size={20} color={colors.teal} />
-                  <Text style={styles.checkPaymentText}>{checkingWire ? 'Шалгаж байна...' : 'Төлбөр шалгах'}</Text>
+                  <Text style={styles.checkPaymentText}>{checkingWire ? 'Баталгаажуулж байна...' : 'Төлбөр баталгаажуулах'}</Text>
                 </TouchableOpacity>
                 {!!errMsg && (
                   <View style={styles.errorHintBox}>
@@ -594,8 +603,8 @@ export default function CheckoutScreen() {
                   onPress={() => checkWirePaymentNow('Төлбөр баталгаажаагүй байна. Давхар гүйлгээнээс сэргийлж шинэ QR үүсгэсэнгүй.')}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="refresh-outline" size={18} color="#0f261c" />
-                  <Text style={styles.retryText}>{checkingWire ? 'Шалгаж байна...' : 'Төлбөр шалгах'}</Text>
+                  <Ionicons name="refresh-outline" size={18} color="#ffffff" />
+                  <Text style={styles.retryText}>{checkingWire ? 'Баталгаажуулж байна...' : 'Төлбөр баталгаажуулах'}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -711,12 +720,12 @@ export default function CheckoutScreen() {
             disabled={loading}
             activeOpacity={0.85}
           >
-            <LinearGradient colors={[colors.teal, '#13c4a3']} style={styles.payGrad}>
+            <LinearGradient colors={['#e11d48', '#f59e0b']} style={styles.payGrad}>
               {loading ? (
-                <ActivityIndicator color="#0f261c" />
+                <ActivityIndicator color="#ffffff" />
               ) : (
                 <View style={styles.payBtnContent}>
-                  <Ionicons name="card-outline" size={20} color="#0f261c" />
+                  <Ionicons name="card-outline" size={20} color="#ffffff" />
                   <Text style={styles.payText}>
                     Төлбөр төлөх · {money(payableTotal)}
                   </Text>
@@ -832,7 +841,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   payBtn:        { borderRadius: RADIUS.lg, overflow: 'hidden' },
   payGrad:       { padding: SPACING.md + 4, alignItems: 'center' },
   payBtnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  payText:       { color: '#0f261c', fontWeight: '800', fontSize: 17 },
+  payText:       { color: '#ffffff', fontWeight: '800', fontSize: 17 },
 
   // QPay overlay
   qpayContainer:     { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.lg },
@@ -857,8 +866,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     alignItems: 'center', 
     padding: SPACING.lg 
   },
-  qpayHeaderTitle:   { color: '#0f261c', fontWeight: '800', fontSize: 17 },
-  qpayHeaderSub:     { color: 'rgba(15,38,28,0.6)', fontSize: 12, marginTop: 4 },
+  qpayHeaderTitle:   { color: '#ffffff', fontWeight: '800', fontSize: 17 },
+  qpayHeaderSub:     { color: 'rgba(255,255,255,0.78)', fontSize: 12, marginTop: 4 },
   qpayClose:         { 
     width: 36, 
     height: 36, 
@@ -985,8 +994,8 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     gap: 8,
     paddingHorizontal: SPACING.lg, 
     paddingVertical: SPACING.sm + 2, 
-    backgroundColor: colors.teal, 
+    backgroundColor: colors.coral, 
     borderRadius: RADIUS.md 
   },
-  retryText:         { color: '#0f261c', fontWeight: '700', fontSize: 14 },
+  retryText:         { color: '#ffffff', fontWeight: '700', fontSize: 14 },
 });

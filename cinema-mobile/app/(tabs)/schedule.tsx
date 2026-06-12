@@ -10,6 +10,7 @@ import { scheduleAPI } from '../../api';
 import { COLORS, SPACING, RADIUS, ThemeColors } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { isFutureShowTime } from '../../utils/showtime';
+import { FadeInView, PressScale } from '../../components/ui/Motion';
 
 const { width } = Dimensions.get('window');
 const SHORT = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
@@ -84,10 +85,10 @@ export default function ScheduleScreen() {
       <StatusBar barStyle={isLight ? 'dark-content' : 'light-content'} />
       
       {/* Header */}
-      <View style={styles.header}>
+      <FadeInView style={styles.header} y={18} scale={0.98}>
         <Text style={styles.headerTitle}>Хуваарь</Text>
         <Text style={styles.headerSub}>Өдрөө сонгож тасалбараа захиалаарай</Text>
-      </View>
+      </FadeInView>
 
       {/* Өдөр сонгох - Илүү Premium харагдац */}
       <View style={styles.daysContainer}>
@@ -99,16 +100,17 @@ export default function ScheduleScreen() {
           {days.map(d => {
             const sel = selDate === d.fullDate;
             return (
-              <TouchableOpacity
+              <PressScale
                 key={d.fullDate}
                 style={[styles.dayBtn, sel && styles.dayBtnSel]}
                 onPress={() => setSelDate(d.fullDate)}
                 activeOpacity={0.7}
+                scaleTo={0.92}
               >
                 <Text style={[styles.dayShort, sel && styles.dayShortSel]}>{d.short}</Text>
                 <Text style={[styles.dayNum, sel && styles.dayNumSel]}>{d.num}</Text>
                 {sel && <View style={styles.activeDot} />}
-              </TouchableOpacity>
+              </PressScale>
             );
           })}
         </ScrollView>
@@ -139,12 +141,12 @@ export default function ScheduleScreen() {
               <Text style={styles.emptyText}>Энэ өдөр үзвэрийн хуваарь гараагүй байна</Text>
             </View>
           ) : (
-            schedules.map((sched) => {
+            schedules.map((sched, index) => {
               const movie = sched.movie || {};
               const time = utcToMN(sched.showTime);
               return (
-                <TouchableOpacity
-                  key={sched._id}
+                <FadeInView key={sched._id || `${movie._id}-${index}`} delay={index * 55} y={22} scale={0.98}>
+                <PressScale
                   style={styles.schedCard}
                   activeOpacity={0.9}
                   onPress={() =>
@@ -190,7 +192,8 @@ export default function ScheduleScreen() {
                   <View style={styles.arrowArea}>
                      <Ionicons name="chevron-forward" size={20} color={colors.coral} />
                   </View>
-                </TouchableOpacity>
+                </PressScale>
+                </FadeInView>
               );
             })
           )}
@@ -204,7 +207,7 @@ export default function ScheduleScreen() {
 const createStyles = (colors: ThemeColors, isLight: boolean) => StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: { paddingHorizontal: 25, paddingTop: 70, paddingBottom: 20 },
-  headerTitle: { fontSize: 32, fontWeight: '900', color: colors.white, letterSpacing: -0.5 },
+  headerTitle: { fontSize: 32, fontWeight: '900', color: colors.textBright, letterSpacing: -0.5 },
   headerSub: { fontSize: 14, color: colors.textSub, marginTop: 4 },
   
   daysContainer: { paddingVertical: 10 },
@@ -243,7 +246,7 @@ const createStyles = (colors: ThemeColors, isLight: boolean) => StyleSheet.creat
   },
   poster: { width: 100, height: '100%', resizeMode: 'cover' },
   info: { flex: 1, padding: 18, justifyContent: 'space-between' },
-  movieTitle: { color: colors.white, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
+  movieTitle: { color: colors.textBright, fontSize: 18, fontWeight: '800', letterSpacing: -0.3 },
   
   tagsRow: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   timeTag: { 
@@ -259,7 +262,7 @@ const createStyles = (colors: ThemeColors, isLight: boolean) => StyleSheet.creat
   
   priceContainer: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
   priceLabel: { color: colors.textSub, fontSize: 11 },
-  priceText: { color: colors.white, fontWeight: '800', fontSize: 16 },
+  priceText: { color: colors.textBright, fontWeight: '800', fontSize: 16 },
 
   arrowArea: { width: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)' }
 });

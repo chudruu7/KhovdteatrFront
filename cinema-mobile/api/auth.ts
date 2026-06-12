@@ -37,6 +37,7 @@ export interface AuthResponse {
   success: boolean;
   token: string;
   user: User;
+  isNewUser?: boolean;
 }
 
 // ─── AUTH FUNCTIONS ────────────────────────────────────────────────────────────
