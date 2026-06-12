@@ -17,7 +17,7 @@ const Sidebar = ({ activeModule: externalActive, setActiveModule: externalSet })
 
   const mainItems = [
     { id: 'dashboard', label: 'Хянах самбар', icon: LayoutDashboard, badge: null },
-    { id: 'movies', label: 'Кино удирдлага', icon: Film, badge: '12' },
+    { id: 'movies', label: 'Үзвэр удирдлага', icon: Film, badge: '12' },
     { id: 'schedule', label: 'Үзвэрийн хуваарь', icon: Calendar, badge: null },
     { id: 'halls', label: 'Танхимууд', icon: MapPin, badge: null },
     { id: 'users', label: 'Хэрэглэгчид', icon: Users, badge: '3' },

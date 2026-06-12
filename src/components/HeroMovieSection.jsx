@@ -1,6 +1,8 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
+import { getCurrentUser, isAuthenticated } from '../auth/auth';
+import toast from '../admin/Toast';
 
 /* ─────────────────────────────────────────────────────────────────────────
    STYLES
@@ -461,7 +463,10 @@ const fadeRight = {
 const HeroMovieSection = ({ movie, onWatchTrailer, onBookTicket, isLoggedIn }) => {
   const navigate    = useNavigate();
   const sectionRef  = useRef(null);
+  const [posterError, setPosterError] = useState(false);
+  const posterSrc = !posterError && movie.posterUrl ? movie.posterUrl : '/black.png';
   const isComingSoon = movie.status === 'comingSoon';
+  const hasActiveSession = () => Boolean(isLoggedIn || isAuthenticated() || getCurrentUser());
 
   // Subtle parallax — dark mode only
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ['start start', 'end start'] });
@@ -469,8 +474,8 @@ const HeroMovieSection = ({ movie, onWatchTrailer, onBookTicket, isLoggedIn }) =
 
   const handleBookTicket = () => {
     if (isComingSoon) return;
-    if (!isLoggedIn) {
-      alert('Тасалбар захиалахын тулд эхлээд нэвтрэнэ үү!');
+    if (!hasActiveSession()) {
+      toast.warning('Тасалбар захиалахын тулд эхлээд нэвтэрнэ үү.');
       navigate('/login');
       return;
     }
@@ -499,8 +504,9 @@ const HeroMovieSection = ({ movie, onWatchTrailer, onBookTicket, isLoggedIn }) =
         <div className="hero-bg">
           <motion.img
             className="hero-bg__img"
-            src={movie.posterUrl}
+            src={posterSrc}
             alt=""
+            onError={() => setPosterError(true)}
             style={{ y: imgY }}
             initial={{ scale: 1.06, opacity: 0 }}
             animate={{ scale: 1, opacity: 0.3 }}
@@ -601,8 +607,9 @@ const HeroMovieSection = ({ movie, onWatchTrailer, onBookTicket, isLoggedIn }) =
 
               <img
                 className="hero-poster-img"
-                src={movie.posterUrl}
+                src={posterSrc}
                 alt={movie.title}
+                onError={() => setPosterError(true)}
               />
 
               {movie.rating && (
@@ -615,7 +622,7 @@ const HeroMovieSection = ({ movie, onWatchTrailer, onBookTicket, isLoggedIn }) =
             </div>
 
             <div className="hero-poster-strip">
-              <span className="hero-poster-strip__text">Кино постер</span>
+              <span className="hero-poster-strip__text">Үзвэр постер</span>
               <div  className="hero-poster-strip__line" />
               <span className="hero-poster-strip__text">{releaseYear}</span>
             </div>

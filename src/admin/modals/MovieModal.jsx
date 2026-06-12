@@ -3,8 +3,9 @@ import {
   X, Plus, Trash2, Film, Clock, Star, Calendar,
   Tag, Users, Link2, ImageIcon, AlignLeft, ShieldCheck,
   Clapperboard, PlayCircle, CheckCircle2, ChevronDown,
-  User, Briefcase, Globe, Sparkles
+  User, Briefcase, Globe, Sparkles, UploadCloud
 } from 'lucide-react';
+import { uploadAPI } from '../../api/adminAPI';
 
 const GENRE_LIST = [
   'Адал явдалт', 'Инээдэм', 'Драма', 'Шинжлэх ухаан', 'Фантастик', 'Аймшгийн', 'Триллер', 'Нууцлагдмал', 'Гэр бүлийн', 'Аниме', 'Баримтат', 'Гэрэл зураг', 'Түүхэн', 'Хүүхэлдэйн', 'Хөгжимт', 'Уянгын', 'Уран зөгнөлт'
@@ -140,6 +141,104 @@ const Select = ({ children, ...props }) => (
 );
 
 /* ─── Section heading ────────────────────────────────────────────────────── */
+const ImageSourceInput = ({ value, onChangeUrl, placeholder }) => {
+  const [mode, setMode] = useState(value ? 'url' : 'upload');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setError('');
+    if (!file.type.startsWith('image/')) {
+      setError('Зөвхөн зураг файл сонгоно уу.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Зургийн хэмжээ 10MB-аас бага байх ёстой.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const data = await uploadAPI.image(file);
+      onChangeUrl(data.url);
+      setMode('url');
+    } catch (err) {
+      setError(err.message || 'Зураг upload хийхэд алдаа гарлаа.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        {['url', 'upload'].map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => setMode(item)}
+            style={{
+              padding: '8px 10px',
+              borderRadius: 9,
+              border: `1px solid ${mode === item ? 'rgba(52,211,153,0.45)' : C.border}`,
+              background: mode === item ? 'rgba(52,211,153,0.12)' : C.elevated,
+              color: mode === item ? C.green : C.muted,
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            {item === 'url' ? 'URL' : 'Upload'}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'url' ? (
+        <Input
+          type="url"
+          value={value || ''}
+          onChange={(e) => onChangeUrl(e.target.value)}
+          placeholder={placeholder}
+        />
+      ) : (
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          minHeight: 44,
+          borderRadius: 10,
+          border: `1px dashed ${C.borderHi}`,
+          background: C.elevated,
+          color: C.text,
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: uploading ? 'wait' : 'pointer',
+        }}>
+          <UploadCloud size={16} />
+          {uploading ? 'Upload хийж байна...' : 'Зураг сонгох'}
+          <input
+            type="file"
+            accept="image/*"
+            disabled={uploading}
+            onChange={handleUpload}
+            style={{ display: 'none' }}
+          />
+        </label>
+      )}
+
+      <div style={{ fontSize: 11, color: C.muted }}>
+        Зургийн хэмжээ 10MB-аас бага байх ёстой.
+      </div>
+      {error && <div style={{ fontSize: 11, color: C.red }}>{error}</div>}
+    </div>
+  );
+};
+
 const SectionHead = ({ icon: Icon, title, color = C.accent }) => (
   <div style={{
     display: 'flex', alignItems: 'center', gap: '8px',
@@ -390,7 +489,7 @@ const addCast = () => onCastChange([...(formData.cast || []), { name: '', role: 
             </div>
             <div>
               <div style={{ fontSize: '15px', fontWeight: 800, letterSpacing: '-0.02em', color: C.text }}>
-                {editingMovie ? 'Кино засах' : 'Шинэ кино бүртгэх'}
+                {editingMovie ? 'Үзвэр засах' : 'Шинэ үзвэр бүртгэх'}
               </div>
               <div style={{ fontSize: '11px', color: C.muted, marginTop: 1 }}>
                 Мэдээллийг дүүргэж баруун талд preview харна уу
@@ -456,7 +555,7 @@ const addCast = () => onCastChange([...(formData.cast || []), { name: '', role: 
               <section>
                 <SectionHead icon={Film} title="Үндсэн мэдээлэл" />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <Field icon={Clapperboard} label="Киноны нэр" required>
+                  <Field icon={Clapperboard} label="Үзвэрийн нэр" required>
                     <Input
                       name="title" value={formData.title} onChange={onChange}
                       placeholder="Жишээ: Dune: Part Two" required
@@ -471,7 +570,7 @@ const addCast = () => onCastChange([...(formData.cast || []), { name: '', role: 
                   <Field icon={AlignLeft} label="Товч тайлбар">
                     <Textarea
                       name="description" value={formData.description} onChange={onChange}
-                      rows={3} placeholder="Киноны товч агуулга..."
+                      rows={3} placeholder="Үзвэрийн товч агуулга..."
                     />
                   </Field>
                 </div>
@@ -508,6 +607,30 @@ const addCast = () => onCastChange([...(formData.cast || []), { name: '', role: 
                         <option value="nowShowing">Үзэж болно</option>
                         <option value="comingSoon">Тун удахгүй</option>
                       </Select>
+                    </Field>
+                    <Field icon={Tag} label="Том хүн үнэ" required>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        name="adultPrice"
+                        value={formData.adultPrice || ''}
+                        onChange={onChange}
+                        placeholder="15000"
+                        required
+                      />
+                    </Field>
+                    <Field icon={Tag} label="Хүүхэд үнэ" required>
+                      <Input
+                        type="number"
+                        min="1"
+                        step="1"
+                        name="childPrice"
+                        value={formData.childPrice || ''}
+                        onChange={onChange}
+                        placeholder="10000"
+                        required
+                      />
                     </Field>
                   </div>
                   <Field icon={Calendar} label="Нээлтийн огноо">
@@ -557,9 +680,10 @@ const addCast = () => onCastChange([...(formData.cast || []), { name: '', role: 
               <section>
                 <SectionHead icon={ImageIcon} title="Медиа" color="#34d399" />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <Field icon={Link2} label="Постер URL">
-                    <Input
-                      type="url" name="posterUrl" value={formData.posterUrl} onChange={onChange}
+                  <Field icon={Link2} label="Постер зураг" hint="URL эсвэл Upload">
+                    <ImageSourceInput
+                      value={formData.posterUrl}
+                      onChangeUrl={(url) => onChange({ target: { name: 'posterUrl', value: url } })}
                       placeholder="https://image.tmdb.org/..."
                     />
                   </Field>

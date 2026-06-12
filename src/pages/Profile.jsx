@@ -278,7 +278,7 @@ const BookingsTab = ({ bookings, mode = 'history' }) => {
     const [selected, setSelected] = useState(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
     const isTickets = mode === 'tickets';
-    const getTitle = (item) => item?.title || item?.movieTitle || item?.movie?.title || item?.schedule?.movie?.title || 'Тодорхойгүй кино';
+    const getTitle = (item) => item?.title || item?.movieTitle || item?.movie?.title || item?.schedule?.movie?.title || 'Тодорхойгүй үзвэр';
     const getBookingId = (item) => item?.id || item?._id || item?.bookingCode;
     const getQrValue = (item) => {
         const bookingId = getBookingId(item);

@@ -106,7 +106,7 @@ const CSS = `
 /* ══ MAIN ══════════════════════════════════════════════════════════════ */
 export default function TicketDesign({
   orderId       = 'TK-2026-00847',
-  movie         = { title: 'Кино', posterUrl: '', rating: '13+' },
+  movie         = { title: 'Үзвэр', posterUrl: '', rating: '13+' },
   date          = '2026-03-17',
   time          = '19:00',
   hall          = 'Танхим А',
@@ -236,7 +236,7 @@ export default function TicketDesign({
             <div className="tc-notice">
               <span className="tc-notice-icon">⚠️</span>
               <span className="tc-notice-text">
-                Кино эхлэхээс <strong>15 минутын өмнө</strong> ирнэ үү.
+                Үзвэр эхлэхээс <strong>15 минутын өмнө</strong> ирнэ үү.
                 Тасалбар буцаах боломжгүй.
               </span>
             </div>

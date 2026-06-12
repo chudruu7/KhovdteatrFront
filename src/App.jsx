@@ -14,8 +14,10 @@ import ProfilePage from './pages/Profile';
 import TicketVerify from './pages/TicketVerify';
 import Cashier from './pages/Cashier';
 import Adminpanel from './admin/AdminPanel';
+import OnboardingGuide from './components/OnboardingGuide';
 import { movies, news } from './data/movies';
 import { getCurrentUser, setUser, logout } from './auth/auth'; // setCurrentUser -> setUser
+import { ToastContainer } from './admin/Toast';
 import './index.css';
 
 // Хэрэглэгч нэвтэрсэн эсэхийг шалгах компонент
@@ -34,6 +36,7 @@ const AuthRedirect = ({ children, isLoggedIn, user }) => {
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUserState] = useState(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [filteredMovies, setFilteredMovies] = useState([...movies.nowShowing, ...movies.comingSoon]);
 
   useEffect(() => {
@@ -43,6 +46,17 @@ function App() {
       setUserState(currentUser);
     }
   }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn || !user || ['admin', 'cashier'].includes(user?.role)) {
+      setShowOnboarding(false);
+      return;
+    }
+
+    const pending = localStorage.getItem('kdt_onboarding_pending') === '1';
+    const seen = localStorage.getItem('kdt_onboarding_seen') === '1';
+    setShowOnboarding(pending && !seen);
+  }, [isLoggedIn, user]);
 
   const handleLogin = (userData) => {
     setIsLoggedIn(true);
@@ -101,6 +115,12 @@ function App() {
 
   return (
     <Router>
+      <ToastContainer />
+      <OnboardingGuide
+        isOpen={showOnboarding}
+        user={user}
+        onClose={() => setShowOnboarding(false)}
+      />
       <AnimatePresence mode="wait">
         <Routes>
           <Route path="/" element={

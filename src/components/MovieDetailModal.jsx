@@ -1,10 +1,16 @@
 // src/components/MovieDetailModal.jsx
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, isAuthenticated } from '../auth/auth';
+import toast from '../admin/Toast';
+import { API_BASE_URL } from '../api/config';
 
 const MovieDetailModal = ({ isOpen, onClose, movie, onBookTicket, onWatchTrailer, isLoggedIn }) => {
   const modalRef = useRef(null);
   const navigate = useNavigate();
+  const [schedules, setSchedules] = useState([]);
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const hasActiveSession = () => Boolean(isLoggedIn || isAuthenticated() || getCurrentUser());
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -27,20 +33,71 @@ const MovieDetailModal = ({ isOpen, onClose, movie, onBookTicket, onWatchTrailer
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen || !movie) return null;
+  const cast = movie?.cast || [];
+  const isComingSoon = movie?.status === 'comingSoon';
+  const MONGOLIA_MS = 8 * 60 * 60 * 1000;
+  const formatDay = (iso) => {
+    const d = new Date(new Date(iso).getTime() + MONGOLIA_MS);
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+  };
+  const formatTime = (iso) => {
+    const d = new Date(new Date(iso).getTime() + MONGOLIA_MS);
+    return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  };
+  const groupedSchedules = useMemo(() => schedules.reduce((acc, schedule) => {
+    const day = formatDay(schedule.showTime);
+    (acc[day] ??= []).push(schedule);
+    return acc;
+  }, {}), [schedules]);
 
-  const cast = movie.cast || [];
-  const showtimes = ['10:00', '13:30', '16:45', '19:15', '21:30', '00:00'];
-  const isComingSoon = movie.status === 'comingSoon';
+  useEffect(() => {
+    const movieId = movie?._id || movie?.id;
+    if (!isOpen || !movieId || isComingSoon) {
+      setSchedules([]);
+      return;
+    }
+    setScheduleLoading(true);
+    fetch(`${API_BASE_URL}/schedules/${movieId}`)
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        const list = Array.isArray(data) ? data : data.schedules || data.data || [];
+        setSchedules(list.filter((schedule) => new Date(schedule.showTime).getTime() > Date.now()));
+      })
+      .catch(() => setSchedules([]))
+      .finally(() => setScheduleLoading(false));
+  }, [isOpen, movie?._id, movie?.id, isComingSoon]);
+
+  if (!isOpen || !movie) return null;
 
   const handleBookTicket = () => {
     if (isComingSoon) return;
-    if (!isLoggedIn) {
-      alert('Тасалбар захиалахын тулд эхлээд нэвтрэнэ үү!');
+    if (!hasActiveSession()) {
+      toast.warning('Тасалбар захиалахын тулд эхлээд нэвтэрнэ үү.');
       navigate('/login');
       return;
     }
     onBookTicket();
+  };
+  const handleScheduleBook = (schedule) => {
+    if (!hasActiveSession()) {
+      toast.warning('Тасалбар захиалахын тулд эхлээд нэвтэрнэ үү.');
+      navigate('/login');
+      return;
+    }
+    navigate('/booking', {
+      state: {
+        movie: {
+          ...movie,
+          scheduleId: schedule._id,
+          selectedDate: formatDay(schedule.showTime),
+          selectedTime: formatTime(schedule.showTime),
+          hall: schedule.hall,
+          basePrice: schedule.basePrice,
+          childPrice: schedule.childPrice,
+        },
+        scheduleId: schedule._id,
+      },
+    });
   };
 
   return (
@@ -151,7 +208,7 @@ const MovieDetailModal = ({ isOpen, onClose, movie, onBookTicket, onWatchTrailer
                 Тайлбар
               </h3>
               <p className="text-gray-600 leading-relaxed text-sm md:text-base">
-                {movie.description || `${movie.title} кино нь гайхалтай үйл явдал, сэтгэл хөдөлгөм дүр зураглалаар дүүрэн бүтээл юм.`}
+                {movie.description || `${movie.title} үзвэр нь гайхалтай үйл явдал, сэтгэл хөдөлгөм дүр зураглалаар дүүрэн бүтээл юм.`}
               </p>
             </div>
 
@@ -182,18 +239,32 @@ const MovieDetailModal = ({ isOpen, onClose, movie, onBookTicket, onWatchTrailer
             {!isComingSoon && (
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Цагийн хуваарь</h3>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-                  {showtimes.map((time, index) => (
-                    <button
-                      key={index}
-                      onClick={handleBookTicket}
-                      className="relative overflow-hidden rounded-lg bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-300 py-2.5 text-sm font-medium text-gray-700 hover:text-red-600 transition-all duration-300 group"
-                    >
-                      <span className="relative z-10">{time}</span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
-                    </button>
-                  ))}
-                </div>
+                {scheduleLoading ? (
+                  <p className="text-sm text-gray-400">Хуваарь ачаалж байна...</p>
+                ) : Object.keys(groupedSchedules).length === 0 ? (
+                  <p className="text-sm text-gray-400">Одоогоор хуваарь байхгүй байна.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {Object.entries(groupedSchedules).map(([day, items]) => (
+                      <div key={day}>
+                        <p className="text-xs font-bold text-gray-400 mb-2">{day}</p>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                          {items.map((schedule) => (
+                            <button
+                              key={schedule._id}
+                              onClick={() => handleScheduleBook(schedule)}
+                              className="relative overflow-hidden rounded-lg bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-300 py-2.5 text-sm font-medium text-gray-700 hover:text-red-600 transition-all duration-300 group"
+                            >
+                              <span className="relative z-10">{formatTime(schedule.showTime)}</span>
+                              <div className="text-[10px] text-gray-400 mt-0.5">{(schedule.basePrice || movie.adultPrice || 15000).toLocaleString()}₮</div>
+                              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-200/50 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
@@ -203,7 +274,7 @@ const MovieDetailModal = ({ isOpen, onClose, movie, onBookTicket, onWatchTrailer
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Энэ кино удахгүй нээлтээ хийх тул тасалбар захиалах боломжгүй байна.
+                Энэ үзвэр удахгүй нээлтээ хийх тул тасалбар захиалах боломжгүй байна.
               </div>
             )}
           </div>

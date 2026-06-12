@@ -9,6 +9,13 @@ const getHeaders = () => {
     return headers;
 };
 
+const getAuthHeaders = () => {
+    const headers = {};
+    const token = localStorage.getItem('token');
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+};
+
 const handleResponse = async (response) => {
     const text = await response.text();
     try {
@@ -52,22 +59,22 @@ export const scheduleAPI = {
         return handleResponse(response);
     },
 
-    create: async ({ movieId, showTime, hall, basePrice }) => {
+    create: async ({ movieId, showTime, hall, basePrice, childPrice }) => {
         const response = await fetch(`${API_BASE_URL}/schedules`, {
             method: 'POST',
             headers: getHeaders(),
             credentials: 'include',
-            body: JSON.stringify({ movieId, showTime, hall, basePrice }),
+            body: JSON.stringify({ movieId, showTime, hall, basePrice, childPrice }),
         });
         return handleResponse(response);
     },
 
-    update: async (id, { movieId, showTime, hall, basePrice }) => {
+    update: async (id, { movieId, showTime, hall, basePrice, childPrice }) => {
         const response = await fetch(`${API_BASE_URL}/schedules/${id}`, {
             method: 'PUT',
             headers: getHeaders(),
             credentials: 'include',
-            body: JSON.stringify({ movieId, showTime, hall, basePrice }),
+            body: JSON.stringify({ movieId, showTime, hall, basePrice, childPrice }),
         });
         return handleResponse(response);
     },
@@ -108,6 +115,25 @@ export const cashierAPI = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Movie API
 // ─────────────────────────────────────────────────────────────────────────────
+export const uploadAPI = {
+    image: async (file) => {
+        if (!file) throw new Error('Upload хийх зураг сонгоно уу.');
+        if (!file.type?.startsWith('image/')) throw new Error('Зөвхөн зураг файл сонгоно уу.');
+        if (file.size > 10 * 1024 * 1024) throw new Error('Зургийн хэмжээ 10MB-аас бага байх ёстой.');
+
+        const response = await fetch(`${API_BASE_URL}/uploads/image`, {
+            method: 'POST',
+            headers: {
+                ...getAuthHeaders(),
+                'Content-Type': file.type,
+            },
+            credentials: 'include',
+            body: file,
+        });
+        return handleResponse(response);
+    },
+};
+
 export const movieAPI = {
     getAll: async () => {
         const response = await fetch(`${API_BASE_URL}/movies`, { method: 'GET', headers: getHeaders(), credentials: 'include' });

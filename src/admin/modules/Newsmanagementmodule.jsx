@@ -3,6 +3,7 @@ import { Plus, Eye, Edit2, Trash2, Newspaper, RefreshCw, Calendar, User, Trendin
 import LoadingSpinner from '../LoadingSpinner';
 import NewsModal from '../modals/NewsModal';
 import { newsAPI } from '../../api/adminAPI';
+import toast from '../Toast';
 
 const EMPTY_FORM = {
   title: '', excerpt: '', content: [], callout: '',
@@ -112,10 +113,11 @@ const NewsManagementModule = () => {
           await fetchNews();
         }
       }
+      toast.success(editingNews ? 'Мэдээ амжилттай шинэчлэгдлээ' : 'Мэдээ амжилттай нэмэгдлээ');
       closeModal();
     } catch (err) {
       console.error('Хадгалахад алдаа:', err);
-      alert('Хадгалахад алдаа гарлаа: ' + err.message);
+      toast.error('Хадгалахад алдаа гарлаа: ' + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -152,9 +154,10 @@ const NewsManagementModule = () => {
     try {
       await newsAPI.delete(id);
       setNews(prev => prev.filter(n => (n._id ?? n.id) !== id));
+      toast.success('Мэдээ амжилттай устгагдлаа');
     } catch (err) {
       console.error('Устгахад алдаа:', err);
-      alert('Устгахад алдаа гарлаа: ' + err.message);
+      toast.error('Устгахад алдаа гарлаа: ' + err.message);
     }
   };
 

@@ -253,13 +253,13 @@ export default function TicketScreen() {
             <TicketRow label="ЗАХИАЛАГЧ" value={customerName || '—'} />
             
             {adultCnt > 0 && (
-              <TicketRow label="НАСАНД ХҮРСЭН" value={`${adultCnt} × ${money(adultTicketPrice)}`} />
+              <TicketRow label="ТОМ ХҮН" value={`${adultCnt} × ${money(adultTicketPrice)}`} />
             )}
             {childCnt > 0 && (
               <TicketRow label="ХҮҮХЭД" value={`${childCnt} × ${money(childTicketPrice)}`} />
             )}
             
-            <TicketRow label="ЗАХИАЛСАН ЦАГ" value={bookedAt} />
+            <TicketRow label="ҮЗВЭРИЙН ЦАГ" value={bookedAt} />
 
             {/* Нийт төлбөр - Маш тод харагдахуйц хайрцаг */}
             <View style={styles.totalBox}>

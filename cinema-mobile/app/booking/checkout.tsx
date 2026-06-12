@@ -13,14 +13,15 @@ import { SPACING, RADIUS, ThemeColors } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { isBookableShowTime } from '../../utils/showtime';
 import { safeBack } from '../../utils/navigation';
+import { Ionicons } from '@expo/vector-icons';
 
-// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function money(n: number) { return n.toLocaleString() + '₮'; }
+// ── Helpers ──────────────────────────────────────────────────────────────
+function money(n: number) { return n.toLocaleString() + ' ₮'; }
 function fmt(s: number) {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Types ────────────────────────────────────────────────────────────────
 type QpayStep = 'idle' | 'loading' | 'qr' | 'external' | 'success' | 'error';
 
 interface Seat { id: string; type: 'adult' | 'child'; }
@@ -91,7 +92,7 @@ function toPrice(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
-// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Component ────────────────────────────────────────────────────────────
 export default function CheckoutScreen() {
   const router  = useRouter();
   const { user } = useAuth();
@@ -135,10 +136,9 @@ export default function CheckoutScreen() {
 
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Prevent duplicate confirmation calls
   const paidRef  = useRef(false);
 
-  // â”€â”€ Cleanup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cleanup ────────────────────────────────────────────────────────────
   const cleanup = () => {
     if (pollRef.current)  { clearInterval(pollRef.current);  pollRef.current  = null; }
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
@@ -148,7 +148,7 @@ export default function CheckoutScreen() {
     payableTotalRef.current = payableTotal;
   }, [payableTotal]);
 
-  // â”€â”€ Navigate to ticket screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Navigate to ticket screen ─────────────────────────────────────────
   const goToTicket = (bId: string, customerName: string, customerEmail: string) => {
     router.replace({
       pathname: '/booking/ticket',
@@ -169,9 +169,9 @@ export default function CheckoutScreen() {
     });
   };
 
-  // â”€â”€ Mark booking paid & navigate â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Mark booking paid & navigate ──────────────────────────────────────
   const completePaidBooking = async (bId: string, skipServerConfirm = false) => {
-    if (paidRef.current) return;   // guard against double-call
+    if (paidRef.current) return;
     paidRef.current = true;
     cleanup();
 
@@ -224,7 +224,7 @@ export default function CheckoutScreen() {
     setTimeout(() => goToTicket(bookingId, name.trim(), email.trim()), 1200);
   };
 
-  // â”€â”€ QPay: create invoice â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── QPay: create invoice ──────────────────────────────────────────────
   const initQPay = async (bId: string) => {
     paidRef.current = false;
     setQpayStep('loading');
@@ -273,7 +273,7 @@ export default function CheckoutScreen() {
       startWirePoll(bId);
       startTimer();
     } catch (e: any) {
-      setErrMsg(e?.response?.data?.message || e?.message || 'Wire төлбөрийн хэсэг нээхэд алдаа гарлаа.');
+      setErrMsg(e?.response?.data?.message || e?.message || 'Төлбөрийн хэсэг нээхэд алдаа гарлаа.');
       setQpayStep('error');
     }
   };
@@ -286,11 +286,11 @@ export default function CheckoutScreen() {
         if (res.success && res.paid) {
           await completePaidBooking(bId, true);
         }
-      } catch { /* silent â€” keep polling */ }
+      } catch { /* silent — keep polling */ }
     }, 3000);
   };
 
-  // â”€â”€ QPay: poll payment status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── QPay: poll payment status ─────────────────────────────────────────
   const checkWirePaymentNow = async (messageWhenPending = 'Төлбөр хараахан баталгаажаагүй байна. Банкны апп дээр алдаа гарсан бол дахин QR уншуулахгүйгээр дансны хуулгаа шалгана уу.') => {
     if (!bookingId) {
       setErrMsg('Захиалгын дугаар олдсонгүй. Шинэ захиалга эхлүүлнэ үү.');
@@ -322,11 +322,11 @@ export default function CheckoutScreen() {
         if (res.success && res.data?.paid) {
           await completePaidBooking(bId);
         }
-      } catch { /* silent â€” keep polling */ }
+      } catch { /* silent — keep polling */ }
     }, 3000);
   };
 
-  // â”€â”€ QPay: countdown timer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── QPay: countdown timer ─────────────────────────────────────────────
   const startTimer = () => {
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
@@ -341,7 +341,7 @@ export default function CheckoutScreen() {
     }, 1000);
   };
 
-  // â”€â”€ Cancel & go back â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Cancel & go back ──────────────────────────────────────────────────
   const handleCancel = async () => {
     cleanup();
     if (invoiceId) {
@@ -353,7 +353,7 @@ export default function CheckoutScreen() {
     setQpayStep('idle');
   };
 
-  // â”€â”€ Main pay handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Main pay handler ──────────────────────────────────────────────────
   const handlePay = async () => {
     if (!isBookableShowTime(params.showTime, params.date, params.time)) {
       Alert.alert('Анхааруулга', 'Энэ үзвэрийн цаг өнгөрсөн тул тасалбар захиалах боломжгүй.');
@@ -403,30 +403,35 @@ export default function CheckoutScreen() {
     }
   };
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ════════════════════════════════════════════════════════════════════════
   // QPay overlay
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ════════════════════════════════════════════════════════════════════════
   if (qpayStep !== 'idle') {
     return (
       <View style={styles.qpayContainer}>
         <LinearGradient colors={[colors.bg, colors.bgElevate]} style={StyleSheet.absoluteFill} />
 
         <View style={styles.qpayCard}>
-          {/* â”€â”€ Header â”€â”€ */}
+          {/* ── Header ── */}
           <LinearGradient colors={[colors.teal, '#13c4a3']} style={styles.qpayHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.qpayHeaderTitle}>Wire төлбөр</Text>
+              <Text style={styles.qpayHeaderTitle}>Төлбөрийн сонголт</Text>
               <Text style={styles.qpayHeaderSub} numberOfLines={1}>{params.movieTitle}</Text>
             </View>
             {qpayStep !== 'success' && (
               <TouchableOpacity onPress={handleCancel} style={styles.qpayClose} hitSlop={8}>
-                <Text style={styles.qpayCloseText}>×</Text>
+                <Ionicons name="close" size={18} color="#0f261c" />
               </TouchableOpacity>
             )}
           </LinearGradient>
 
-          {/* â”€â”€ Body â”€â”€ */}
-          <View style={styles.qpayBody}>
+          {/* ── Body ── */}
+          <ScrollView
+            style={styles.qpayBodyScroll}
+            contentContainerStyle={styles.qpayBody}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator={false}
+          >
             {/* Amount chip */}
             <View style={styles.amountBox}>
               <Text style={styles.amountLabel}>Төлбөрийн дүн</Text>
@@ -436,11 +441,12 @@ export default function CheckoutScreen() {
             {/* Loading */}
             {qpayStep === 'loading' && (
               <>
-                <ActivityIndicator color={colors.teal} size="large" style={{ marginTop: 8 }} />
+                <ActivityIndicator color={colors.teal} size="large" style={{ marginTop: 16 }} />
                 <Text style={styles.qpayHint}>Wire checkout бэлдэж байна...</Text>
               </>
             )}
 
+            {/* External / Wire */}
             {qpayStep === 'external' && (
               <>
                 <View style={styles.qrWrap}>
@@ -450,15 +456,26 @@ export default function CheckoutScreen() {
                     <QRCode value={wireQrText} size={200} backgroundColor="#fff" />
                   ) : (
                     <View style={[styles.qrImage, { alignItems: 'center', justifyContent: 'center' }]}>
-                      <Text style={styles.qpayHint}>QR мэдээлэл олдсонгүй</Text>
+                      <Ionicons name="qr-code-outline" size={40} color={colors.textSub} />
+                      <Text style={[styles.qpayHint, { marginTop: 8 }]}>QR мэдээлэл олдсонгүй</Text>
                     </View>
                   )}
                 </View>
-                <Text style={[styles.resultTitle, { color: colors.teal }]}>Wire checkout</Text>
+                <Text style={[styles.resultTitle, { color: colors.teal, marginTop: 8 }]}>Wire Checkout</Text>
                 <Text style={styles.qpayHint}>QR уншуулах эсвэл банкны апп сонгож төлбөрөө төлнө үү.</Text>
-                <Text style={[styles.timer, { color: timeLeft < 60 ? colors.coral : colors.teal }]}>⏱ {fmt(timeLeft)} дотор төлнө үү</Text>
+                <View style={[styles.timerWrap, { borderColor: timeLeft < 60 ? colors.coral : colors.teal }]}>
+                  <Ionicons name="time-outline" size={16} color={timeLeft < 60 ? colors.coral : colors.teal} />
+                  <Text style={[styles.timer, { color: timeLeft < 60 ? colors.coral : colors.teal }]}>
+                    {fmt(timeLeft)} дотор төлнө үү
+                  </Text>
+                </View>
                 {bankUrls.length > 0 && (
-                  <View style={styles.banksGrid}>
+                  <ScrollView
+                    style={styles.bankScroll}
+                    contentContainerStyle={styles.banksGrid}
+                    nestedScrollEnabled
+                    showsVerticalScrollIndicator
+                  >
                     {bankUrls.map((u, i) => (
                       <TouchableOpacity
                         key={`${u.link}-${i}`}
@@ -466,6 +483,7 @@ export default function CheckoutScreen() {
                         onPress={() => {
                           if (u?.link) Linking.openURL(u.link).catch(() => {});
                         }}
+                        activeOpacity={0.7}
                       >
                         {u?.logo ? (
                           <Image source={{ uri: u.logo }} style={styles.bankLogo} resizeMode="contain" />
@@ -477,18 +495,25 @@ export default function CheckoutScreen() {
                         <Text style={styles.bankText} numberOfLines={2}>{u?.name || `Банк ${i + 1}`}</Text>
                       </TouchableOpacity>
                     ))}
-                  </View>
+                  </ScrollView>
                 )}
                 <TouchableOpacity
-                  style={styles.testPayBtn}
-                  onPress={() => checkWirePaymentNow('Төлбөр хараахан баталгаажаагүй байна. Банкны апп дээр алдаа гарсан бол дансны хуулгаа шалгаад дахин төлөхгүй байна уу.')}
+                  style={styles.checkPaymentBtn}
+                  onPress={() => checkWirePaymentNow()}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.testPayText}>{checkingWire ? 'Шалгаж байна...' : 'Төлбөр шалгах'}</Text>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.teal} />
+                  <Text style={styles.checkPaymentText}>{checkingWire ? 'Шалгаж байна...' : 'Төлбөр шалгах'}</Text>
                 </TouchableOpacity>
-                {!!errMsg && <Text style={styles.qpayHint}>{errMsg}</Text>}
+                {!!errMsg && (
+                  <View style={styles.errorHintBox}>
+                    <Ionicons name="alert-circle-outline" size={16} color={colors.coral} />
+                    <Text style={[styles.qpayHint, { color: colors.coral, marginLeft: 6, flex: 1 }]}>{errMsg}</Text>
+                  </View>
+                )}
               </>
             )}
+
             {/* QR */}
             {qpayStep === 'qr' && (
               <>
@@ -504,9 +529,12 @@ export default function CheckoutScreen() {
                   />
                 </View>
 
-                <Text style={[styles.timer, { color: timeLeft < 30 ? colors.coral : colors.teal }]}>
-                  ⏱ {fmt(timeLeft)} дотор төлнө үү
-                </Text>
+                <View style={[styles.timerWrap, { borderColor: timeLeft < 30 ? colors.coral : colors.teal }]}>
+                  <Ionicons name="time-outline" size={16} color={timeLeft < 30 ? colors.coral : colors.teal} />
+                  <Text style={[styles.timer, { color: timeLeft < 30 ? colors.coral : colors.teal }]}>
+                    {fmt(timeLeft)} дотор төлнө үү
+                  </Text>
+                </View>
 
                 {bankUrls.length > 0 && (
                   <>
@@ -519,6 +547,7 @@ export default function CheckoutScreen() {
                           onPress={() => {
                             if (u?.link) Linking.openURL(u.link).catch(() => {});
                           }}
+                          activeOpacity={0.7}
                         >
                           <Text style={styles.bankText}>{u?.name || `Банк ${i + 1}`}</Text>
                         </TouchableOpacity>
@@ -534,6 +563,7 @@ export default function CheckoutScreen() {
                   onPress={completeTestPayment}
                   activeOpacity={0.85}
                 >
+                  <Ionicons name="flask-outline" size={16} color={colors.teal} />
                   <Text style={styles.testPayText}>[TEST] Төлөгдсөн болгох</Text>
                 </TouchableOpacity>
               </>
@@ -543,7 +573,7 @@ export default function CheckoutScreen() {
             {qpayStep === 'success' && (
               <>
                 <View style={[styles.resultIcon, styles.resultIconSuccess]}>
-                  <Text style={{ fontSize: 32 }}>✓</Text>
+                  <Ionicons name="checkmark" size={32} color={colors.teal} />
                 </View>
                 <Text style={[styles.resultTitle, { color: colors.teal }]}>Төлбөр амжилттай!</Text>
                 <Text style={styles.qpayHint}>Тасалбар бэлдэж байна...</Text>
@@ -555,41 +585,42 @@ export default function CheckoutScreen() {
             {qpayStep === 'error' && (
               <>
                 <View style={[styles.resultIcon, styles.resultIconError]}>
-                  <Text style={{ fontSize: 32 }}>×</Text>
+                  <Ionicons name="close" size={32} color={colors.coral} />
                 </View>
                 <Text style={[styles.resultTitle, { color: colors.coral }]}>Алдаа гарлаа</Text>
                 <Text style={styles.qpayHint}>{errMsg}</Text>
                 <TouchableOpacity
                   style={styles.retryBtn}
-                  onPress={() => checkWirePaymentNow('Төлбөр баталгаажаагүй байна. Давхар гүйлгээнээс сэргийлж шинэ QR үүсгэсэнгүй. Дансны хуулгаа шалгаад шаардлагатай бол захиалгаа шинээр эхлүүлнэ үү.')}
+                  onPress={() => checkWirePaymentNow('Төлбөр баталгаажаагүй байна. Давхар гүйлгээнээс сэргийлж шинэ QR үүсгэсэнгүй.')}
                   activeOpacity={0.8}
                 >
+                  <Ionicons name="refresh-outline" size={18} color="#0f261c" />
                   <Text style={styles.retryText}>{checkingWire ? 'Шалгаж байна...' : 'Төлбөр шалгах'}</Text>
                 </TouchableOpacity>
               </>
             )}
-          </View>
+          </ScrollView>
         </View>
       </View>
     );
   }
 
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ════════════════════════════════════════════════════════════════════════
   // Checkout form
-  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ════════════════════════════════════════════════════════════════════════
   const summaryRows: [string, string | null][] = [
     ['Үзвэр',      params.movieTitle || null],
-    ['Огноо',     params.date       || null],
-    ['Цаг',       params.time       || null],
-    ['Суудлууд',  seats.map(s => s.id).join(', ')  || null],
-    ['Том хүн',   adultCount > 0 ? `${adultCount} × ${money(prices.adult)}` : null],
-    ['Хүүхэд',    childCount > 0 ? `${childCount} × ${money(prices.child)}` : null],
+    ['Огноо',      params.date       || null],
+    ['Цаг',        params.time       || null],
+    ['Суудлууд',   seats.map(s => s.id).join(', ')  || null],
+    ['Том хүн',    adultCount > 0 ? `${adultCount} × ${money(prices.adult)}` : null],
+    ['Хүүхэд',     childCount > 0 ? `${childCount} × ${money(prices.child)}` : null],
   ];
 
   const fields = [
-    { label: 'НЭР',   value: name,  set: setName,  placeholder: 'Таны нэр',          type: 'default'       },
-    { label: 'ИМЭЙЛ', value: email, set: setEmail, placeholder: 'name@example.com', type: 'email-address' },
-    { label: 'УТАС',  value: phone, set: setPhone, placeholder: '9911xxxx',         type: 'phone-pad'     },
+    { label: 'НЭР',   value: name,  set: setName,  placeholder: 'Таны нэр',          icon: 'person-outline' as const,     type: 'default'       },
+    { label: 'ИМЭЙЛ', value: email, set: setEmail, placeholder: 'name@example.com',   icon: 'mail-outline' as const,       type: 'email-address' },
+    { label: 'УТАС',  value: phone, set: setPhone, placeholder: '9911xxxx',           icon: 'call-outline' as const,       type: 'phone-pad'     },
   ] as const;
 
   return (
@@ -601,7 +632,7 @@ export default function CheckoutScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => safeBack(router, '/booking/seats')} style={styles.backBtn} hitSlop={8}>
-            <Text style={styles.backText}>←</Text>
+            <Ionicons name="chevron-back" size={20} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Захиалга баталгаажуулах</Text>
           <View style={{ width: 38 }} />
@@ -614,7 +645,10 @@ export default function CheckoutScreen() {
         >
           {/* Order summary */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Захиалгын тойм</Text>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="receipt-outline" size={20} color={colors.teal} />
+              <Text style={styles.cardTitle}>Захиалгын тойм</Text>
+            </View>
             {summaryRows
               .filter((row): row is [string, string] => row[1] !== null)
               .map(([k, v]) => (
@@ -631,27 +665,36 @@ export default function CheckoutScreen() {
 
           {/* Customer info */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Хувийн мэдээлэл</Text>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="person-outline" size={20} color={colors.teal} />
+              <Text style={styles.cardTitle}>Захиалагчийн мэдээлэл</Text>
+            </View>
             {fields.map(f => (
               <View key={f.label} style={styles.field}>
                 <Text style={styles.fieldLabel}>{f.label}</Text>
-                <TextInput
-                  style={styles.input}
-                  value={f.value}
-                  onChangeText={f.set}
-                  placeholder={f.placeholder}
-                  placeholderTextColor={colors.textSub}
-                  keyboardType={f.type}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+                <View style={styles.inputWrap}>
+                  <Ionicons name={f.icon} size={18} color={colors.textSub} style={styles.inputIcon} />
+                  <TextInput
+                    style={styles.input}
+                    value={f.value}
+                    onChangeText={f.set}
+                    placeholder={f.placeholder}
+                    placeholderTextColor={colors.textDim}
+                    keyboardType={f.type}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </View>
               </View>
             ))}
           </View>
 
           {/* Warning */}
           <View style={styles.warning}>
-            <Text style={styles.warningTitle}>⚠ Анхааруулга</Text>
+            <View style={styles.warningTitleRow}>
+              <Ionicons name="warning-outline" size={18} color="#ffb347" />
+              <Text style={styles.warningTitle}>Анхааруулга</Text>
+            </View>
             <Text style={styles.warningText}>• Үзвэр, огноо, цагаа сайн шалгана уу.</Text>
             <Text style={styles.warningText}>• Төлбөр төлсний дараа тасалбар буцаах боломжгүй.</Text>
             <Text style={styles.warningText}>• Цаг эхлэхээс 10 минутын өмнө ирнэ үү.</Text>
@@ -672,9 +715,12 @@ export default function CheckoutScreen() {
               {loading ? (
                 <ActivityIndicator color="#0f261c" />
               ) : (
-                <Text style={styles.payText}>
-                  Төлбөр төлөх · {money(payableTotal)}
-                </Text>
+                <View style={styles.payBtnContent}>
+                  <Ionicons name="card-outline" size={20} color="#0f261c" />
+                  <Text style={styles.payText}>
+                    Төлбөр төлөх · {money(payableTotal)}
+                  </Text>
+                </View>
               )}
             </LinearGradient>
           </TouchableOpacity>
@@ -684,62 +730,263 @@ export default function CheckoutScreen() {
   );
 }
 
-// â”€â”€ Styles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Styles ────────────────────────────────────────────────────────────────
 const createStyles = (colors: ThemeColors) => StyleSheet.create({
   // Form
-  container:    { flex: 1, backgroundColor: colors.bg },
-  header:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.lg, paddingTop: 60, paddingBottom: SPACING.md },
-  backBtn:      { width: 38, height: 38, borderRadius: RADIUS.full, backgroundColor: colors.bgCard, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
-  backText:     { color: colors.white, fontSize: 18, fontWeight: '700' },
-  headerTitle:  { color: colors.white, fontSize: 16, fontWeight: '700' },
-  scroll:       { padding: SPACING.lg },
-  card:         { backgroundColor: colors.bgCard, borderRadius: RADIUS.md, padding: SPACING.lg, borderWidth: 1, borderColor: colors.border, marginBottom: SPACING.md },
-  cardTitle:    { color: colors.white, fontSize: 16, fontWeight: '700', marginBottom: SPACING.md },
-  row:          { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border },
-  rowKey:       { color: colors.textSub, fontSize: 13 },
-  rowVal:       { color: colors.white, fontSize: 13, fontWeight: '600', maxWidth: '60%', textAlign: 'right' },
-  totalRow:     { flexDirection: 'row', justifyContent: 'space-between', paddingTop: SPACING.md, marginTop: SPACING.sm },
-  totalKey:     { color: colors.white, fontSize: 15, fontWeight: '700' },
-  totalVal:     { color: colors.teal, fontSize: 18, fontWeight: '800' },
-  field:        { marginBottom: SPACING.md },
-  fieldLabel:   { fontSize: 10, fontWeight: '700', letterSpacing: 1.5, color: colors.textSub, marginBottom: 6 },
-  input:        { backgroundColor: colors.bgElevate, borderRadius: RADIUS.sm, padding: SPACING.md, color: colors.text, fontSize: 15, borderWidth: 1, borderColor: colors.border },
-  warning:      { backgroundColor: 'rgba(255,179,71,0.05)', borderRadius: RADIUS.md, padding: SPACING.md, borderWidth: 1, borderColor: 'rgba(255,179,71,0.2)' },
-  warningTitle: { color: '#ffb347', fontWeight: '700', fontSize: 13, marginBottom: SPACING.sm },
-  warningText:  { color: 'rgba(255,179,71,0.7)', fontSize: 12, lineHeight: 20 },
-  footer:       { position: 'absolute', bottom: 0, left: 0, right: 0, padding: SPACING.lg, backgroundColor: colors.bg, borderTopWidth: 1, borderTopColor: colors.border },
-  payBtn:       { borderRadius: RADIUS.md, overflow: 'hidden' },
-  payGrad:      { padding: SPACING.md + 2, alignItems: 'center' },
-  payText:      { color: '#0f261c', fontWeight: '800', fontSize: 16 },
+  container:     { flex: 1, backgroundColor: colors.bg },
+  header:        { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: SPACING.lg, 
+    paddingTop: 60, 
+    paddingBottom: SPACING.md,
+    backgroundColor: colors.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border 
+  },
+  backBtn:       { 
+    width: 38, 
+    height: 38, 
+    borderRadius: RADIUS.full, 
+    backgroundColor: colors.bgCard, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderWidth: 1, 
+    borderColor: colors.border 
+  },
+  headerTitle:   { color: colors.text, fontSize: 18, fontWeight: '700' },
+  scroll:        { padding: SPACING.lg },
+  card:          { 
+    backgroundColor: colors.bgCard, 
+    borderRadius: RADIUS.lg, 
+    padding: SPACING.lg, 
+    borderWidth: 1, 
+    borderColor: colors.border, 
+    marginBottom: SPACING.md,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardTitleRow:  { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.md, gap: 8 },
+  cardTitle:     { color: colors.text, fontSize: 16, fontWeight: '700' },
+  row:           { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    paddingVertical: 10, 
+    borderBottomWidth: 1, 
+    borderBottomColor: colors.border 
+  },
+  rowKey:        { color: colors.textSub, fontSize: 14 },
+  rowVal:        { color: colors.text, fontSize: 14, fontWeight: '600', maxWidth: '55%', textAlign: 'right' },
+  totalRow:      { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    paddingTop: SPACING.md, 
+    marginTop: SPACING.sm,
+    borderTopWidth: 2,
+    borderTopColor: colors.teal + '30',
+  },
+  totalKey:      { color: colors.text, fontSize: 16, fontWeight: '700' },
+  totalVal:      { color: colors.teal, fontSize: 20, fontWeight: '800' },
+  field:         { marginBottom: SPACING.md },
+  fieldLabel:    { fontSize: 11, fontWeight: '700', letterSpacing: 1.5, color: colors.textSub, marginBottom: 6 },
+  inputWrap:     { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: colors.bgElevate, 
+    borderRadius: RADIUS.md, 
+    borderWidth: 1, 
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  inputIcon:     { paddingLeft: SPACING.md },
+  input:         { 
+    flex: 1, 
+    padding: SPACING.md, 
+    color: colors.text, 
+    fontSize: 15,
+  },
+  warning:       { 
+    backgroundColor: 'rgba(255,179,71,0.05)', 
+    borderRadius: RADIUS.lg, 
+    padding: SPACING.md, 
+    borderWidth: 1, 
+    borderColor: 'rgba(255,179,71,0.2)' 
+  },
+  warningTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACING.sm, gap: 6 },
+  warningTitle:  { color: '#ffb347', fontWeight: '700', fontSize: 14 },
+  warningText:   { color: 'rgba(255,179,71,0.8)', fontSize: 12, lineHeight: 20, paddingLeft: 24 },
+  footer:        { 
+    position: 'absolute', 
+    bottom: 0, 
+    left: 0, 
+    right: 0, 
+    padding: SPACING.lg, 
+    backgroundColor: colors.bg, 
+    borderTopWidth: 1, 
+    borderTopColor: colors.border 
+  },
+  payBtn:        { borderRadius: RADIUS.lg, overflow: 'hidden' },
+  payGrad:       { padding: SPACING.md + 4, alignItems: 'center' },
+  payBtnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  payText:       { color: '#0f261c', fontWeight: '800', fontSize: 17 },
 
   // QPay overlay
   qpayContainer:     { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.lg },
-  qpayCard:          { width: '100%', maxWidth: 360, borderRadius: RADIUS.lg, overflow: 'hidden', backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border2 },
-  qpayHeader:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: SPACING.md },
-  qpayHeaderTitle:   { color: '#0f261c', fontWeight: '800', fontSize: 15 },
-  qpayHeaderSub:     { color: 'rgba(15,38,28,0.65)', fontSize: 11, marginTop: 2 },
-  qpayClose:         { width: 32, height: 32, borderRadius: RADIUS.full, backgroundColor: 'rgba(0,0,0,0.15)', alignItems: 'center', justifyContent: 'center' },
-  qpayCloseText:     { color: '#0f261c', fontWeight: '800', fontSize: 16 },
+  qpayCard:          { 
+    width: '100%', 
+    maxWidth: 380, 
+    maxHeight: '92%',
+    borderRadius: RADIUS.xl, 
+    overflow: 'hidden', 
+    backgroundColor: colors.bgCard, 
+    borderWidth: 1, 
+    borderColor: colors.border2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  qpayHeader:        { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    padding: SPACING.lg 
+  },
+  qpayHeaderTitle:   { color: '#0f261c', fontWeight: '800', fontSize: 17 },
+  qpayHeaderSub:     { color: 'rgba(15,38,28,0.6)', fontSize: 12, marginTop: 4 },
+  qpayClose:         { 
+    width: 36, 
+    height: 36, 
+    borderRadius: RADIUS.full, 
+    backgroundColor: 'rgba(0,0,0,0.1)', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  qpayBodyScroll:    { width: '100%' },
   qpayBody:          { padding: SPACING.lg, alignItems: 'center', gap: SPACING.md },
-  amountBox:         { backgroundColor: 'rgba(29,233,182,0.08)', borderRadius: RADIUS.md, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.sm, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(29,233,182,0.2)', width: '100%' },
-  amountLabel:       { color: colors.textSub, fontSize: 11, marginBottom: 4 },
-  amountValue:       { color: colors.teal, fontSize: 28, fontWeight: '800' },
-  qrWrap:            { padding: 8, backgroundColor: '#fff', borderRadius: RADIUS.md, borderWidth: 3, borderColor: colors.teal },
-  qrImage:           { width: 200, height: 200 },
-  timer:             { fontSize: 15, fontWeight: '700' },
-  banksGrid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxHeight: 220 },
-  bankBtn:           { width: 74, minHeight: 78, paddingHorizontal: 4, paddingVertical: 8, borderRadius: RADIUS.sm, backgroundColor: colors.bgElevate, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: 5 },
-  bankLogo:          { width: 34, height: 34, borderRadius: 8 },
-  bankLogoFallback:  { width: 34, height: 34, borderRadius: 8, backgroundColor: 'rgba(29,233,182,0.12)', alignItems: 'center', justifyContent: 'center' },
-  bankLogoText:      { color: colors.teal, fontWeight: '800', fontSize: 14 },
-  bankText:          { color: colors.textDim, fontSize: 10, textAlign: 'center', lineHeight: 12 },
-  testPayBtn:        { width: '100%', paddingVertical: 11, borderRadius: RADIUS.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.teal, backgroundColor: 'rgba(29,233,182,0.08)', alignItems: 'center' },
+  amountBox:         { 
+    backgroundColor: 'rgba(29,233,182,0.08)', 
+    borderRadius: RADIUS.lg, 
+    paddingHorizontal: SPACING.xl, 
+    paddingVertical: SPACING.md, 
+    alignItems: 'center', 
+    borderWidth: 1, 
+    borderColor: 'rgba(29,233,182,0.2)', 
+    width: '100%' 
+  },
+  amountLabel:       { color: colors.textSub, fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  amountValue:       { color: colors.teal, fontSize: 32, fontWeight: '800' },
+  qrWrap:            { 
+    padding: 12, 
+    backgroundColor: '#fff', 
+    borderRadius: RADIUS.lg, 
+    borderWidth: 3, 
+    borderColor: colors.teal,
+    shadowColor: colors.teal,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  qrImage:           { width: 200, height: 200, borderRadius: RADIUS.sm },
+  timerWrap:         {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    backgroundColor: 'rgba(29,233,182,0.05)',
+  },
+  timer:             { fontSize: 14, fontWeight: '700' },
+  bankScroll:        { width: '100%', maxHeight: 220 },
+  banksGrid:         { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', paddingBottom: 4 },
+  bankBtn:           { 
+    width: 80, 
+    minHeight: 84, 
+    paddingHorizontal: 6, 
+    paddingVertical: 10, 
+    borderRadius: RADIUS.md, 
+    backgroundColor: colors.bgElevate, 
+    borderWidth: 1, 
+    borderColor: colors.border, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    gap: 6 
+  },
+  bankLogo:          { width: 36, height: 36, borderRadius: RADIUS.sm },
+  bankLogoFallback:  { 
+    width: 36, 
+    height: 36, 
+    borderRadius: RADIUS.sm, 
+    backgroundColor: 'rgba(29,233,182,0.12)', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  bankLogoText:      { color: colors.teal, fontWeight: '800', fontSize: 16 },
+  bankText:          { color: colors.textDim, fontSize: 10, textAlign: 'center', lineHeight: 13 },
+  testPayBtn:        { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '100%', 
+    paddingVertical: 12, 
+    borderRadius: RADIUS.md, 
+    borderWidth: 1, 
+    borderStyle: 'dashed', 
+    borderColor: colors.teal, 
+    backgroundColor: 'rgba(29,233,182,0.08)', 
+    justifyContent: 'center',
+  },
   testPayText:       { color: colors.teal, fontSize: 13, fontWeight: '800' },
-  qpayHint:          { color: colors.textSub, fontSize: 12, textAlign: 'center' },
-  resultIcon:        { width: 72, height: 72, borderRadius: RADIUS.full, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  checkPaymentBtn:   {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: RADIUS.md,
+    backgroundColor: 'rgba(29,233,182,0.12)',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(29,233,182,0.3)',
+  },
+  checkPaymentText:  { color: colors.teal, fontSize: 14, fontWeight: '700' },
+  qpayHint:          { color: colors.textSub, fontSize: 13, textAlign: 'center', lineHeight: 18 },
+  errorHintBox:      {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(232,96,122,0.08)',
+    borderRadius: RADIUS.md,
+    padding: SPACING.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(232,96,122,0.2)',
+  },
+  resultIcon:        { 
+    width: 80, 
+    height: 80, 
+    borderRadius: RADIUS.full, 
+    alignItems: 'center', 
+    justifyContent: 'center', 
+    borderWidth: 3 
+  },
   resultIconSuccess: { backgroundColor: 'rgba(29,233,182,0.12)', borderColor: colors.teal },
   resultIconError:   { backgroundColor: 'rgba(232,96,122,0.12)', borderColor: colors.coral },
-  resultTitle:       { fontSize: 20, fontWeight: '800' },
-  retryBtn:          { paddingHorizontal: SPACING.lg, paddingVertical: SPACING.sm, backgroundColor: colors.teal, borderRadius: RADIUS.md },
-  retryText:         { color: '#0f261c', fontWeight: '700' },
+  resultTitle:       { fontSize: 22, fontWeight: '800' },
+  retryBtn:          { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: SPACING.lg, 
+    paddingVertical: SPACING.sm + 2, 
+    backgroundColor: colors.teal, 
+    borderRadius: RADIUS.md 
+  },
+  retryText:         { color: '#0f261c', fontWeight: '700', fontSize: 14 },
 });

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Edit2, Info, Globe, Clock, MapPin, Phone, Mail } from 'lucide-react';
 import LoadingSpinner from '../LoadingSpinner';
 import { cinemaAPI } from '../../api/adminAPI';
+import toast from '../Toast';
 
 const CinemaInfoModule = () => {
   const [info, setInfo]       = useState(null);
@@ -18,7 +19,7 @@ const CinemaInfoModule = () => {
       setInfo(data);
     } catch (error) {
       console.error('Мэдээлэл татахад алдаа гарлаа:', error);
-      alert('Мэдээлэл татахад алдаа гарлаа: ' + error.message);
+      toast.error('Мэдээлэл татахад алдаа гарлаа: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -33,12 +34,12 @@ const CinemaInfoModule = () => {
     e.preventDefault();
     try {
       await cinemaAPI.updateInfo(formData);
-      alert('Мэдээлэл амжилттай шинэчлэгдлээ');
+      toast.success('Мэдээлэл амжилттай шинэчлэгдлээ');
       setEditing(false);
       fetchCinemaInfo();
     } catch (error) {
       console.error('Мэдээлэл хадгалахад алдаа гарлаа:', error);
-      alert('Мэдээлэл хадгалахад алдаа гарлаа: ' + error.message);
+      toast.error('Мэдээлэл хадгалахад алдаа гарлаа: ' + error.message);
     }
   };
 

@@ -2,10 +2,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, isAuthenticated } from '../auth/auth';
+import toast from '../admin/Toast';
 
 const MoviePoster = ({ movie, onTrailerClick, onDetailClick, index = 0, isLoggedIn }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [posterError, setPosterError] = useState(false);
   const navigate = useNavigate();
+  const posterSrc = !posterError && movie.posterUrl ? movie.posterUrl : '/black.png';
+  const hasActiveSession = () => Boolean(isLoggedIn || isAuthenticated() || getCurrentUser());
 
   const handleClick = (e) => {
     if (e.target.closest('.trailer-btn')) {
@@ -23,8 +28,8 @@ const MoviePoster = ({ movie, onTrailerClick, onDetailClick, index = 0, isLogged
     return;
   }
   
-  if (!isLoggedIn) {
-    alert('Тасалбар захиалахын тулд эхлээд нэвтрэнэ үү!');
+  if (!hasActiveSession()) {
+    toast.warning('Тасалбар захиалахын тулд эхлээд нэвтэрнэ үү.');
     navigate('/login');
     return;
   }
@@ -93,9 +98,10 @@ const MoviePoster = ({ movie, onTrailerClick, onDetailClick, index = 0, isLogged
       <motion.div className="relative overflow-hidden rounded-2xl shadow-2xl shadow-black/40 hover:shadow-3xl hover:shadow-black/60 transition-all duration-500">
         <div className="aspect-[2/3] bg-gradient-to-br from-gray-800 to-black relative overflow-hidden">
           <motion.img
-            src={movie.posterUrl}
+            src={posterSrc}
             alt={movie.title}
             className="w-full h-full object-cover"
+            onError={() => setPosterError(true)}
             animate={{
               scale: isHovered ? 1.1 : 1
             }}

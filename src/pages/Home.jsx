@@ -10,7 +10,8 @@ import MovieDetailModal from '../components/MovieDetailModal';
 import FilterBar from '../components/FilterBar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { api } from '../api/config'; // API импортлох
-import { getCurrentUser } from '../auth/auth';
+import { getCurrentUser, isAuthenticated } from '../auth/auth';
+import toast from '../admin/Toast';
 
 const Home = ({ isLoggedIn, onLogout }) => {
   const navigate = useNavigate();
@@ -29,6 +30,7 @@ const Home = ({ isLoggedIn, onLogout }) => {
     ratings: []
   });
   const [user, setUser] = useState(null);
+  const hasActiveSession = () => Boolean(isLoggedIn || isAuthenticated() || getCurrentUser());
 
   // Хэрэглэгчийн мэдээлэл авах
   useEffect(() => {
@@ -45,7 +47,7 @@ useEffect(() => {
       console.log('api.get функц эсэх:', typeof api.get); 
       
       const moviesData = await api.get('/movies');
-      console.log('Кино өгөгдөл:', moviesData); 
+      console.log('Үзвэр өгөгдөл:', moviesData); 
       
       let nowShowing = [];
       let comingSoon = [];
@@ -71,7 +73,7 @@ useEffect(() => {
       
     } catch (error) {
       console.error('Өгөгдөл татахад алдаа гарлаа:', error);
-      alert('Өгөгдөл татахад алдаа гарлаа. Та дахин оролдоно уу.');
+      toast.error('Өгөгдөл татахад алдаа гарлаа. Та дахин оролдоно уу.');
     } finally {
       setIsLoading(false);
     }
@@ -128,8 +130,8 @@ useEffect(() => {
   };
 
   const handleBookTicket = (movie) => {
-    if (!isLoggedIn) {
-      alert('Тасалбар захиалахын тулд эхлээд нэвтрэнэ үү!');
+    if (!hasActiveSession()) {
+      toast.warning('Тасалбар захиалахын тулд эхлээд нэвтэрнэ үү.');
       navigate('/login');
       return;
     }
@@ -203,7 +205,7 @@ useEffect(() => {
                 Хайлтын үр дүн
               </h3>
               <p className="text-gray-300">
-                {filteredMovies.length} кино олдлоо
+                {filteredMovies.length} үзвэр олдлоо
               </p>
             </div>
           </div>
@@ -241,7 +243,7 @@ useEffect(() => {
               onClick={handleClearFilters}
               className="mt-4 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl transition-all duration-300"
             >
-              Бүх кино харуулах
+              Бүх үзвэр харуулах
             </button>
           </div>
         )}
@@ -262,6 +264,7 @@ useEffect(() => {
         movie={selectedMovie}
         onBookTicket={() => handleBookTicket(selectedMovie)}
         onWatchTrailer={() => handleTrailerClick(selectedMovie)}
+        isLoggedIn={hasActiveSession()}
       />
     </div>
   );

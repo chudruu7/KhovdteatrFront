@@ -39,7 +39,7 @@ const SearchBar = ({ onSearch, movies }) => {
           type="text"
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="Кино хайх..."
+          placeholder="Үзвэр хайх..."
           className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 pl-11 pr-4 text-sm text-white placeholder-gray-500 focus:outline-none focus:bg-white/10 focus:border-white/20 transition-all duration-300"
         />
         

@@ -93,14 +93,14 @@ const TicketModal = ({ isOpen, onClose, ticket }) => {
                   </p>
                 </div>
 
-                {/* Кино */}
+                {/* Үзвэр */}
                 <div className="p-4 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50">
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-lg bg-amber-500/10">
                       <Film className="w-4 h-4 text-amber-400" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Кино</p>
+                      <p className="text-xs text-gray-500 mb-1">Үзвэр</p>
                       <p className="text-sm font-medium text-gray-200">
                         {ticket.movieTitle || 'Тодорхойгүй'}
                       </p>

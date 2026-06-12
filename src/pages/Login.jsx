@@ -280,6 +280,10 @@ const CinematicLogin = ({ onLogin }) => {
       }
       if (result.success) {
         setSuccess(isLogin ? 'Амжилттай нэвтэрлээ!' : 'Амжилттай бүртгүүллээ!');
+        if (!isLogin) {
+          localStorage.setItem('kdt_onboarding_pending', '1');
+          localStorage.removeItem('kdt_onboarding_seen');
+        }
         if (onLogin && result.user) onLogin(result.user);
         const target = redirectTo || (result.user?.role === 'admin' ? '/admin' : result.user?.role === 'cashier' ? '/cashier' : '/');
         setTimeout(() => navigate(target), 600);
@@ -416,7 +420,7 @@ const CinematicLogin = ({ onLogin }) => {
                     <label className="text-sm font-medium text-gray-300">Имэйл</label>
                     <input type="email" name="email" value={formData.email} onChange={handleInputChange}
                       className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-gray-500 focus:outline-none focus:border-purple-500/50 focus:bg-white/10 transition-all duration-300"
-                      placeholder="имэйл@жишээ.com" required disabled={isLoading} />
+                      placeholder="И-мэйл ээ оруулна уу." required disabled={isLoading} />
                   </div>
 
                   <div className="space-y-2">

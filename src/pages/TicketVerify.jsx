@@ -60,7 +60,7 @@ const TicketVerify = () => {
                     <FaTicketAlt />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black leading-tight">{booking.movieTitle || booking.title || 'Тодорхойгүй кино'}</h2>
+                    <h2 className="text-lg font-black leading-tight">{booking.movieTitle || booking.title || 'Тодорхойгүй үзвэр'}</h2>
                     <p className="text-xs text-slate-500 font-bold mt-1">#{booking.bookingCode || booking.id}</p>
                   </div>
                 </div>

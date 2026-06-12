@@ -16,7 +16,7 @@ const HALL = {
   tags: ['dude'],
 };
 
-const PRICES = { child: 8000, adult: 15000 };
+const DEFAULT_PRICES = { child: 10000, adult: 15000 };
 
 const QUICK_TIMES = ['10:00', '12:00', '14:00', '16:00', '18:00', '19:00', '20:30', '22:00'];
 
@@ -41,6 +41,11 @@ const fmt = (n) =>
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(n);
+
+const positivePriceOr = (value, fallback) => {
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 1 ? price : fallback;
+};
 
 /* ─── Step indicator ─────────────────────────────────────────────────────── */
 const StepDot = ({ active, done, label, num }) => (
@@ -79,9 +84,9 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
         : [...(res?.nowShowing || []), ...(res?.comingSoon || []), ...(res?.movies || [])];
       const active = list.filter(m => !m.status || m.status === 'nowShowing' || m.status === 'active');
       setMovies(active);
-      if (!active.length) setMoviesError('Идэвхтэй кино олдсонгүй.');
+      if (!active.length) setMoviesError('Идэвхтэй үзвэр олдсонгүй.');
     } catch (e) {
-      setMoviesError('Кино татахад алдаа: ' + e.message);
+      setMoviesError('Үзвэр татахад алдаа: ' + e.message);
     } finally {
       setMoviesLoading(false);
     }
@@ -125,7 +130,7 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
   const removeTime = (t) => setForm(p => ({ ...p, times: p.times.filter(x => x !== t) }));
 
   const handleSubmit = async () => {
-    if (!form.movieId) { setError('Кино сонгоно уу'); return; }
+    if (!form.movieId) { setError('Үзвэр сонгоно уу'); return; }
     if (!form.date) { setError('Огноо оруулна уу'); return; }
     if (!form.times.length) { setError('Дор хаяж нэг цаг сонгоно уу'); return; }
 
@@ -137,7 +142,8 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
           movieId: form.movieId,
           showTime: mnToUtc(form.date || editingDate, form.times[0]),
           hall: HALL,
-          basePrice: PRICES.adult,
+          basePrice: selectedPrices.adult,
+          childPrice: selectedPrices.child,
         });
         onSaved('Хуваарь шинэчлэгдлээ');
       } else {
@@ -147,7 +153,8 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
               movieId: form.movieId,
               showTime: mnToUtc(form.date, t),
               hall: HALL,
-              basePrice: PRICES.adult,
+              basePrice: selectedPrices.adult,
+              childPrice: selectedPrices.child,
             })
           )
         );
@@ -161,6 +168,10 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
   };
 
   const selectedMovie = movies.find(m => m._id === form.movieId);
+  const selectedPrices = {
+    adult: positivePriceOr(selectedMovie?.adultPrice, positivePriceOr(editing?.basePrice, DEFAULT_PRICES.adult)),
+    child: positivePriceOr(selectedMovie?.childPrice, positivePriceOr(editing?.childPrice, DEFAULT_PRICES.child)),
+  };
   const stepMovieDone = !!form.movieId;
   const stepTimeDone = form.times.length > 0 && !!form.date;
 
@@ -187,7 +198,7 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
 
         {/* Progress steps */}
         <div className="sm-steps">
-          <StepDot num={1} label="Кино" active={activeSection === 'movie'} done={stepMovieDone} />
+          <StepDot num={1} label="Үзвэр" active={activeSection === 'movie'} done={stepMovieDone} />
           <div className={`step-line ${stepMovieDone ? 'done' : ''}`} />
           <StepDot num={2} label="Цаг & Огноо" active={activeSection === 'time'} done={stepTimeDone} />
           <div className={`step-line ${stepTimeDone ? 'done' : ''}`} />
@@ -201,14 +212,14 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
           <section className="sm-section" onClick={() => setActiveSection('movie')}>
             <div className="sm-section-label">
               <Film size={13} strokeWidth={2} />
-              <span>Кино сонгох</span>
+              <span>Үзвэр сонгох</span>
               {stepMovieDone && <span className="sm-done-badge"><Check size={9} /> Бэлэн</span>}
             </div>
 
             {moviesLoading ? (
               <div className="sm-state-box loading">
                 <Loader2 size={15} className="spin" />
-                <span>Кинонууд ачааллаж байна...</span>
+                <span>Үзвэрүүд ачааллаж байна...</span>
               </div>
             ) : moviesError ? (
               <div className="sm-state-box error">
@@ -227,7 +238,7 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
                   onChange={e => setForm(p => ({ ...p, movieId: e.target.value }))}
                   disabled={!!preselectedMovieId}
                 >
-                  <option value="">Кино сонгох...</option>
+                  <option value="">Үзвэр сонгох...</option>
                   {movies.map(m => (
                     <option key={m._id} value={m._id}>{m.title}</option>
                   ))}
@@ -388,14 +399,14 @@ const ScheduleModal = ({ movies: moviesProp, editing, preselectedMovieId, onClos
                 <div className="sm-price-icon child"><Users size={13} strokeWidth={1.5} /></div>
                 <div className="sm-price-info">
                   <span className="sm-price-label">Хүүхэд</span>
-                  <span className="sm-price-val">{fmt(PRICES.child)}</span>
+                  <span className="sm-price-val">{fmt(selectedPrices.child)}</span>
                 </div>
               </div>
               <div className="sm-price-card primary">
                 <div className="sm-price-icon adult"><Ticket size={13} strokeWidth={1.5} /></div>
                 <div className="sm-price-info">
                   <span className="sm-price-label">Насанд хүрсэн</span>
-                  <span className="sm-price-val primary">{fmt(PRICES.adult)}</span>
+                  <span className="sm-price-val primary">{fmt(selectedPrices.adult)}</span>
                 </div>
               </div>
             </div>

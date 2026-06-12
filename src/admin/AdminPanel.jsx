@@ -9,7 +9,7 @@ import CinemaInfoModule from './modules/CinemaInfoModule';
 import ScheduleManagementModule from './modules/ScheduleManagementModule';
 import TicketManagementModule from './modules/TicketManagementModule';
 import CleanupNotification from './CleanupNotification';
-import toast, { ToastContainer } from './Toast';
+import toast from './Toast';
 import { ConfirmModalContainer, useConfirm } from './modals/ConfirmModal';
 import ReportsModule from './modules/ReportsModule';
 import UserManagementModule from './modules/UserManagementModule';
@@ -112,7 +112,7 @@ const AdminPanelContent = ({ onLogout }) => {
                 <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-500" />
                 <input
                   type="text"
-                  placeholder="Хайх (кино, хэрэглэгч, тасалбар...)"
+                  placeholder="Хайх (үзвэр, хэрэглэгч, тасалбар...)"
                   className="w-full pl-12 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-slate-600 transition-colors"
                 />
               </div>
@@ -187,8 +187,6 @@ const AdminPanelContent = ({ onLogout }) => {
         />
       )}
 
-      {/* Toast — хамгийн сүүлд */}
-      <ToastContainer />
     </>
   );
 };

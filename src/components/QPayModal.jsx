@@ -46,8 +46,8 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
           startPolling(res.data.invoiceId);
           startTimer();
         } else throw new Error();
-      } catch {
-        setErrorMsg("QPay холбогдоход алдаа гарлаа. Дахин оролдоно уу.");
+      } catch (err) {
+        setErrorMsg(err?.response?.data?.message || "QPay холбогдоход алдаа гарлаа. Дахин оролдоно уу.");
         setStep("error");
       }
     };
@@ -73,14 +73,14 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
       const res = await qpayAPI.checkPayment(id);
       if (res.success && res.data.paid) {
         cleanup();
-        // ← confirmBooking дуудна
-        await fetch(`${API_BASE_URL}/bookings/${bookingId}/confirm`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`,
-          },
-        });
+        if (res.data.bookingError) {
+          setErrorMsg(res.data.bookingError);
+          setStep("error");
+          return;
+        }
+        if (res.data.email && res.data.email.success === false) {
+          console.warn("[QPay] Ticket email was not sent:", res.data.email);
+        }
         setStep("success");
         setTimeout(() => onSuccess?.(), 2500);
       }
@@ -111,7 +111,10 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
     if (!invoiceId) return;
     cleanup();
     try {
-      await qpayAPI.testComplete(invoiceId, bookingId);
+      const res = await qpayAPI.testComplete(invoiceId, bookingId);
+      if (res?.data?.email && res.data.email.success === false) {
+        console.warn("[QPay] Test payment completed, but ticket email was not sent:", res.data.email);
+      }
       setStep("success");
       setTimeout(() => onSuccess?.(), 2500);
     } catch (e) {
@@ -155,8 +158,8 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
           startPolling(res.data.invoiceId);
           startTimer();
         } else throw new Error();
-      } catch {
-        setErrorMsg("QPay холбогдоход алдаа гарлаа. Дахин оролдоно уу.");
+      } catch (err) {
+        setErrorMsg(err?.response?.data?.message || "QPay холбогдоход алдаа гарлаа. Дахин оролдоно уу.");
         setStep("error");
       }
     };
@@ -282,7 +285,7 @@ export default function QPayModal({ bookingId, amount, seats, movieTitle, onSucc
             </p>
             <div className="w-full rounded-2xl border border-blue-100 bg-blue-50/50 px-4 py-3 mt-1">
               <div className="flex justify-between py-1 text-sm">
-                <span className="text-gray-500">Кино</span>
+                <span className="text-gray-500">Үзвэр</span>
                 <span className="font-semibold text-gray-800">{movieTitle}</span>
               </div>
               {seats?.length > 0 && (

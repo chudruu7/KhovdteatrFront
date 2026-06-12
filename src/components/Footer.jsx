@@ -19,7 +19,7 @@ const Footer = () => {
                   </span>
             </div>
             <p className="text-gray-400 leading-relaxed text-sm">
-              Кино ертөнцийн гайхамшгийг бидэнтэй хамт мэдэр. Хамгийн сүүлийн үеийн технологи, тав тухтай орчин.
+              Үзвэр ертөнцийн гайхамшгийг бидэнтэй хамт мэдэр. Хамгийн сүүлийн үеийн технологи, тав тухтай орчин.
             </p>
           </div>
 
@@ -46,7 +46,7 @@ const Footer = () => {
           <div>
             <h3 className="text-white font-bold mb-6 text-lg">Холбоос</h3>
             <ul className="space-y-3 text-sm">
-              {['Кино жагсаалт', 'Цагийн хуваарь', 'Үнэ тариф', 'Бэлгийн карт'].map((item) => (
+              {['Үзвэр жагсаалт', 'Цагийн хуваарь', 'Үнэ тариф', 'Бэлгийн карт'].map((item) => (
                 <li key={item}>
                   <a href="#" className="text-gray-400 hover:text-white hover:translate-x-1 transition-all duration-300 flex items-center group">
                     <span className="w-0 group-hover:w-2 h-[1px] bg-red-600 mr-0 group-hover:mr-2 transition-all duration-300"></span>

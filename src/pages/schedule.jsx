@@ -225,7 +225,8 @@ const Styles = () => (
     }
     .sp-days__arrow:hover:not(:disabled) { color: var(--arrow-hover-color); border-color: var(--arrow-hover-border); }
     .sp-days__arrow:disabled { opacity: 0.3; cursor: not-allowed; }
-    .sp-days__list { display: flex; flex: 1; justify-content: space-between; }
+    .sp-days__list { display: flex; flex: 1; justify-content: flex-start; gap: 0.8rem; overflow-x: auto; scrollbar-width: none; }
+    .sp-days__list::-webkit-scrollbar { display: none; }
     .sp-day {
       display: flex; flex-direction: column; align-items: center;
       background: transparent; border: none; cursor: pointer;
@@ -375,6 +376,39 @@ const fmtTime = (dt) => {
   } catch { return null; }
 };
 
+const getMNDateInfo = (dt) => {
+  const date = new Date(dt);
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Ulaanbaatar',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date).reduce((acc, part) => {
+    acc[part.type] = part.value;
+    return acc;
+  }, {});
+
+  const fullDate = `${parts.year}-${parts.month}-${parts.day}`;
+  const localDate = new Date(`${fullDate}T00:00:00`);
+
+  return {
+    dayName: DAYS_ABBR[localDate.getDay()],
+    dateNum: localDate.getDate(),
+    month: MONTHS[localDate.getMonth()],
+    fullDate,
+  };
+};
+
+const uniqueScheduleDays = (items = []) => {
+  const map = new Map();
+  items.forEach((item) => {
+    if (!item?.showTime) return;
+    const day = getMNDateInfo(item.showTime);
+    if (!map.has(day.fullDate)) map.set(day.fullDate, day);
+  });
+  return Array.from(map.values()).sort((a, b) => a.fullDate.localeCompare(b.fullDate));
+};
+
 /* ─── useTheme hook — html.light class-ийг ажиглана ── */
 const useTheme = () => {
   const [isLight, setIsLight] = useState(
@@ -446,6 +480,7 @@ const Schedule = () => {
   const [searchQ,      setSearchQ]      = useState('');
   const [isLoading,    setIsLoading]    = useState(true);
   const [schedules,    setSchedules]    = useState([]);
+  const [movieDays,    setMovieDays]    = useState({});
   const [error,        setError]        = useState(null);
 
   useEffect(() => {
@@ -516,6 +551,34 @@ const Schedule = () => {
     return list;
   }, [scheduleList, searchQ]);
 
+  useEffect(() => {
+    const movieIds = scheduleList.map((movie) => movie._id).filter(Boolean);
+    if (!movieIds.length) {
+      setMovieDays({});
+      return;
+    }
+
+    let alive = true;
+    Promise.all(
+      movieIds.map(async (movieId) => {
+        try {
+          const res = await api.get(`/schedules/${movieId}`);
+          return [movieId, uniqueScheduleDays(normalizeData(res))];
+        } catch (error) {
+          console.error('Movie schedule days fetch error:', movieId, error);
+          return [movieId, []];
+        }
+      })
+    ).then((entries) => {
+      if (!alive) return;
+      setMovieDays(Object.fromEntries(entries));
+    });
+
+    return () => {
+      alive = false;
+    };
+  }, [scheduleList]);
+
   const handleBook = useCallback((movie, slot) => {
     if (slot.soldOut) return;
     navigate('/booking', {
@@ -544,8 +607,6 @@ const Schedule = () => {
     setError(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
-
-  const activeIdx = allDays.findIndex(d => d.fullDate === selectedDate);
 
   // html.light class байвал light CSS variables идэвхждэг
   // — inline style-р override хийх шаардлагагүй, зөвхөн
@@ -616,6 +677,10 @@ const Schedule = () => {
           ) : (
             filtered.map(movie => {
               const formatMap = {};
+              const availableDays = movieDays[movie._id]?.length
+                ? movieDays[movie._id]
+                : [getMNDateInfo(`${selectedDate}T00:00:00`)];
+              const movieActiveIdx = availableDays.findIndex(day => day.fullDate === selectedDate);
               movie.slots.forEach(slot => {
                 const fmt = slot.format || 'Standard';
                 if (!formatMap[fmt]) formatMap[fmt] = [];
@@ -657,11 +722,11 @@ const Schedule = () => {
                   <div className="sp-card__days">
                     <button
                       className="sp-days__arrow"
-                      onClick={() => activeIdx > 0 && changeDate(allDays[activeIdx - 1].fullDate)}
-                      disabled={activeIdx === 0}
+                      onClick={() => movieActiveIdx > 0 && changeDate(availableDays[movieActiveIdx - 1].fullDate)}
+                      disabled={movieActiveIdx <= 0}
                     >←</button>
                     <div className="sp-days__list">
-                      {allDays.map(day => (
+                      {availableDays.map(day => (
                         <button
                           key={day.fullDate}
                           className={`sp-day ${day.fullDate === selectedDate ? 'sp-day--active' : ''}`}
@@ -676,8 +741,8 @@ const Schedule = () => {
                     </div>
                     <button
                       className="sp-days__arrow"
-                      onClick={() => activeIdx < allDays.length - 1 && changeDate(allDays[activeIdx + 1].fullDate)}
-                      disabled={activeIdx === allDays.length - 1}
+                      onClick={() => movieActiveIdx >= 0 && movieActiveIdx < availableDays.length - 1 && changeDate(availableDays[movieActiveIdx + 1].fullDate)}
+                      disabled={movieActiveIdx < 0 || movieActiveIdx === availableDays.length - 1}
                     >→</button>
                   </div>
 

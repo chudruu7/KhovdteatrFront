@@ -237,7 +237,7 @@ export default function DashboardModule({ onOpenScheduleModal, onNavigateToSched
             <div>
               <div style={{ display:"flex",alignItems:"center",gap:10,marginBottom:4 }}>
                 <Clapperboard size={18} style={{color:"#a78bfa"}}/>
-                <span style={{ fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)" }}>Кино театрын удирдлага</span>
+                <span style={{ fontSize:11,fontWeight:600,letterSpacing:"0.12em",textTransform:"uppercase",color:"rgba(255,255,255,0.35)" }}>Үзвэр театрын удирдлага</span>
               </div>
               <h1 style={{ fontSize:26,fontWeight:800,letterSpacing:"-0.02em",margin:0 }}>Сайн байна уу, Админ</h1>
               <p style={{ color:"rgba(255,255,255,0.42)",fontSize:14,margin:"4px 0 0" }}>
@@ -252,7 +252,7 @@ export default function DashboardModule({ onOpenScheduleModal, onNavigateToSched
           </div>
           <div style={{ display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12,marginTop:24 }}>
             {[
-              { label:"Нийт кино",      value:stats?.totalMovies||0,                    icon:Clapperboard, color:"#a78bfa" },
+              { label:"Нийт үзвэр",      value:stats?.totalMovies||0,                    icon:Clapperboard, color:"#a78bfa" },
               { label:"Идэвхтэй үзвэр", value:stats?.activeShows||0,                    icon:CalendarDays, color:"#34d399" },
               { label:"Нийт хэрэглэгч", value:(stats?.totalUsers||0).toLocaleString(), icon:Users,        color:"#38bdf8" },
               { label:"Дундаж үнэлгээ", value:`${stats?.avgRating||0}`,                 icon:Star,         color:"#fbbf24" },
@@ -414,7 +414,7 @@ export default function DashboardModule({ onOpenScheduleModal, onNavigateToSched
             <table style={{ width:"100%",borderCollapse:"collapse" }}>
               <thead>
                 <tr style={{ borderBottom:"1px solid rgba(255,255,255,0.07)" }}>
-                  {["Хэрэглэгч","Кино","Суудал","Дүн","Хугацаа","Төлөв"].map(h => (
+                  {["Хэрэглэгч","Үзвэр","Суудал","Дүн","Хугацаа","Төлөв"].map(h => (
                     <th key={h} style={{ textAlign:"left",paddingBottom:12,paddingRight:16,fontSize:11,fontWeight:600,letterSpacing:"0.08em",textTransform:"uppercase",color:"rgba(255,255,255,0.28)" }}>{h}</th>
                   ))}
                 </tr>

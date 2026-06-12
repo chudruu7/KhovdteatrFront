@@ -269,14 +269,14 @@ const ScheduleManagementModule = () => {
                   <div className="sm2-group__poster-wrap">
                     <img
                       src={group.movie?.posterUrl || '/placeholder-poster.jpg'}
-                      alt={group.movie?.title || 'Кино'}
+                      alt={group.movie?.title || 'Үзвэр'}
                       className="sm2-group__poster"
                       onError={e => { e.target.src = '/placeholder-poster.jpg'; }}
                     />
                     <div className="sm2-group__poster-shine" />
                   </div>
                   <div className="sm2-group__meta">
-                    <h2 className="sm2-group__title">{group.movie?.title || 'Тодорхойгүй кино'}</h2>
+                    <h2 className="sm2-group__title">{group.movie?.title || 'Тодорхойгүй үзвэр'}</h2>
                     <div className="sm2-group__chips">
                       {group.movie?.genre?.slice(0, 2).map(g => (
                         <span key={g} className="sm2-chip sm2-chip--genre">{g}</span>

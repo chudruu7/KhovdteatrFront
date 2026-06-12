@@ -17,6 +17,7 @@ const EMPTY_FORM = {
   genre: [], rating: 'PG', imdb: '',
   status: 'nowShowing', posterUrl: '',
   description: '', trailerUrl: '', releaseDate: '',
+  adultPrice: 15000, childPrice: 10000,
   cast: [],
 };
 
@@ -387,7 +388,7 @@ const MovieManagementModule = () => {
       }
       setMovies(list);
     } catch (err) {
-      toast.error('Кинонууд татахад алдаа гарлаа');
+      toast.error('Үзвэрүүд татахад алдаа гарлаа');
       setMovies([]);
     } finally {
       setLoading(false);
@@ -410,11 +411,14 @@ const MovieManagementModule = () => {
     if (!cleanedForm.genre.length) { toast.warning('Дор хаяж нэг төрөл сонгоно уу'); return; }
     try {
       if (editingMovie) {
-        await movieAPI.update(editingMovie._id, cleanedForm);
-        toast.success('Кино амжилттай шинэчлэгдлээ');
+        const updated = await movieAPI.update(editingMovie._id, cleanedForm);
+        const count = Number(updated?.updatedSchedulesCount || 0);
+        toast.success(count > 0
+          ? `Үзвэр амжилттай шинэчлэгдлээ. ${count} хуваарийн үнэ шинэчлэгдсэн.`
+          : 'Үзвэр амжилттай шинэчлэгдлээ');
       } else {
         await movieAPI.create(cleanedForm);
-        toast.success('Кино амжилттай нэмэгдлээ');
+        toast.success('Үзвэр амжилттай нэмэгдлээ');
       }
       setShowModal(false); setEditingMovie(null); setFormData(EMPTY_FORM);
       await fetchMovies();
@@ -442,6 +446,8 @@ const MovieManagementModule = () => {
       posterUrl:   movie.posterUrl || '',
       description: movie.description || '',
       trailerUrl:  movie.trailerUrl  || '',
+      adultPrice:  movie.adultPrice   ?? 15000,
+      childPrice:  movie.childPrice   ?? 10000,
       // ISO date → "yyyy-MM-dd" формат болгоно
       releaseDate: movie.releaseDate
         ? String(movie.releaseDate).slice(0, 10)
@@ -454,9 +460,9 @@ const MovieManagementModule = () => {
   };
 
   const handleDelete = async (id) => {
-    const ok = await confirm({ title: 'Кино устгах уу?', message: 'Кино болон холбоотой бүх мэдээлэл устана. Буцаах боломжгүй.', confirmText: 'Устгах', variant: 'danger' });
+    const ok = await confirm({ title: 'Үзвэр устгах уу?', message: 'Үзвэр болон холбоотой бүх мэдээлэл устана. Буцаах боломжгүй.', confirmText: 'Устгах', variant: 'danger' });
     if (!ok) return;
-    try { await movieAPI.delete(id); toast.success('Кино устгагдлаа'); fetchMovies(); }
+    try { await movieAPI.delete(id); toast.success('Үзвэр устгагдлаа'); fetchMovies(); }
     catch (err) { toast.error('Устгахад алдаа: ' + err.message); }
   };
 
@@ -522,7 +528,7 @@ const MovieManagementModule = () => {
                   background: 'rgba(220,38,38,0.1)',
                   border: '1px solid rgba(220,38,38,0.2)',
                 }}>
-                  Кино удирдлага
+                  Үзвэр удирдлага
                 </div>
               </div>
               <h1 style={{
@@ -530,9 +536,9 @@ const MovieManagementModule = () => {
                 fontWeight: 900, letterSpacing: '-0.035em', margin: '0 0 6px',
                 background: 'linear-gradient(120deg, #f1f5f9 30%, #64748b 100%)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text',
-              }}>Кинонуудын жагсаалт</h1>
+              }}>Үзвэрүүдийн жагсаалт</h1>
               <p style={{ fontSize: 13, color: '#334155', margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Film size={12} /> Нийт {stats.total} кино · Сүүлийн шинэчлэл: одоо
+                <Film size={12} /> Нийт {stats.total} үзвэр · Сүүлийн шинэчлэл: одоо
               </p>
             </div>
 
@@ -559,7 +565,7 @@ const MovieManagementModule = () => {
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 8px 28px rgba(220,38,38,0.45)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(220,38,38,0.35)'; }}
               >
-                <Plus size={15} /> Шинэ кино
+                <Plus size={15} /> Шинэ үзвэр
               </button>
             </div>
           </div>
@@ -576,7 +582,7 @@ const MovieManagementModule = () => {
             <input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              placeholder="Кино хайх..."
+              placeholder="Үзвэр хайх..."
               style={{
                 width: '100%', boxSizing: 'border-box',
                 padding: '10px 14px 10px 36px',
@@ -632,7 +638,7 @@ const MovieManagementModule = () => {
         {(searchTerm || filter !== 'all') && (
           <div style={{ marginBottom: '1rem', fontSize: 12, color: '#334155', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Filter size={11} />
-            {filtered.length} кино олдлоо
+            {filtered.length} үзвэр олдлоо
             {searchTerm && <span style={{ color: '#475569' }}>— "{searchTerm}"</span>}
           </div>
         )}
@@ -654,7 +660,7 @@ const MovieManagementModule = () => {
               <Search size={24} style={{ color: '#f87171', opacity: 0.5 }} />
             </div>
             <h3 style={{ fontSize: 16, fontWeight: 700, color: '#94a3b8', margin: '0 0 6px' }}>
-              Кино олдсонгүй
+              Үзвэр олдсонгүй
             </h3>
             <p style={{ fontSize: 13, color: '#334155', margin: '0 0 20px' }}>
               Хайлт эсвэл шүүлтийг өөрчилж үзнэ үү
@@ -705,7 +711,7 @@ const MovieManagementModule = () => {
               textTransform: 'uppercase', color: '#334155',
             }}>
               <div style={{ width: 42 }} />
-              <div style={{ flex: '0 0 220px' }}>Кино</div>
+              <div style={{ flex: '0 0 220px' }}>Үзвэр</div>
               <div style={{ flex: 1 }}>Төрөл</div>
               <div style={{ width: 80 }}>Хугацаа</div>
               <div style={{ width: 72 }}>Үнэлгээ</div>

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { X, ChevronUp, ChevronDown, Trash2, Type, Quote, Highlighter, Image, Megaphone, Newspaper, Gift, Calendar, FileText, Globe, Send, Save, XCircle } from 'lucide-react';
+import { X, ChevronUp, ChevronDown, Trash2, Type, Quote, Highlighter, Image, Megaphone, Newspaper, Gift, Calendar, FileText, Globe, Send, Save, XCircle, UploadCloud } from 'lucide-react';
+import { uploadAPI } from '../../api/adminAPI';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Block types config
@@ -35,6 +36,103 @@ const baseStyle = {
 // ─────────────────────────────────────────────────────────────────────────────
 // BlockEditor
 // ─────────────────────────────────────────────────────────────────────────────
+const ImageSourceInput = ({ value, onChangeUrl, placeholder }) => {
+  const [mode, setMode] = useState(value ? 'url' : 'upload');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    setError('');
+    if (!file.type.startsWith('image/')) {
+      setError('Зөвхөн зураг файл сонгоно уу.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Зургийн хэмжээ 10MB-аас бага байх ёстой.');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const data = await uploadAPI.image(file);
+      onChangeUrl(data.url);
+      setMode('url');
+    } catch (err) {
+      setError(err.message || 'Зураг upload хийхэд алдаа гарлаа.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        {['url', 'upload'].map((item) => (
+          <button
+            key={item}
+            type="button"
+            onClick={() => setMode(item)}
+            style={{
+              background: mode === item ? 'rgba(52,211,153,0.14)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${mode === item ? 'rgba(52,211,153,0.45)' : 'rgba(255,255,255,0.1)'}`,
+              borderRadius: 10,
+              color: mode === item ? '#34d399' : 'rgba(255,255,255,0.55)',
+              fontSize: 12,
+              fontWeight: 700,
+              padding: '8px 10px',
+              cursor: 'pointer',
+            }}
+          >
+            {item === 'url' ? 'URL' : 'Upload'}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'url' ? (
+        <input
+          type="url"
+          value={value || ''}
+          onChange={(e) => onChangeUrl(e.target.value)}
+          placeholder={placeholder}
+          style={{ ...baseStyle, resize: 'none' }}
+          className="placeholder-white/20"
+        />
+      ) : (
+        <label style={{
+          ...baseStyle,
+          resize: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          borderStyle: 'dashed',
+          cursor: uploading ? 'wait' : 'pointer',
+          fontWeight: 700,
+        }}>
+          <UploadCloud className="w-4 h-4" />
+          {uploading ? 'Upload хийж байна...' : 'Зураг сонгох'}
+          <input
+            type="file"
+            accept="image/*"
+            disabled={uploading}
+            onChange={handleUpload}
+            style={{ display: 'none' }}
+          />
+        </label>
+      )}
+
+      <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)', margin: 0 }}>
+        Зургийн хэмжээ 10MB-аас бага байх ёстой.
+      </p>
+      {error && <p className="text-xs text-red-400" style={{ margin: 0 }}>{error}</p>}
+    </div>
+  );
+};
+
 const BlockEditor = ({ block, index, total, onChange, onDelete, onMove }) => {
   const cfg = BLOCK_TYPES.find((b) => b.type === block.type);
   const Icon = cfg ? cfg.icon : Type;
@@ -78,11 +176,11 @@ const BlockEditor = ({ block, index, total, onChange, onDelete, onMove }) => {
       {/* Input */}
       {block.type === 'image' ? (
         <div className="space-y-2">
-          <input type="url" value={block.value}
-            onChange={(e) => update('value', e.target.value)}
+          <ImageSourceInput
+            value={block.value}
+            onChangeUrl={(url) => update('value', url)}
             placeholder="https://example.com/image.jpg"
-            style={{ ...baseStyle, resize: 'none' }}
-            className="placeholder-white/20" />
+          />
           {block.value && (
             <img src={block.value} alt="preview"
               className="w-full h-32 object-cover rounded-xl"
@@ -270,9 +368,12 @@ const NewsModal = ({ editingNews, formData, onClose, onSubmit, onChange }) => {
             </div>
 
             <div>
-              <Label>Нүүр зураг (URL)</Label>
-              <GlassInput name="image" value={formData.image || ''} onChange={onChange}
-                placeholder="https://example.com/image.jpg" />
+              <Label>Нүүр зураг (URL эсвэл Upload)</Label>
+              <ImageSourceInput
+                value={formData.image || ''}
+                onChangeUrl={(url) => onChange({ target: { name: 'image', value: url } })}
+                placeholder="https://example.com/image.jpg"
+              />
               {formData.image && (
                 <img src={formData.image} alt="preview"
                   className="mt-2 h-28 w-full object-cover rounded-xl"

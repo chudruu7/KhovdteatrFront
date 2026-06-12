@@ -233,7 +233,7 @@ const TicketManagementModule = () => {
         <div className="flex-1 min-w-[240px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
-            type="text" placeholder="Хайх (кино, хэрэглэгч, ID)..."
+            type="text" placeholder="Хайх (үзвэр, хэрэглэгч, ID)..."
             value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
             className="w-full h-10 pl-9 pr-4 rounded-xl bg-gray-800/50 border border-gray-700/50
                        text-gray-200 placeholder-gray-500 text-sm
@@ -272,7 +272,7 @@ const TicketManagementModule = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-800/50 border-b border-gray-700/50">
-                {['Кино','Огноо/Цаг','Хэрэглэгч','Суудал','Төлөв','Үйлдэл'].map((h,i) => (
+                {['Үзвэр','Огноо/Цаг','Хэрэглэгч','Суудал','Төлөв','Үйлдэл'].map((h,i) => (
                   <th key={h} className={`px-4 py-3 text-xs font-medium text-gray-400 uppercase tracking-wider ${i===5?'text-right':'text-left'}`}>
                     {h}
                   </th>

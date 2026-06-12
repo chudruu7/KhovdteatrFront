@@ -83,7 +83,7 @@ const News = () => {
             </span>
         </h1>
         <p className="text-gray-700 dark:text-gray-300 text-lg md:text-xl max-w-2xl leading-relaxed border-l-4 border-red-600 pl-6">
-            Бид зүгээр нэг кино үздэг газар биш. Бид дурсамж бүтээдэг, мэдрэмж бэлэглэдэг соёл урлагийн төв юм.
+            Бид зүгээр нэг үзвэр үздэг газар биш. Бид дурсамж бүтээдэг, мэдрэмж бэлэглэдэг соёл урлагийн төв юм.
         </p>
     </div>
 </section>
