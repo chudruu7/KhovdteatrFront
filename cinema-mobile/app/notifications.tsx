@@ -15,6 +15,7 @@ import {
 import { bookingAPI } from '../api';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { useTheme } from '../hooks/useTheme';
+import { safeBack } from '../utils/navigation';
 
 type BookingItem = {
   id?: string;
@@ -61,7 +62,7 @@ const defaultPrefs: NotificationPrefs = {
 };
 
 const getBookingId = (booking: BookingItem, fallback: string) => booking.id || booking._id || fallback;
-const getTitle = (booking: BookingItem) => booking.title || booking.movieTitle || 'Тодорхойгүй кино';
+const getTitle = (booking: BookingItem) => booking.title || booking.movieTitle || 'Тодорхойгүй үзвэр';
 const money = (value?: number) => `${Number(value || 0).toLocaleString('mn-MN')}₮`;
 
 const createNotifications = (bookings: BookingItem[], readIds: string[], prefs: NotificationPrefs): NotificationItem[] => {
@@ -221,7 +222,7 @@ export default function NotificationsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+        <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router)} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color={colors.white} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>

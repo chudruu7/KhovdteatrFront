@@ -14,15 +14,12 @@ import { getSchedulesByMovie } from '../../api/schedule';
 import { COLORS, SPACING } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { isFutureShowTime } from '../../utils/showtime';
+import { safeBack } from '../../utils/navigation';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const { width: W, height: H } = Dimensions.get('window');
 const POSTER_H  = H * 0.62;
 const FALLBACK  = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=900&q=80';
-const PRICES    = {
-  standard: { adult: 15_000, child: 8_000 },
-  prime: { adult: 20_000, child: 10_000 },
-};
 const MN_OFFSET = 8 * 60 * 60 * 1000;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -125,7 +122,8 @@ function TimeChip({
 }: any) {
   const showTime  = formatTime(schedule.showTime);
   const isPrime   = parseInt(showTime.split(':')[0], 10) >= 18;
-  const price     = isPrime ? PRICES.prime.adult : PRICES.standard.adult;
+  const adultPrice = Number(schedule.basePrice) || Number(schedule.movie?.adultPrice) || Number(movie.adultPrice) || 15000;
+  const childPrice = Number(schedule.childPrice) || Number(schedule.movie?.childPrice) || Number(movie.childPrice) || 10000;
   const scheduleId = schedule._id || schedule.id;
   const scale     = useRef(new Animated.Value(1)).current;
   const fade      = useRef(new Animated.Value(0)).current;
@@ -142,8 +140,18 @@ function TimeChip({
       return;
     }
     router.push({
-      pathname: '/booking/seats',
-      params: { scheduleId, movieId, movieTitle: movie.title, posterUrl: posterUri, date: selectedDate, time: showTime, showTime: schedule.showTime },
+      pathname: '/booking/ticket-type',
+      params: {
+        scheduleId,
+        movieId,
+        movieTitle: movie.title,
+        posterUrl: posterUri,
+        date: selectedDate,
+        time: showTime,
+        showTime: schedule.showTime,
+        adultPrice: String(adultPrice),
+        childPrice: String(childPrice),
+      },
     });
   };
 
@@ -170,10 +178,10 @@ function TimeChip({
         )}
         <Text style={[styles.timeChipTime, { color: isLight ? '#111' : '#FFF' }]}>{showTime}</Text>
         <Text style={[styles.timeChipHall, { color: colors.textSub }]} numberOfLines={1}>
-          {schedule.hall?.hallName || schedule.hallName || 'Кино танхим'}
+          {schedule.hall?.hallName || schedule.hallName || 'Үзвэр танхим'}
         </Text>
         <Text style={[styles.timeChipPrice, { color: isPrime ? '#C5A880' : colors.teal }]}>
-          {price.toLocaleString()}₮
+          {adultPrice.toLocaleString()}₮
         </Text>
       </TouchableOpacity>
     </Animated.View>
@@ -249,7 +257,7 @@ export default function MovieDetailScreen() {
   [schedules]);
 
   const posterUri  = movie?.posterUrl || movie?.poster || FALLBACK;
-  const description = movie?.description || movie?.synopsis || 'Киноны тайлбар удахгүй нэмэгдэнэ…';
+  const description = movie?.description || movie?.synopsis || 'Үзвэрийн тайлбар удахгүй нэмэгдэнэ…';
   const trailerUrl = movie?.trailerUrl || movie?.trailer || movie?.youtubeUrl || movie?.videoUrl;
   const videoId    = useMemo(() => getYouTubeId(trailerUrl), [trailerUrl]);
   const genres: string[] = (Array.isArray(movie?.genre) ? movie.genre : [movie?.genre]).filter(Boolean);
@@ -273,8 +281,8 @@ export default function MovieDetailScreen() {
     return (
       <View style={[styles.center, { backgroundColor: isLight ? '#F5F5F7' : '#0A0A0E' }]}>
         <Ionicons name="film-outline" size={52} color={colors.textSub} />
-        <Text style={[styles.errorText, { color: colors.textSub }]}>Кино олдсонгүй</Text>
-        <TouchableOpacity style={[styles.backHomeBtn, { backgroundColor: colors.teal }]} onPress={() => router.back()}>
+        <Text style={[styles.errorText, { color: colors.textSub }]}>Үзвэр олдсонгүй</Text>
+        <TouchableOpacity style={[styles.backHomeBtn, { backgroundColor: colors.teal }]} onPress={() => safeBack(router)}>
           <Text style={styles.backHomeTxt}>Буцах</Text>
         </TouchableOpacity>
       </View>
@@ -307,7 +315,7 @@ export default function MovieDetailScreen() {
 
       {/* ── Floating back button ── */}
       <Animated.View style={[styles.backBtn, { opacity: backBtnFade }]}>
-        <TouchableOpacity onPress={() => router.back()} hitSlop={10} activeOpacity={0.8}>
+        <TouchableOpacity onPress={() => safeBack(router)} hitSlop={10} activeOpacity={0.8}>
           <View style={styles.backBtnInner}>
             <Ionicons name="arrow-back" size={20} color="#FFF" />
           </View>

@@ -15,17 +15,13 @@ import { scheduleAPI } from '../../api';
 import { RADIUS, SPACING, ThemeColors } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { isBookableShowTime } from '../../utils/showtime';
+import { safeBack } from '../../utils/navigation';
 
 const { width: W } = Dimensions.get('window');
 const SEAT_SIZE = 18;
 const SEAT_GAP = 2;
 const AISLE = 18;
 const MAP_WIDTH = 22 * SEAT_SIZE + 20 * SEAT_GAP + AISLE + 58;
-
-const PRICES = {
-  standard: { adult: 15000, child: 8000 },
-  prime: { adult: 20000, child: 10000 },
-};
 
 type SeatType = 'adult' | 'child';
 type SelectedSeat = { id: string; type: SeatType };
@@ -97,11 +93,29 @@ function normalizeTakenSeats(input: any): Set<string> {
   );
 }
 
+function toCount(value: string | undefined, fallback: number) {
+  const parsed = parseInt(String(value ?? fallback), 10);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback;
+}
+
 export default function SeatsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
-  const { movieId, movieTitle, posterUrl, date, time, scheduleId, showTime } = useLocalSearchParams<{
+  const {
+    movieId,
+    movieTitle,
+    posterUrl,
+    date,
+    time,
+    scheduleId,
+    showTime,
+    adultPrice,
+    childPrice,
+    adultCount: adultCountParam,
+    childCount: childCountParam,
+    ticketCount,
+  } = useLocalSearchParams<{
     movieId: string;
     movieTitle: string;
     posterUrl: string;
@@ -109,24 +123,35 @@ export default function SeatsScreen() {
     time: string;
     scheduleId: string;
     showTime?: string;
+    adultPrice?: string;
+    childPrice?: string;
+    adultCount?: string;
+    childCount?: string;
+    ticketCount?: string;
   }>();
 
   const [takenSeats, setTakenSeats] = useState<Set<string>>(new Set());
   const [chosen, setChosen] = useState<SelectedSeat[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(false);
 
   const prices = useMemo(() => {
-    const hour = parseInt((time || '').split(':')[0], 10);
-    return hour >= 18 ? PRICES.prime : PRICES.standard;
-  }, [time]);
+    const adult = parseInt(String(adultPrice || '15000'), 10);
+    const child = parseInt(String(childPrice || '10000'), 10);
+    return {
+      adult: Number.isFinite(adult) ? adult : 15000,
+      child: Number.isFinite(child) ? child : 10000,
+    };
+  }, [adultPrice, childPrice]);
 
-  const totalPrice = useMemo(
-    () => chosen.reduce((sum, seat) => sum + (seat.type === 'adult' ? prices.adult : prices.child), 0),
-    [chosen, prices]
-  );
+  const adultCount = toCount(adultCountParam, 1);
+  const childCount = toCount(childCountParam, 0);
+  const requiredTickets = Math.max(1, adultCount + childCount);
+  const requestedTickets = toCount(ticketCount, requiredTickets);
+  const totalPrice = adultCount * prices.adult + childCount * prices.child;
 
-  const adultCount = chosen.filter((seat) => seat.type === 'adult').length;
-  const childCount = chosen.filter((seat) => seat.type === 'child').length;
+  const assignSeatTypes = (ids: string[]): SelectedSeat[] =>
+    ids.map((id, index) => ({ id, type: index < adultCount ? 'adult' : 'child' }));
 
   useEffect(() => {
     if (!scheduleId) {
@@ -134,11 +159,27 @@ export default function SeatsScreen() {
       return;
     }
     let mounted = true;
+    let isFirstLoad = true;
     const loadSeats = () => {
       scheduleAPI.getSeats(scheduleId)
-        .then((data) => mounted && setTakenSeats(normalizeTakenSeats(data)))
-        .catch(() => {})
-        .finally(() => mounted && setLoading(false));
+        .then((data) => {
+          if (!mounted) return;
+          setTakenSeats(normalizeTakenSeats(data));
+          setFetchError(false);
+        })
+        .catch(() => {
+          if (!mounted) return;
+          // Анхны ачаалалт дээр алдаа гарвал fetchError тавина
+          // Дараагийн poll-ууд дээр хуучин takenSeats-г хадгална (stale > empty)
+          if (isFirstLoad) {
+            setFetchError(true);
+          }
+        })
+        .finally(() => {
+          if (!mounted) return;
+          isFirstLoad = false;
+          setLoading(false);
+        });
     };
     loadSeats();
     const interval = setInterval(loadSeats, 10000);
@@ -151,38 +192,48 @@ export default function SeatsScreen() {
   const toggleSeat = (id: string) => {
     setChosen((prev) => {
       const existing = prev.find((seat) => seat.id === id);
-      if (!existing) return [...prev, { id, type: 'adult' }];
-      return prev.map((seat) =>
-        seat.id === id ? { ...seat, type: seat.type === 'adult' ? 'child' : 'adult' } : seat
-      );
+      if (existing) return assignSeatTypes(prev.filter((seat) => seat.id !== id).map((seat) => seat.id));
+      if (prev.length >= requiredTickets) {
+        Alert.alert('Анхааруулга', `${requiredTickets} суудал сонгоно уу. Нэмэлт суудал сонгох боломжгүй.`);
+        return prev;
+      }
+      return assignSeatTypes([...prev.map((seat) => seat.id), id]);
     });
   };
 
   const removeSeat = (id: string) => {
-    setChosen((prev) => prev.filter((seat) => seat.id !== id));
+    setChosen((prev) => assignSeatTypes(prev.filter((seat) => seat.id !== id).map((seat) => seat.id)));
   };
 
   const handleContinue = async () => {
-    if (!isBookableShowTime(showTime, date, time)) {
-      Alert.alert('Анхааруулга', 'Энэ үзвэрийн цаг өнгөрсөн тул тасалбар захиалах боломжгүй.');
-      router.back();
+    if (requestedTickets !== requiredTickets) {
+      Alert.alert('Анхааруулга', 'Тасалбарын тоо зөрүүтэй байна. Тасалбараа дахин сонгоно уу.');
+      safeBack(router, '/booking/ticket-type');
       return;
     }
-    if (chosen.length === 0) {
-      Alert.alert('Анхааруулга', 'Суудал сонгоно уу');
+    if (!isBookableShowTime(showTime, date, time)) {
+      Alert.alert('Анхааруулга', 'Энэ үзвэрийн цаг өнгөрсөн тул тасалбар захиалах боломжгүй.');
+      safeBack(router, '/booking/ticket-type');
+      return;
+    }
+    if (chosen.length !== requiredTickets) {
+      Alert.alert('Анхааруулга', `${requiredTickets} суудал сонгоно уу.`);
       return;
     }
     if (scheduleId) {
       try {
         const fresh = normalizeTakenSeats(await scheduleAPI.getSeats(scheduleId));
+        setTakenSeats(fresh);
         const conflict = chosen.find((seat) => fresh.has(seat.id));
         if (conflict) {
-          setTakenSeats(fresh);
-          setChosen((prev) => prev.filter((seat) => !fresh.has(seat.id)));
+          setChosen((prev) => assignSeatTypes(prev.filter((seat) => !fresh.has(seat.id)).map((seat) => seat.id)));
           Alert.alert('Суудал захиалагдсан', `"${conflict.id}" суудал саяхан захиалагдсан байна. Дахин сонгоно уу.`);
           return;
         }
-      } catch {}
+      } catch {
+        Alert.alert('Алдаа', 'Суудлын мэдээлэл шалгах боломжгүй байна. Интернэт холболтоо шалгаад дахин оролдоно уу.');
+        return;
+      }
     }
     router.push({
       pathname: '/booking/checkout',
@@ -196,6 +247,10 @@ export default function SeatsScreen() {
         scheduleId,
         seats: JSON.stringify(chosen),
         totalPrice: String(totalPrice),
+        adultPrice: String(prices.adult),
+        childPrice: String(prices.child),
+        adultCount: String(adultCount),
+        childCount: String(childCount),
       },
     });
   };
@@ -232,7 +287,7 @@ export default function SeatsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => safeBack(router, '/booking/ticket-type')} style={styles.backBtn}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
@@ -245,6 +300,30 @@ export default function SeatsScreen() {
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.teal} size="large" />
+          <Text style={{ color: colors.textSub, marginTop: 12, fontSize: 13 }}>Суудлын мэдээлэл ачаалж байна...</Text>
+        </View>
+      ) : fetchError ? (
+        <View style={styles.center}>
+          <Text style={{ color: colors.coral, fontSize: 16, fontWeight: '800', marginBottom: 8 }}>⚠ Суудлын мэдээлэл ачаалж чадсангүй</Text>
+          <Text style={{ color: colors.textSub, fontSize: 13, textAlign: 'center', marginBottom: 16, paddingHorizontal: 32 }}>
+            Интернэт холболтоо шалгаад дахин оролдоно уу. Суудлын мэдээлэл ачаалагдаагүй үед захиалга хийх боломжгүй.
+          </Text>
+          <TouchableOpacity
+            onPress={() => {
+              setLoading(true);
+              setFetchError(false);
+              scheduleAPI.getSeats(scheduleId)
+                .then((data) => {
+                  setTakenSeats(normalizeTakenSeats(data));
+                  setFetchError(false);
+                })
+                .catch(() => setFetchError(true))
+                .finally(() => setLoading(false));
+            }}
+            style={{ backgroundColor: colors.teal, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 }}
+          >
+            <Text style={{ color: '#0f261c', fontWeight: '800', fontSize: 14 }}>Дахин оролдох</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -296,7 +375,7 @@ export default function SeatsScreen() {
             <View style={styles.cart}>
               <View style={styles.cartHeader}>
                 <View>
-                  <Text style={styles.cartKicker}>{chosen.length} суудал</Text>
+                  <Text style={styles.cartKicker}>{chosen.length}/{requiredTickets} суудал</Text>
                   <Text style={styles.cartTitle}>Сонгосон суудлууд</Text>
                 </View>
                 <Text style={styles.cartTotal}>{money(totalPrice)}</Text>
@@ -307,10 +386,10 @@ export default function SeatsScreen() {
                   const price = seat.type === 'adult' ? prices.adult : prices.child;
                   return (
                     <View key={seat.id} style={styles.chip}>
-                      <TouchableOpacity onPress={() => toggleSeat(seat.id)} style={styles.chipMain}>
+                      <View style={styles.chipMain}>
                         <Text style={styles.chipId}>{seat.id}</Text>
                         <Text style={styles.chipType}>{seat.type === 'adult' ? 'Том хүн' : 'Хүүхэд'} · {money(price)}</Text>
-                      </TouchableOpacity>
+                      </View>
                       <TouchableOpacity onPress={() => removeSeat(seat.id)} style={styles.chipRemove}>
                         <Text style={styles.chipRemoveText}>×</Text>
                       </TouchableOpacity>
@@ -327,7 +406,7 @@ export default function SeatsScreen() {
                 <Text style={styles.sumText}>Хүүхэд ({childCount})</Text>
                 <Text style={styles.sumValue}>{money(childCount * prices.child)}</Text>
               </View>
-              <Text style={styles.cartHint}>Сонгосон суудал дээр дахин дарахад Том хүн/Хүүхэд солигдоно.</Text>
+              <Text style={styles.cartHint}>Сонгосон тасалбарын тоотой тэнцүү суудал сонгоно. Суудал дээр дахин дарахад сонголт цуцлагдана.</Text>
             </View>
           )}
 
@@ -337,12 +416,12 @@ export default function SeatsScreen() {
 
       <View style={styles.footer}>
         <View style={styles.footerInfo}>
-          <Text style={styles.footerCount}>{chosen.length} суудал</Text>
+          <Text style={styles.footerCount}>{chosen.length}/{requiredTickets} суудал</Text>
           <Text style={styles.footerTotal}>{money(totalPrice)}</Text>
         </View>
         <TouchableOpacity
-          style={[styles.continueBtn, chosen.length === 0 && styles.continueBtnDisabled]}
-          disabled={chosen.length === 0}
+          style={[styles.continueBtn, chosen.length !== requiredTickets && styles.continueBtnDisabled]}
+          disabled={chosen.length !== requiredTickets}
           onPress={handleContinue}
           activeOpacity={0.86}
         >
@@ -446,17 +525,19 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     height: SEAT_SIZE,
   },
   seatAdult: {
-    backgroundColor: colors.teal,
-    borderColor: colors.teal,
+    backgroundColor: colors.gold,
+    borderColor: colors.gold,
+    transform: [{ scale: 1.08 }],
   },
   seatChild: {
-    backgroundColor: '#7ea3ff',
-    borderColor: '#7ea3ff',
+    backgroundColor: colors.teal,
+    borderColor: colors.teal,
+    transform: [{ scale: 1.08 }],
   },
   seatTaken: {
-    backgroundColor: colors.coral,
-    borderColor: colors.coral,
-    opacity: 0.75,
+    backgroundColor: '#2f3442',
+    borderColor: '#424857',
+    opacity: 0.82,
   },
   seatBroken: {
     backgroundColor: 'rgba(255,255,255,0.08)',
@@ -480,10 +561,10 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   legendBox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1 },
-  legendAdult: { backgroundColor: colors.teal, borderColor: colors.teal },
-  legendChild: { backgroundColor: '#7ea3ff', borderColor: '#7ea3ff' },
+  legendAdult: { backgroundColor: colors.gold, borderColor: colors.gold },
+  legendChild: { backgroundColor: colors.teal, borderColor: colors.teal },
   legendFree: { backgroundColor: '#393c52', borderColor: colors.border2 },
-  legendTaken: { backgroundColor: colors.coral, borderColor: colors.coral },
+  legendTaken: { backgroundColor: '#2f3442', borderColor: '#424857' },
   legendBroken: { backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.08)' },
   legendText: { color: colors.textDim, fontSize: 11, fontWeight: '600' },
   cart: {

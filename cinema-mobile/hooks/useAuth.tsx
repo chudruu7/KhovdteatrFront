@@ -17,7 +17,13 @@ interface AuthContextType {
     avatarUrl?: string | null;
     providerId: string;
   }) => Promise<void>;
-  register: (name: string, email: string, password: string, phone: string) => Promise<void>;
+  register: (payload: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    avatarUrl?: string;
+  }) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -87,7 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const freshUser = profile.user || profile;
           setUser(freshUser);
           await saveUser(freshUser);
-        } catch {}
+        } catch {
+          await clearToken();
+          await clearUser();
+          setToken(null);
+          setUser(null);
+        }
       }
       setLoading(false);
     })();
@@ -111,8 +122,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await persistAuth(data);
   };
 
-  const register = async (name: string, email: string, password: string, phone: string) => {
-    const data = await authAPI.register(name, email, password, phone);
+  const register = async (payload: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    avatarUrl?: string;
+  }) => {
+    const data = await authAPI.register(payload);
     await persistAuth(data);
   };
 

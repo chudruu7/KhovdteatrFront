@@ -15,6 +15,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { useTheme } from '../hooks/useTheme';
+import { safeBack } from '../utils/navigation';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -79,7 +80,7 @@ export default function ContactScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+        <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router)} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.title}>Холбоо барих</Text>

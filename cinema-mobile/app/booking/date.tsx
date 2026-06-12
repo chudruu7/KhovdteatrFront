@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   ScrollView, ActivityIndicator, Image,
@@ -9,6 +9,7 @@ import { scheduleAPI } from '../../api';
 import { SPACING, RADIUS, ThemeColors } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
 import { isFutureShowTime } from '../../utils/showtime';
+import { safeBack } from '../../utils/navigation';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SHORT  = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
@@ -16,18 +17,14 @@ const MONTHS = ['1-р','2-р','3-р','4-р','5-р','6-р','7-р','8-р','9-р','
 const MONGOLIA_OFFSET_MS = 8 * 60 * 60 * 1000;   // UTC+8
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function getWeekDays(count = 10) {
-  const today = new Date();
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
+function dayFromShowTime(showTime: string): DayItem {
+  const d = new Date(new Date(showTime).getTime() + MONGOLIA_OFFSET_MS);
     return {
-      fullDate: d.toISOString().split('T')[0],
-      short:    SHORT[d.getDay()],
-      num:      d.getDate(),
-      month:    MONTHS[d.getMonth()],
+    fullDate: d.toISOString().split('T')[0],
+    short: SHORT[d.getUTCDay()],
+    num: d.getUTCDate(),
+    month: MONTHS[d.getUTCMonth()],
     };
-  });
 }
 
 function utcToMN(iso: string): string {
@@ -37,7 +34,13 @@ function utcToMN(iso: string): string {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface DayItem { fullDate: string; short: string; num: number; month: string; }
-interface Schedule { _id: string; showTime: string; movie?: any; hall?: any; availableSeats?: number; }
+interface Schedule { _id: string; showTime: string; movie?: any; hall?: any; availableSeats?: number; basePrice?: number; childPrice?: number; }
+
+function getScheduleMovieId(schedule: Schedule): string {
+  const movie = schedule.movie;
+  if (!movie) return '';
+  return String(movie?._id ?? movie?.id ?? movie);
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function BookingDateScreen() {
@@ -48,60 +51,80 @@ export default function BookingDateScreen() {
     movieId: string; movieTitle: string; posterUrl: string;
   }>();
 
-  const days = useRef<DayItem[]>(getWeekDays()).current;  // stable across re-renders
-
-  const [selectedDate,    setSelectedDate]    = useState(days[0].fullDate);
+  const [days,            setDays]            = useState<DayItem[]>([]);
+  const [selectedDate,    setSelectedDate]    = useState('');
   const [selectedTime,    setSelectedTime]    = useState('');
   const [selectedSchedId, setSelectedSchedId] = useState('');
   const [selectedShowTime, setSelectedShowTime] = useState('');
+  const [selectedPrices,  setSelectedPrices]  = useState({ adult: 15000, child: 10000 });
+  const [allSchedules,    setAllSchedules]    = useState<Schedule[]>([]);
   const [schedules,       setSchedules]       = useState<Schedule[]>([]);
   const [loading,         setLoading]         = useState(false);
   const [error,           setError]           = useState(false);
 
-  // Abort previous request when date changes
-  const abortRef = useRef<AbortController | null>(null);
-
   useEffect(() => {
-    if (!movieId || !selectedDate) return;
-
-    // Cancel any in-flight request
-    abortRef.current?.abort();
-    abortRef.current = new AbortController();
-
+    if (!movieId) return;
     setLoading(true);
     setError(false);
-    setSelectedTime('');
-    setSelectedSchedId('');
-    setSelectedShowTime('');
 
     scheduleAPI
-      .getByMovieAndDate(movieId, selectedDate)
+      .getByMovie(movieId)
       .then((data: any) => {
         const list: Schedule[] = Array.isArray(data)
           ? data
           : data.schedules ?? data.data ?? [];
 
         const filtered = list
-          .filter(s => String(s.movie?._id ?? s.movie ?? '') === String(movieId))
+          .filter(s => getScheduleMovieId(s) === String(movieId))
           .filter(s => isFutureShowTime(s.showTime))
           .sort((a, b) => new Date(a.showTime).getTime() - new Date(b.showTime).getTime());
 
-        setSchedules(filtered);
+        const uniqueDays = Array.from(
+          new Map(filtered.map((schedule) => {
+            const day = dayFromShowTime(schedule.showTime);
+            return [day.fullDate, day];
+          })).values()
+        );
+
+        setAllSchedules(filtered);
+        setDays(uniqueDays);
+        setSelectedDate((current) => current || uniqueDays[0]?.fullDate || '');
       })
       .catch(() => {
+        setAllSchedules([]);
+        setDays([]);
         setSchedules([]);
         setError(true);
       })
       .finally(() => setLoading(false));
-  }, [movieId, selectedDate]);
+  }, [movieId]);
+
+  useEffect(() => {
+    const filtered = allSchedules.filter((schedule) => dayFromShowTime(schedule.showTime).fullDate === selectedDate);
+    setSchedules(filtered);
+    setSelectedTime('');
+    setSelectedSchedId('');
+    setSelectedShowTime('');
+    setSelectedPrices({ adult: 15000, child: 10000 });
+  }, [allSchedules, selectedDate]);
 
   const canContinue = Boolean(selectedDate && selectedTime && selectedSchedId && isFutureShowTime(selectedShowTime));
 
   const handleContinue = () => {
     if (!canContinue) return;
     router.push({
-      pathname: '/booking/seats',
-      params: { movieId, movieTitle, posterUrl, date: selectedDate, time: selectedTime, scheduleId: selectedSchedId, showTime: selectedShowTime },
+      pathname: '/booking/ticket-type',
+      params: {
+        movieId,
+        movieTitle,
+        posterUrl,
+        date: selectedDate,
+        time: selectedTime,
+        scheduleId: selectedSchedId,
+        showTime: selectedShowTime,
+        adultPrice: String(selectedPrices.adult),
+        childPrice: String(selectedPrices.child),
+      },
     });
   };
 
@@ -111,7 +134,7 @@ export default function BookingDateScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+        <TouchableOpacity onPress={() => safeBack(router)} style={styles.backBtn} hitSlop={8}>
           <Text style={styles.backText}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Огноо & Цаг сонгох</Text>
@@ -169,6 +192,10 @@ export default function BookingDateScreen() {
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyText}>Өгөгдөл ачаалахад алдаа гарлаа</Text>
             </View>
+          ) : days.length === 0 ? (
+            <View style={styles.emptyWrap}>
+              <Text style={styles.emptyText}>Энэ үзвэрийн хуваарь одоогоор байхгүй байна</Text>
+            </View>
           ) : schedules.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Text style={styles.emptyText}>Энэ өдөр хуваарь байхгүй байна</Text>
@@ -184,7 +211,15 @@ export default function BookingDateScreen() {
                   <TouchableOpacity
                     key={sched._id}
                     style={[styles.timeCard, sel && styles.timeCardSel]}
-                    onPress={() => { setSelectedTime(time); setSelectedSchedId(sched._id); setSelectedShowTime(sched.showTime); }}
+                    onPress={() => {
+                      setSelectedTime(time);
+                      setSelectedSchedId(sched._id);
+                      setSelectedShowTime(sched.showTime);
+                      setSelectedPrices({
+                        adult: Number(sched.basePrice) || Number(sched.movie?.adultPrice) || 15000,
+                        child: Number(sched.childPrice) || Number(sched.movie?.childPrice) || 10000,
+                      });
+                    }}
                     activeOpacity={0.8}
                   >
                     <Text style={[styles.timeText, sel && styles.timeTextSel]}>{time}</Text>
@@ -215,7 +250,7 @@ export default function BookingDateScreen() {
           >
             <Text style={[styles.continueText, !canContinue && { color: colors.textSub }]}>
               {canContinue
-                ? `${selectedDate} · ${selectedTime}  →  Суудал сонгох`
+                ? `${selectedDate} · ${selectedTime}  →  Тасалбар сонгох`
                 : 'Цаг сонгоно уу'}
             </Text>
           </LinearGradient>

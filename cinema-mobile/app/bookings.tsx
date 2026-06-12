@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator, ScrollView, StyleSheet,
   Dimensions, Modal, Text, TouchableOpacity, View,
@@ -6,12 +6,15 @@ import {
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { bookingAPI } from '../api';
 import { COLORS, RADIUS, SPACING } from '../constants/theme';
 import { useTheme } from '../hooks/useTheme';
+import { safeBack } from '../utils/navigation';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const TICKET_MODAL_QR_SIZE = Math.min(260, Math.max(220, SCREEN_W - 112));
+const BOOKING_CACHE_KEY = 'kdt_cached_bookings';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type BookingStatus = 'active' | 'used' | 'cancelled' | 'expired' | 'pending';
@@ -69,7 +72,7 @@ const statusIsMuted = (status?: string) =>
 const money = (value?: number) => `${(value || 0).toLocaleString()}₮`;
 const getBookingId = (booking: BookingItem, fallback: string) => booking.id || booking._id || fallback;
 const getTitle = (booking: BookingItem | any) =>
-  booking?.title || booking?.movieTitle || booking?.movie?.title || booking?.schedule?.movie?.title || 'Тодорхойгүй кино';
+  booking?.title || booking?.movieTitle || booking?.movie?.title || booking?.schedule?.movie?.title || 'Тодорхойгүй үзвэр';
 const getVerifyUrl = (booking: BookingItem) =>
   booking.verifyUrl || `https://khovdteatr-web-pied.vercel.app/ticket-verify/${booking.bookingCode || booking.id || booking._id}`;
 const formatTheaterDateTime = (value?: string) => {
@@ -126,8 +129,19 @@ export default function BookingsScreen() {
   const [bookings, setBookings] = useState<BookingItem[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState('');
+  const [slowLoading, setSlowLoading] = useState(false);
   const [selected, setSelected] = useState<BookingItem | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      setSlowLoading(false);
+      return;
+    }
+
+    const timer = setTimeout(() => setSlowLoading(true), 1400);
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const loadBookings = useCallback(async (isMounted = true) => {
     setLoading(true);
@@ -139,9 +153,16 @@ export default function BookingsScreen() {
         ? data
         : data.bookings ?? data.data ?? [];
       setBookings(list);
+      await AsyncStorage.setItem(BOOKING_CACHE_KEY, JSON.stringify(list));
     } catch (err: any) {
       if (!isMounted) return;
-      setError(err?.response?.data?.message || 'Захиалгын түүх татахад алдаа гарлаа.');
+      const cached = await AsyncStorage.getItem(BOOKING_CACHE_KEY).catch(() => null);
+      if (cached) {
+        setBookings(JSON.parse(cached));
+        setError('');
+        return;
+      }
+      setError(err?.response?.data?.message || err?.message || 'Захиалгын түүх татахад алдаа гарлаа.');
     } finally {
       if (isMounted) setLoading(false);
     }
@@ -178,7 +199,7 @@ export default function BookingsScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} hitSlop={8}>
+        <TouchableOpacity style={styles.backButton} onPress={() => safeBack(router)} hitSlop={8}>
           <Ionicons name="chevron-back" size={24} color={colors.white} />
         </TouchableOpacity>
         <Text style={styles.title}>{mode === 'tickets' ? 'Миний тасалбарууд' : 'Захиалгын түүх'}</Text>
@@ -189,6 +210,9 @@ export default function BookingsScreen() {
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.teal} size="large" />
+          <Text style={styles.emptyTitle}>
+            {slowLoading ? 'Back-end server асаж байна. Түр хүлээнэ үү...' : 'Мэдээлэл уншиж байна...'}
+          </Text>
         </View>
 
       ) : error ? (
@@ -207,7 +231,7 @@ export default function BookingsScreen() {
                     : data.bookings ?? data.data ?? [];
                   setBookings(list);
                 })
-                .catch((err: any) => setError(err?.response?.data?.message || 'Алдаа гарлаа.'))
+                .catch((err: any) => setError(err?.response?.data?.message || err?.message || 'Алдаа гарлаа.'))
                 .finally(() => setLoading(false));
             }}
           >
@@ -219,7 +243,7 @@ export default function BookingsScreen() {
         <View style={styles.center}>
           <Ionicons name="ticket-outline" size={52} color={colors.textSub} />
           <Text style={styles.emptyTitle}>Одоогоор захиалга байхгүй байна</Text>
-          <Text style={styles.emptySub}>Кино захиалсны дараа энд харагдана</Text>
+          <Text style={styles.emptySub}>Үзвэр захиалсны дараа энд харагдана</Text>
         </View>
 
       ) : (
@@ -320,7 +344,7 @@ function TicketDetailsModal({
   const statusIsActive = Boolean(booking.ticketStatus?.isActive ?? (booking.status === 'active' && paymentStatus === 'paid'));
   const rows = [
     { label: 'Захиалгын код', value: booking.bookingCode || booking.id || booking._id || '—', accent: true },
-    { label: 'Кино', value: title },
+    { label: 'Үзвэр', value: title },
     { label: 'Огноо', value: show.date },
     { label: 'Цаг', value: show.time },
     { label: 'Танхим', value: getHall(booking) },

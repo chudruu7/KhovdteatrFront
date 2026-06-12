@@ -291,6 +291,29 @@ export default function CheckoutScreen() {
   };
 
   // â”€â”€ QPay: poll payment status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const checkWirePaymentNow = async (messageWhenPending = 'Төлбөр хараахан баталгаажаагүй байна. Банкны апп дээр алдаа гарсан бол дахин QR уншуулахгүйгээр дансны хуулгаа шалгана уу.') => {
+    if (!bookingId) {
+      setErrMsg('Захиалгын дугаар олдсонгүй. Шинэ захиалга эхлүүлнэ үү.');
+      return false;
+    }
+
+    setCheckingWire(true);
+    try {
+      const res = await wireAPI.checkPaymentStatus(bookingId);
+      if (res.success && res.paid) {
+        await completePaidBooking(bookingId, true);
+        return true;
+      }
+      setErrMsg(messageWhenPending);
+      return false;
+    } catch (e: any) {
+      setErrMsg(e?.response?.data?.message || 'Төлбөр шалгахад алдаа гарлаа. Давхар төлөлтөөс сэргийлж дахин QR уншуулахгүй байна.');
+      return false;
+    } finally {
+      setCheckingWire(false);
+    }
+  };
+
   const startPoll = (ivId: string, bId: string) => {
     pollRef.current = setInterval(async () => {
       if (paidRef.current) return;
@@ -458,18 +481,7 @@ export default function CheckoutScreen() {
                 )}
                 <TouchableOpacity
                   style={styles.testPayBtn}
-                  onPress={async () => {
-                    setCheckingWire(true);
-                    try {
-                      const res = await wireAPI.checkPaymentStatus(bookingId);
-                      if (res.success && res.paid) await completePaidBooking(bookingId, true);
-                      else setErrMsg('Төлбөр хараахан баталгаажаагүй байна.');
-                    } catch (e: any) {
-                      setErrMsg(e?.response?.data?.message || 'Төлбөр шалгахад алдаа гарлаа.');
-                    } finally {
-                      setCheckingWire(false);
-                    }
-                  }}
+                  onPress={() => checkWirePaymentNow('Төлбөр хараахан баталгаажаагүй байна. Банкны апп дээр алдаа гарсан бол дансны хуулгаа шалгаад дахин төлөхгүй байна уу.')}
                   activeOpacity={0.85}
                 >
                   <Text style={styles.testPayText}>{checkingWire ? 'Шалгаж байна...' : 'Төлбөр шалгах'}</Text>
@@ -549,10 +561,10 @@ export default function CheckoutScreen() {
                 <Text style={styles.qpayHint}>{errMsg}</Text>
                 <TouchableOpacity
                   style={styles.retryBtn}
-                  onPress={() => initWireCheckout(bookingId)}
+                  onPress={() => checkWirePaymentNow('Төлбөр баталгаажаагүй байна. Давхар гүйлгээнээс сэргийлж шинэ QR үүсгэсэнгүй. Дансны хуулгаа шалгаад шаардлагатай бол захиалгаа шинээр эхлүүлнэ үү.')}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.retryText}>Дахин оролдох</Text>
+                  <Text style={styles.retryText}>{checkingWire ? 'Шалгаж байна...' : 'Төлбөр шалгах'}</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -661,7 +673,7 @@ export default function CheckoutScreen() {
                 <ActivityIndicator color="#0f261c" />
               ) : (
                 <Text style={styles.payText}>
-                  Wire-р төлөх · {money(payableTotal)}
+                  Төлбөр төлөх · {money(payableTotal)}
                 </Text>
               )}
             </LinearGradient>

@@ -177,7 +177,7 @@ export default function ScheduleScreen() {
                     <View style={styles.detailsRow}>
                       <Ionicons name="film-outline" size={14} color={colors.textSub} />
                       <Text style={styles.genreText} numberOfLines={1}>
-                        {Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre || 'Кино'}
+                        {Array.isArray(movie.genre) ? movie.genre.join(', ') : movie.genre || 'Үзвэр'}
                       </Text>
                     </View>
                     

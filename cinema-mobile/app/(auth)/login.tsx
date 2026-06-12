@@ -65,11 +65,11 @@ function AnimatedInput({
 
   const borderColor = focusAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(255,255,255,0.08)', '#14B8A6'],
+    outputRange: ['#E3E7EE', '#C5A880'],
   });
   const bgColor = focusAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(255,255,255,0.02)', 'rgba(20,184,166,0.08)'],
+    outputRange: ['#F8FAFC', '#FFF8E8'],
   });
   const scale = focusAnim.interpolate({
     inputRange: [0, 1],
@@ -88,13 +88,13 @@ function AnimatedInput({
         <TextInput
           style={styles.input}
           placeholder={placeholder}
-          placeholderTextColor="rgba(255,255,255,0.25)"
+          placeholderTextColor="#6B7280"
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
-          selectionColor="#14B8A6"
+          selectionColor="#C5A880"
           onFocus={onFocus}
           onBlur={onBlur}
         />
@@ -106,14 +106,13 @@ function AnimatedInput({
 
 // Animated icon color workaround for Ionicons
 function AnimatedIcon({ name, focusAnim }: { name: string; focusAnim: Animated.Value }) {
-  const [color, setColor] = useState('rgba(255,255,255,0.25)');
+  const [color, setColor] = useState('#6B7280');
   useEffect(() => {
     const id = focusAnim.addListener(({ value }) => {
-      const r = Math.round(255 * (1 - value) + 20 * value);
-      const g = Math.round(255 * (1 - value) + 184 * value);
-      const b = Math.round(255 * (1 - value) + 166 * value);
-      const a = (0.25 * (1 - value) + 1 * value).toFixed(2);
-      setColor(`rgba(${r},${g},${b},${a})`);
+      const r = Math.round(107 * (1 - value) + 197 * value);
+      const g = Math.round(114 * (1 - value) + 168 * value);
+      const b = Math.round(128 * (1 - value) + 128 * value);
+      setColor(`rgb(${r},${g},${b})`);
     });
     return () => focusAnim.removeListener(id);
   }, [focusAnim]);
@@ -154,21 +153,16 @@ function PressButton({
         activeOpacity={1}
       >
         <LinearGradient 
-          colors={colors || ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']} 
+          colors={colors || ['rgba(255,255,255,0.07)', 'rgba(255,255,255,0.03)']} 
           style={styles.gradientButton}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
         >
           {loading ? (
-            <ActivityIndicator color={colors ? "#000" : "#14B8A6"} size="small" />
+            <ActivityIndicator color={colors ? "#000" : "#C5A880"} size="small" />
           ) : (
             <>
               <Text style={[colors ? styles.loginButtonText : styles.socialButtonText, textStyle]}>{label}</Text>
-              {colors && (
-                <View style={styles.buttonArrow}>
-                  <Icon name="arrow" size={16} color="#0A0D14" />
-                </View>
-              )}
             </>
           )}
         </LinearGradient>
@@ -198,7 +192,7 @@ function AnimatedBackground() {
   return (
     <View style={StyleSheet.absoluteFill}>
       <LinearGradient
-        colors={['#0A0D14', '#05070A', '#020305']}
+        colors={['#F7FBFF', '#FFF9EF', '#FFFFFF']}
         style={StyleSheet.absoluteFill}
       />
       <Animated.View style={[styles.dotsGrid, { transform: [{ translateX }] }]}>
@@ -206,8 +200,8 @@ function AnimatedBackground() {
           <View key={i} style={styles.dot} />
         ))}
       </Animated.View>
-      <View style={styles.glowOrb} />
-      <View style={styles.glowOrb2} />
+      <View style={styles.softAccent} />
+      <View style={styles.softAccent2} />
     </View>
   );
 }
@@ -268,7 +262,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
       
       <AnimatedBackground />
       
@@ -285,13 +279,13 @@ export default function LoginScreen() {
           ]}>
             <Animated.View style={[styles.reelRow, { opacity: ornamentAnim }]}>
               <LinearGradient colors={['#C5A880', '#E8D5A4']} style={styles.reelDotBig} />
-              <LinearGradient colors={['#14B8A6', '#0D9488']} style={styles.reelDotBig} />
+              <LinearGradient colors={['#8B1E2D', '#B23A48']} style={styles.reelDotBig} />
               <LinearGradient colors={['#C5A880', '#E8D5A4']} style={styles.reelDotBig} />
             </Animated.View>
 
             <View style={styles.logoBorder}>
               <LinearGradient
-                colors={['rgba(197,168,128,0.2)', 'rgba(20,184,166,0.2)']}
+                colors={['rgba(197,168,128,0.24)', 'rgba(139,30,45,0.24)']}
                 style={styles.logoGradient}
               />
               <Image
@@ -312,7 +306,7 @@ export default function LoginScreen() {
             { opacity: formAnim, transform: [{ translateY: formSlide }] }
           ]}>
             <LinearGradient
-              colors={['rgba(25,30,40,0.95)', 'rgba(13,16,23,0.95)']}
+              colors={['#FFFFFF', '#FBFCFE']}
               style={styles.cardGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -347,7 +341,7 @@ export default function LoginScreen() {
                       <Icon
                         name={showPwd ? 'eye-off' : 'eye'}
                         size={18}
-                        color="rgba(255,255,255,0.3)"
+                        color="#6B7280"
                       />
                     </TouchableOpacity>
                   }
@@ -365,13 +359,13 @@ export default function LoginScreen() {
                   loading={loading}
                   label="НЭВТРЭХ"
                   style={styles.loginButton}
-                  colors={['#14B8A6', '#0D9488']}
+                  colors={['#C5A880', '#A47C42']}
                 />
 
                 {/* Divider */}
                 <View style={styles.divider}>
                   <View style={styles.dividerLine} />
-                  <Text style={styles.dividerText}>OR</Text>
+                  <Text style={styles.dividerText}>ЭСВЭЛ</Text>
                   <View style={styles.dividerLine} />
                 </View>
 
@@ -383,7 +377,7 @@ export default function LoginScreen() {
                   activeOpacity={0.8}
                 >
                   {googleLoading ? (
-                    <ActivityIndicator color="#14B8A6" size="small" />
+                    <ActivityIndicator color="#C5A880" size="small" />
                   ) : (
                     <View style={styles.socialInner}>
                       <Icon name="google" size={20} color="#EA4335" />
@@ -413,10 +407,12 @@ export default function LoginScreen() {
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
-const TEAL   = '#14B8A6';
+const TEAL   = '#C5A880';
 const GOLD   = '#C5A880';
 const WHITE  = '#FFFFFF';
-const BG     = '#05070A';
+const TEXT   = '#111827';
+const MUTED  = '#5F6673';
+const BG     = '#F7FBFF';
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BG },
@@ -425,7 +421,7 @@ const styles = StyleSheet.create({
   dotsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    opacity: 0.03,
+    opacity: 0.04,
     position: 'absolute',
     top: 0,
     left: 0,
@@ -435,33 +431,33 @@ const styles = StyleSheet.create({
   dot: {
     width: 2,
     height: 2,
-    backgroundColor: WHITE,
+    backgroundColor: '#C5A880',
     margin: 8,
     borderRadius: 1,
   },
-  glowOrb: {
+  softAccent: {
     position: 'absolute',
     width: width * 1.2,
     height: width * 1.2,
     borderRadius: (width * 1.2) / 2,
-    backgroundColor: 'rgba(20,184,166,0.08)',
+    backgroundColor: 'rgba(197,168,128,0.18)',
     top: -height * 0.3,
     right: -width * 0.5,
-    shadowColor: TEAL,
+    shadowColor: GOLD,
     shadowRadius: 120,
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.12,
   },
-  glowOrb2: {
+  softAccent2: {
     position: 'absolute',
     width: width * 0.8,
     height: width * 0.8,
     borderRadius: (width * 0.8) / 2,
-    backgroundColor: 'rgba(197,168,128,0.05)',
+    backgroundColor: 'rgba(139,30,45,0.08)',
     bottom: -height * 0.2,
     left: -width * 0.3,
-    shadowColor: GOLD,
+    shadowColor: '#8B1E2D',
     shadowRadius: 100,
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.08,
   },
 
   scrollContent: {
@@ -486,7 +482,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: 20,
     shadowColor: TEAL,
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.18,
     shadowRadius: 20,
     shadowOffset: { width: 0, height: 10 },
     elevation: 10,
@@ -501,7 +497,7 @@ const styles = StyleSheet.create({
 
   brandTitle: {
     fontSize: 20, fontWeight: '800',
-    color: WHITE, letterSpacing: 4,
+    color: TEXT, letterSpacing: 4,
     marginBottom: 6,
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 2 },
@@ -523,9 +519,9 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    shadowColor: '#000',
-    shadowOpacity: 0.5,
+    borderColor: '#E9EDF3',
+    shadowColor: '#8A93A3',
+    shadowOpacity: 0.18,
     shadowRadius: 30,
     shadowOffset: { width: 0, height: 20 },
     elevation: 15,
@@ -539,11 +535,11 @@ const styles = StyleSheet.create({
 
   welcomeTitle: {
     fontSize: 28, fontWeight: '800',
-    color: WHITE, letterSpacing: -0.5,
+    color: TEXT, letterSpacing: -0.5,
     marginBottom: 8,
   },
   welcomeSubtitle: {
-    fontSize: 14, color: 'rgba(255,255,255,0.4)',
+    fontSize: 14, color: MUTED,
     marginBottom: 32,
     fontWeight: '500',
   },
@@ -557,7 +553,7 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1, height: '100%',
-    color: WHITE, fontSize: 15, fontWeight: '500',
+    color: TEXT, fontSize: 15, fontWeight: '500',
     letterSpacing: 0.3,
   },
 
@@ -586,31 +582,27 @@ const styles = StyleSheet.create({
     color: '#020305', fontWeight: '800',
     fontSize: 15, letterSpacing: 1.5,
   },
-  buttonArrow: {
-    marginLeft: 8,
-  },
-
   // Divider
   divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  dividerLine: { flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.06)' },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#E6EAF0' },
   dividerText: {
-    marginHorizontal: 16, color: 'rgba(255,255,255,0.3)',
+    marginHorizontal: 16, color: '#7A8290',
     fontSize: 11, fontWeight: '600', letterSpacing: 1.5,
   },
 
   // Social button
   socialButton: {
     height: 54, borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1, borderColor: '#E6EAF0',
     marginBottom: 28,
   },
   socialInner: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  socialButtonText: { color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '600', letterSpacing: 0.5 },
+  socialButtonText: { color: TEXT, fontSize: 14, fontWeight: '600', letterSpacing: 0.5 },
 
   // Register
   registerLink: { alignItems: 'center' },
-  registerText: { color: 'rgba(255,255,255,0.4)', fontSize: 14, fontWeight: '500' },
+  registerText: { color: MUTED, fontSize: 14, fontWeight: '500' },
   registerHighlight: { color: TEAL, fontWeight: '700', letterSpacing: 0.3 },
 });
