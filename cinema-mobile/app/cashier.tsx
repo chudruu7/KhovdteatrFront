@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { cashierAPI } from '../api';
 import { useAuth } from '../hooks/useAuth';
@@ -211,6 +212,236 @@ function StationScanner({ stationKey, onLogout, user }: { stationKey: string; on
   );
 }
 
+function PremiumStationScanner({ stationKey, onLogout }: { stationKey: string; onLogout: () => void; user?: any }) {
+  const videoRef = useRef<any>(null);
+  const controlsRef = useRef<any>(null);
+  const scanLoopRef = useRef<number | null>(null);
+  const lastValueRef = useRef('');
+  const submittingRef = useRef(false);
+  const [manualCode, setManualCode] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [showManualEntry, setShowManualEntry] = useState(false);
+
+  const submitScan = useCallback(async (value: string) => {
+    const qrData = String(value || '').trim();
+    if (!qrData || submittingRef.current) return;
+    if (lastValueRef.current === qrData) return;
+
+    lastValueRef.current = qrData;
+    submittingRef.current = true;
+    setSubmitting(true);
+    setError('');
+    setMessage('');
+    try {
+      const data = await cashierAPI.submitStationScan(stationKey, qrData);
+      setMessage(data.booking?.movieTitle ? `${data.booking.movieTitle} уншигдлаа` : 'QR уншигдлаа');
+      setManualCode('');
+      setShowManualEntry(false);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || 'QR уншихад алдаа гарлаа.');
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+      setTimeout(() => {
+        lastValueRef.current = '';
+      }, 900);
+    }
+  }, [stationKey]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web') {
+      setError('Камер scanner одоогоор browser дээр ажиллана. Доорх талбарт кодоо гараар оруулж болно.');
+      return;
+    }
+
+    let alive = true;
+    const startScanner = async () => {
+      try {
+        const video = videoRef.current;
+        const BarcodeDetectorCtor = (globalThis as any).BarcodeDetector;
+
+        if (BarcodeDetectorCtor && video) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+            },
+            audio: false,
+          });
+          video.srcObject = stream;
+          await video.play?.();
+
+          const detector = new BarcodeDetectorCtor({ formats: ['qr_code'] });
+          const scan = async () => {
+            if (!alive) return;
+            try {
+              if (video.readyState >= 2) {
+                const codes = await detector.detect(video);
+                const value = codes?.[0]?.rawValue;
+                if (value) submitScan(value);
+              }
+            } catch {
+              // Moving camera frames often fail to decode for a moment.
+            }
+            scanLoopRef.current = requestAnimationFrame(scan);
+          };
+
+          scanLoopRef.current = requestAnimationFrame(scan);
+          controlsRef.current = {
+            stop: () => stream.getTracks().forEach((track: MediaStreamTrack) => track.stop()),
+          };
+          return;
+        }
+
+        // @ts-ignore Optional web-only fallback; package may be injected by the web bundle.
+        const { BrowserQRCodeReader } = await import('@zxing/browser');
+        const reader = new BrowserQRCodeReader(undefined, {
+          delayBetweenScanAttempts: 100,
+          delayBetweenScanSuccess: 650,
+        });
+        controlsRef.current = await reader.decodeFromVideoDevice(
+          undefined,
+          video,
+          (result: any) => {
+            if (!alive || !result) return;
+            submitScan(result.getText());
+          }
+        );
+      } catch (err: any) {
+        setError(err?.message || 'Камер нээж чадсангүй. Browser permission зөвшөөрөөд дахин оролдоно уу.');
+      }
+    };
+
+    startScanner();
+
+    return () => {
+      alive = false;
+      if (scanLoopRef.current) cancelAnimationFrame(scanLoopRef.current);
+      controlsRef.current?.stop?.();
+    };
+  }, [submitScan]);
+
+  return (
+    <View style={styles.scanScreen}>
+      <View style={styles.scanCameraLayer}>
+        {Platform.OS === 'web'
+          ? React.createElement('video', {
+              ref: videoRef,
+              muted: true,
+              playsInline: true,
+              autoPlay: true,
+              style: {
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                backgroundColor: '#05070A',
+                filter: 'blur(10px) saturate(1.12)',
+                transform: 'scale(1.06)',
+              },
+            })
+          : (
+            <LinearGradient
+              colors={['#24142E', '#473149', '#D6C7AC', '#10131A']}
+              start={{ x: 0.08, y: 0 }}
+              end={{ x: 0.92, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+          )}
+      </View>
+      <LinearGradient
+        colors={['rgba(12,7,17,0.68)', 'rgba(9,10,15,0.34)', 'rgba(5,7,10,0.78)']}
+        locations={[0, 0.48, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={styles.scanTopBar}>
+        <Text style={styles.scanTime}>17:43</Text>
+        <View style={styles.scanSystemIcons}>
+          <View style={styles.signalBars}>
+            <View style={[styles.signalBar, { height: 5 }]} />
+            <View style={[styles.signalBar, { height: 8 }]} />
+            <View style={[styles.signalBar, { height: 11 }]} />
+            <View style={[styles.signalBar, { height: 14 }]} />
+          </View>
+          <Text style={styles.scanNetwork}>LTE</Text>
+          <View style={styles.battery}>
+            <View style={styles.batteryLevel} />
+          </View>
+          <View style={styles.batteryCap} />
+        </View>
+      </View>
+
+      <View style={styles.scanControlsRow}>
+        <TouchableOpacity onPress={onLogout} style={styles.scanIconButton} activeOpacity={0.82}>
+          <Ionicons name="close" size={31} color="#FFFFFF" />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.scanHelpButton} activeOpacity={0.82}>
+          <Ionicons name="help" size={18} color="rgba(255,255,255,0.86)" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.scanInstructionWrap}>
+        <Text style={styles.scanInstruction}>QR кодыг уншуулж төлнө үү.</Text>
+      </View>
+
+      <View style={styles.reticle} pointerEvents="none">
+        <View style={[styles.reticleCorner, styles.reticleTopLeft]} />
+        <View style={[styles.reticleCorner, styles.reticleTopRight]} />
+        <View style={[styles.reticleCorner, styles.reticleBottomLeft]} />
+        <View style={[styles.reticleCorner, styles.reticleBottomRight]} />
+      </View>
+
+      <View style={styles.scanBottomControls}>
+        <TouchableOpacity style={styles.muteButton} activeOpacity={0.84}>
+          <Ionicons name="flash-off" size={31} color="#FFFFFF" />
+        </TouchableOpacity>
+
+        {(submitting || !!message || !!error) && (
+          <View style={styles.scanStatusPill}>
+            {submitting && <ActivityIndicator color="#FFFFFF" size="small" />}
+            <Text style={[styles.scanStatusText, error ? styles.scanStatusError : message ? styles.scanStatusSuccess : null]}>
+              {submitting ? 'Илгээж байна...' : error || message}
+            </Text>
+          </View>
+        )}
+
+        {showManualEntry && (
+          <View style={styles.manualPanel}>
+            <TextInput
+              value={manualCode}
+              onChangeText={setManualCode}
+              placeholder="QR URL эсвэл захиалгын код"
+              placeholderTextColor="rgba(255,255,255,0.48)"
+              style={styles.scanInput}
+              autoCapitalize="none"
+            />
+            <TouchableOpacity
+              style={[styles.scanSubmitButton, (!manualCode.trim() || submitting) && styles.scanSubmitDisabled]}
+              onPress={() => submitScan(manualCode)}
+              disabled={submitting || !manualCode.trim()}
+              activeOpacity={0.85}
+            >
+              {submitting ? <ActivityIndicator color="#090A0E" /> : <Ionicons name="arrow-forward" size={20} color="#090A0E" />}
+            </TouchableOpacity>
+          </View>
+        )}
+
+        <TouchableOpacity
+          style={styles.galleryButton}
+          onPress={() => setShowManualEntry((value) => !value)}
+          activeOpacity={0.86}
+        >
+          <Ionicons name="image-outline" size={25} color="#FFFFFF" />
+          <Text style={styles.galleryButtonText}>код оруулах</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 export default function CashierScreen() {
   const { logout, user } = useAuth();
   const params = useLocalSearchParams<{ station?: string | string[]; scan?: string | string[] }>();
@@ -222,7 +453,7 @@ export default function CashierScreen() {
   const [admitting, setAdmitting] = useState(false);
 
   if (stationKey && scanMode === '1') {
-    return <StationScanner stationKey={stationKey} onLogout={logout} user={user} />;
+    return <PremiumStationScanner stationKey={stationKey} onLogout={logout} user={user} />;
   }
 
   const checkTicket = async () => {
@@ -349,6 +580,262 @@ export default function CashierScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#05070A' },
+  scanScreen: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: '#05070A',
+  },
+  scanCameraLayer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#05070A',
+  },
+  scanTopBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 55,
+    paddingTop: 14,
+    paddingHorizontal: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(7, 8, 12, 0.2)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  scanTime: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+    lineHeight: 24,
+  },
+  scanSystemIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  signalBars: {
+    width: 19,
+    height: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  signalBar: {
+    width: 3,
+    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  scanNetwork: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  battery: {
+    width: 25,
+    height: 13,
+    padding: 2,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    borderRadius: 4,
+  },
+  batteryLevel: {
+    width: 8,
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  batteryCap: {
+    width: 2,
+    height: 6,
+    marginLeft: -3,
+    borderTopRightRadius: 2,
+    borderBottomRightRadius: 2,
+    backgroundColor: '#FFFFFF',
+  },
+  scanControlsRow: {
+    position: 'absolute',
+    top: 67,
+    left: 26,
+    right: 26,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  scanIconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scanHelpButton: {
+    width: 31,
+    height: 31,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.58)',
+    backgroundColor: 'rgba(15,16,22,0.22)',
+  },
+  scanInstructionWrap: {
+    position: 'absolute',
+    top: '24%',
+    left: 24,
+    right: 24,
+    alignItems: 'center',
+  },
+  scanInstruction: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '800',
+    lineHeight: 24,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0,0,0,0.42)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 8,
+  },
+  reticle: {
+    position: 'absolute',
+    top: '31.5%',
+    alignSelf: 'center',
+    width: '81%',
+    maxWidth: 390,
+    aspectRatio: 1,
+  },
+  reticleCorner: {
+    position: 'absolute',
+    width: 72,
+    height: 72,
+    borderColor: '#FFFFFF',
+  },
+  reticleTopLeft: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 6,
+    borderLeftWidth: 6,
+    borderTopLeftRadius: 26,
+  },
+  reticleTopRight: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 6,
+    borderRightWidth: 6,
+    borderTopRightRadius: 26,
+  },
+  reticleBottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 6,
+    borderLeftWidth: 6,
+    borderBottomLeftRadius: 26,
+  },
+  reticleBottomRight: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 6,
+    borderRightWidth: 6,
+    borderBottomRightRadius: 26,
+  },
+  scanBottomControls: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 35,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    gap: 17,
+  },
+  muteButton: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.34)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  scanStatusPill: {
+    maxWidth: 360,
+    minHeight: 43,
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    backgroundColor: 'rgba(8,9,13,0.64)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  scanStatusText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  scanStatusError: {
+    color: '#FF8EA2',
+  },
+  scanStatusSuccess: {
+    color: '#8EF2D5',
+  },
+  manualPanel: {
+    width: '100%',
+    maxWidth: 360,
+    minHeight: 58,
+    padding: 7,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(8,9,13,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  scanInput: {
+    flex: 1,
+    minWidth: 0,
+    height: 44,
+    paddingHorizontal: 13,
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  scanSubmitButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  scanSubmitDisabled: {
+    opacity: 0.45,
+  },
+  galleryButton: {
+    minWidth: 210,
+    height: 58,
+    paddingHorizontal: 22,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 11,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.16)',
+  },
+  galleryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 20,
+  },
   header: {
     paddingTop: 58,
     paddingHorizontal: SPACING.lg,
