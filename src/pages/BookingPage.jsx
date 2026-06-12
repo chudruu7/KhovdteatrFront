@@ -3,15 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
 import MyBookingHeader from '../components/Header';
 import TicketDesign from './TicketDesign';
-import QPayModal from '../components/QPayModal';
+import WireCheckoutModal from '../components/WireCheckoutModal';
+import { API_BASE_URL } from '../api/config';
 
 
 const TIMEOUT_SECS = 600;
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://khovdteatrbackend.onrender.com/api';
 
-const PRICES = {
-  standard: { adult: 15000, child: 8000 },
-  prime:    { adult: 20000, child: 10000 },
+const DEFAULT_PRICES = { adult: 15000, child: 10000 };
+const positivePriceOr = (value, fallback) => {
+  const price = Number(value);
+  return Number.isFinite(price) && price >= 1 ? price : fallback;
 };
 
 
@@ -48,6 +49,20 @@ const weekDays = () => {
     return { fullDate: d.toISOString().split('T')[0], short: SHORT[d.getDay()], num: d.getDate(), month: d.getMonth() + 1 };
   });
 };
+const dayFromShowTime = (iso) => {
+  const SHORT = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
+  const d = new Date(new Date(iso).getTime() + MONGOLIA_MS);
+  return {
+    fullDate: d.toISOString().split('T')[0],
+    short: SHORT[d.getUTCDay()],
+    num: d.getUTCDate(),
+    month: d.getUTCMonth() + 1,
+  };
+};
+const pricesFromSchedule = (schedule, movie = {}) => ({
+  adult: positivePriceOr(schedule?.basePrice ?? schedule?.adultPrice ?? movie?.basePrice ?? movie?.adultPrice, DEFAULT_PRICES.adult),
+  child: positivePriceOr(schedule?.childPrice ?? movie?.childPrice, DEFAULT_PRICES.child),
+});
 const genOrderId = () => 'TK-' + Date.now().toString(36).toUpperCase().slice(-5) + '-' + Math.random().toString(36).toUpperCase().slice(2, 6);
 // ═══════════════════════════════════════════════════════
 // SEAT LAYOUT — зургийн A-V баганы дагуу яг тодорхойлсон
@@ -201,18 +216,18 @@ const CSS = `
 }
 
 .light {
-  --bg:#f0f2f7; --sidebar:#ffffff; --panel:#ffffff; --card:#f6f7fb;
-  --teal:#0bbfa0; --teal-bg:rgba(11,191,160,.12);
-  --coral:#e8607a; --coral-bg:rgba(232,96,122,.75);
-  --avail:#dde0ec; --text:#1a1d2e; --sub:#7a7f99; --sub2:#555a75;
-  --border:rgba(0,0,0,.08); --border2:rgba(0,0,0,.13);
-  --hero-overlay:rgba(240,242,247,.82);
-  --screen-lbl:#9498ae;
-  --inp-bg:#f0f2f7; --inp-border:rgba(0,0,0,.1);
-  --back-btn-color:#555a75; --back-btn-border:rgba(0,0,0,.12);
+  --bg:#f7f8fb; --sidebar:#ffffff; --panel:#ffffff; --card:#f2f4f8;
+  --teal:#00a98f; --teal-bg:rgba(0,169,143,.13);
+  --coral:#df4d6c; --coral-bg:rgba(223,77,108,.82);
+  --avail:#c8cedf; --text:#111827; --sub:#667085; --sub2:#3f4a61;
+  --border:rgba(15,23,42,.08); --border2:rgba(15,23,42,.15);
+  --hero-overlay:rgba(17,24,39,.44);
+  --screen-lbl:#667085;
+  --inp-bg:#f8fafc; --inp-border:rgba(15,23,42,.12);
+  --back-btn-color:#3f4a61; --back-btn-border:rgba(15,23,42,.12);
   --warn-bg:rgba(255,179,71,.07); --warn-border:rgba(255,179,71,.3);
   --modal-bg:#ffffff;
-  --cart-bg:#ffffff; --cart-border:rgba(0,0,0,.12);
+  --cart-bg:#ffffff; --cart-border:rgba(15,23,42,.14);
   --stype-bg:#ffffff;
   --mobile-menu-bg:rgba(255,255,255,.97);
 }
@@ -229,6 +244,7 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-page{display:flex;min-height:calc(100vh - 7rem);animation:fadeIn .4s ease;}
 
 .bk-aside{width:310px;flex-shrink:0;background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;position:sticky;top:7rem;height:calc(100vh - 7rem);align-self:flex-start;}
+.light .bk-aside{box-shadow:8px 0 28px rgba(15,23,42,.06);}
 .bk-poster-box{position:relative;width:100%;flex:0 0 auto;overflow:hidden;}
 .bk-poster-box img{width:100%;height:100%;object-fit:cover;display:block;}
 .bk-poster-box::before{content:'';position:absolute;inset:0 0 auto 0;height:40%;background:linear-gradient(to bottom,var(--sidebar) 0%,transparent 100%);z-index:1;pointer-events:none;}
@@ -244,10 +260,10 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-main{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;}
 .bk-hero{position:relative;overflow:hidden;min-height:185px;flex-shrink:0;}
 .bk-hero-bg{position:absolute;inset:0;background-size:cover;background-position:center top;filter:brightness(.3) saturate(.75);z-index:0;}
-.light .bk-hero-bg{filter:brightness(.45) saturate(.5);}
+.light .bk-hero-bg{filter:brightness(.34) saturate(.75) contrast(1.08);}
 .bk-hero-fade{position:absolute;inset:0;background:linear-gradient(to bottom,transparent 0%,var(--bg) 100%);z-index:1;}
 .dark .bk-hero-fade{background:linear-gradient(to bottom,rgba(34,36,47,.2) 0%,rgba(34,36,47,.75) 55%,var(--bg) 100%);}
-.light .bk-hero-fade{background:linear-gradient(to bottom,rgba(240,242,247,.1) 0%,rgba(240,242,247,.7) 55%,var(--bg) 100%);}
+.light .bk-hero-fade{background:linear-gradient(to bottom,rgba(17,24,39,.54) 0%,rgba(17,24,39,.30) 34%,rgba(247,248,251,.88) 78%,var(--bg) 100%);}
 .bk-hero-content{position:relative;z-index:2;padding:1.6rem 2.2rem 1.4rem;display:flex;flex-direction:column;gap:1rem;}
 .bk-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
 .bk-title{font-size:2.2rem;font-weight:800;color:var(--text);line-height:1.1;letter-spacing:-.025em;}
@@ -257,13 +273,16 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-badge{padding:.28rem .75rem;border-radius:20px;border:1.5px solid var(--teal);color:var(--teal);font-size:.7rem;font-weight:700;letter-spacing:.04em;}
 
 .bk-schedule{display:flex;align-items:flex-start;gap:0;background:rgba(128,128,128,.06);border:1px solid var(--border2);border-radius:14px;padding:1.1rem 1.4rem;}
+.light .bk-schedule{background:rgba(255,255,255,.82);border-color:rgba(15,23,42,.12);box-shadow:0 18px 45px rgba(15,23,42,.10);}
 .bk-date-col{flex:1;min-width:0;}
 .bk-sched-lbl{font-size:.68rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--teal);margin-bottom:.75rem;display:flex;align-items:center;gap:.4rem;}
 .bk-sched-lbl::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--teal);flex-shrink:0;}
 .bk-days{display:flex;gap:.4rem;overflow-x:auto;}
 .bk-days::-webkit-scrollbar{display:none}
 .bk-day{display:flex;flex-direction:column;align-items:center;gap:.1rem;min-width:50px;padding:.5rem .4rem .55rem;border-radius:8px;cursor:pointer;background:rgba(128,128,128,.07);border:1px solid transparent;transition:all .15s;}
+.light .bk-day{background:#eef2f7;border-color:rgba(15,23,42,.08);}
 .bk-day:hover{background:rgba(128,128,128,.14);border-color:var(--border2);}
+.light .bk-day:hover{background:#e3e8f2;border-color:rgba(0,169,143,.35);}
 .bk-day-s{font-size:.58rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--sub2);transition:color .15s;}
 .bk-day-n{font-family:'DM Mono',monospace;font-size:1.2rem;font-weight:600;color:var(--text);opacity:.65;transition:color .15s;}
 .bk-day.d-sel{background:rgba(29,233,182,.18);border-color:rgba(29,233,182,.45);box-shadow:0 0 12px rgba(29,233,182,.15);}
@@ -272,7 +291,9 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-time-col{flex:1;min-width:0;}
 .bk-times{display:flex;gap:.5rem;flex-wrap:wrap;}
 .bk-time{display:flex;flex-direction:column;align-items:center;gap:.05rem;padding:.5rem .9rem .55rem;border-radius:8px;cursor:pointer;border:1px solid var(--border2);background:rgba(128,128,128,.06);transition:all .15s;min-width:62px;}
+.light .bk-time{background:#f8fafc;border-color:rgba(15,23,42,.14);box-shadow:0 1px 2px rgba(15,23,42,.04);}
 .bk-time:hover:not(.t-past){border-color:rgba(29,233,182,.4);background:rgba(29,233,182,.08);}
+.light .bk-time:hover:not(.t-past){background:rgba(0,169,143,.09);border-color:rgba(0,169,143,.36);}
 .bk-time-f{font-size:.5rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--sub2);}
 .bk-time-v{font-family:'DM Mono',monospace;font-size:.92rem;font-weight:600;color:var(--text);}
 .bk-time.t-sel{background:var(--teal);border-color:var(--teal);box-shadow:0 0 14px rgba(29,233,182,.3);}
@@ -284,8 +305,10 @@ body,#root{background:var(--bg);min-height:100vh}
 
 /* ══ SEAT MAP ══════════════════════════════════════════════════════════════ */
 .bk-map-wrap{flex:1;padding:0 2.2rem 5rem;background:var(--bg);display:flex;flex-direction:column;}
+.light .bk-map-wrap{background:linear-gradient(180deg,#f7f8fb 0%,#eef2f7 100%);}
 .bk-screen{text-align:center;margin-bottom:1.5rem;padding-top:1.5rem;}
 .bk-screen-line{width:78%;height:4px;margin:0 auto .45rem;background:linear-gradient(90deg,transparent 0%,var(--coral) 20%,var(--coral) 80%,transparent 100%);border-radius:3px 3px 0 0;box-shadow:0 0 26px rgba(232,96,122,.28);}
+.light .bk-screen-line{height:3px;box-shadow:0 8px 22px rgba(223,77,108,.20);}
 .bk-screen-lbl{font-size:.58rem;font-weight:600;letter-spacing:.45em;text-transform:uppercase;color:var(--screen-lbl);}
 
 .bk-rows{display:flex;flex-direction:column;gap:3px;flex:1;}
@@ -320,6 +343,44 @@ body,#root{background:var(--bg);min-height:100vh}
 .light .bk-s.s-broken{background:#d0d2dc;border:1px dashed rgba(0,0,0,.15);}
 .bk-s.s-ch{background:var(--teal) !important;box-shadow:0 0 12px rgba(29,233,182,.4);transform:translateY(-2px);color:rgba(15,38,28,.45) !important;}
 .bk-s.s-ch-child{background:#a78bfa !important;box-shadow:0 0 12px rgba(167,139,250,.4);transform:translateY(-2px);color:rgba(30,16,64,.45) !important;}
+
+.light .bk-rl{color:#526079;font-weight:600;}
+.light .bk-s{
+  background:linear-gradient(180deg,#d7ddeb 0%,#c2cadc 100%);
+  border:1px solid rgba(15,23,42,.10);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 1px 2px rgba(15,23,42,.08);
+  color:rgba(17,24,39,.46);
+}
+.light .bk-s::after{background:rgba(15,23,42,.16);}
+.light .bk-s:hover:not(.s-tk):not(.s-broken){
+  background:linear-gradient(180deg,#c4ccdf 0%,#aeb8d0 100%);
+  border-color:rgba(0,169,143,.34);
+}
+.light .bk-s.s-tk{
+  background:linear-gradient(180deg,rgba(223,77,108,.92),rgba(209,63,95,.86));
+  border-color:rgba(223,77,108,.38);
+  color:rgba(255,255,255,.32);
+}
+.light .bk-s.s-broken{
+  background:#e5e7ee;
+  border:1px dashed rgba(15,23,42,.18);
+  box-shadow:none;
+  color:rgba(15,23,42,.20);
+}
+.light .bk-s.s-ch{
+  background:linear-gradient(180deg,#12c7aa 0%,#00a98f 100%) !important;
+  border-color:rgba(0,137,116,.40);
+  box-shadow:0 8px 18px rgba(0,169,143,.22),inset 0 1px 0 rgba(255,255,255,.35);
+  color:rgba(5,42,34,.58) !important;
+}
+.light .bk-s.s-ch-child{
+  background:linear-gradient(180deg,#b59cfb 0%,#9574f3 100%) !important;
+  border-color:rgba(110,82,210,.38);
+  box-shadow:0 8px 18px rgba(149,116,243,.20),inset 0 1px 0 rgba(255,255,255,.34);
+  color:rgba(35,21,78,.58) !important;
+}
+.light .bk-bottom{border-top-color:rgba(15,23,42,.10);}
+.light .bk-leg-dot{box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 1px 2px rgba(15,23,42,.10);}
 
 /* Эгнээний container */
 .bk-rows{display:flex;flex-direction:column;gap:3px;flex:1;}
@@ -381,6 +442,43 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-s.s-ch-child{background:#a78bfa !important;box-shadow:0 0 12px rgba(167,139,250,.4);transform:translateY(-2px);color:rgba(30,16,64,.45) !important;}
 
 /* ══ BOTTOM BAR ══════════════════════════════════════════════════════════ */
+.light .bk-s{
+  background:linear-gradient(180deg,#d7ddeb 0%,#c2cadc 100%);
+  border:1px solid rgba(15,23,42,.10);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.65),0 1px 2px rgba(15,23,42,.08);
+  color:rgba(17,24,39,.48);
+}
+.light .bk-s::after{background:rgba(15,23,42,.16);}
+.light .bk-s:hover:not(.s-tk):not(.s-broken){
+  background:linear-gradient(180deg,#c4ccdf 0%,#aeb8d0 100%);
+  border-color:rgba(0,169,143,.34);
+}
+.light .bk-s.s-tk{
+  background:linear-gradient(180deg,rgba(223,77,108,.92),rgba(209,63,95,.86));
+  border-color:rgba(223,77,108,.38);
+  color:rgba(255,255,255,.32);
+}
+.light .bk-s.s-broken{
+  background:#e5e7ee;
+  border:1px dashed rgba(15,23,42,.18);
+  box-shadow:none;
+  color:rgba(15,23,42,.20);
+}
+.light .bk-s.s-ch{
+  background:linear-gradient(180deg,#12c7aa 0%,#00a98f 100%) !important;
+  border-color:rgba(0,137,116,.40);
+  box-shadow:0 8px 18px rgba(0,169,143,.22),inset 0 1px 0 rgba(255,255,255,.35);
+  color:rgba(5,42,34,.58) !important;
+}
+.light .bk-s.s-ch-child{
+  background:linear-gradient(180deg,#b59cfb 0%,#9574f3 100%) !important;
+  border-color:rgba(110,82,210,.38);
+  box-shadow:0 8px 18px rgba(149,116,243,.20),inset 0 1px 0 rgba(255,255,255,.34);
+  color:rgba(35,21,78,.58) !important;
+}
+.light .bk-bottom{border-top-color:rgba(15,23,42,.10);}
+.light .bk-leg-dot{box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 1px 2px rgba(15,23,42,.10);}
+
 .bk-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:1.1rem;padding-top:1rem;border-top:1px solid var(--border);gap:.75rem;flex-wrap:wrap;}
 .bk-legend{display:flex;gap:1.4rem;flex-wrap:wrap;}
 .bk-leg{display:flex;align-items:center;gap:.5rem;}
@@ -564,7 +662,7 @@ function TrailerModal({ trailerUrl, onClose, movieTitle }) {
                 allowFullScreen title={movieTitle||'Trailer'}/>
             ) : (
               <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'#64748b',fontSize:'.9rem',padding:'2rem',textAlign:'center'}}>
-                Энэ киноны trailer бүртгэлгүй байна.
+                Энэ үзвэрийн trailer бүртгэлгүй байна.
               </div>
             )}
           </motion.div>
@@ -601,7 +699,7 @@ function SeatTypeSelector({ seatId, currentType, onTypeChange, displayLabel, pri
           </div>
           {[
             {type:'adult', label:'Том хүн', price:prices?.adult||15000},
-            {type:'child', label:'Хүүхэд',  price:prices?.child||8000},
+            {type:'child', label:'Хүүхэд',  price:prices?.child||DEFAULT_PRICES.child},
           ].map(o => (
             <button key={o.type} className={`bk-stype-option ${currentType===o.type?'selected':''}`}
               onClick={() => { onTypeChange(seatId, o.type); setOpen(false); }}>
@@ -835,7 +933,9 @@ function Step1({ movie, fromSchedule, availableSchedules, seats, onToggle, onTyp
               <div className="bk-date-col">
                 <div className="bk-sched-lbl">Хуваарьт өдрүүд</div>
                 <div className="bk-days">
-                  {days.map(d=>(
+                  {days.length === 0 ? (
+                    <span style={{fontSize:'.75rem',color:'var(--sub)',fontStyle:'italic'}}>Энэ үзвэрийн хуваарь одоогоор байхгүй</span>
+                  ) : days.map(d=>(
                     <button key={d.fullDate} className={`bk-day ${movie.selectedDate===d.fullDate?'d-sel':''}`} onClick={()=>handleDate(d.fullDate)}>
                       <span className="bk-day-s">{d.short}</span>
                       <span className="bk-day-n">{d.num}</span>
@@ -846,18 +946,18 @@ function Step1({ movie, fromSchedule, availableSchedules, seats, onToggle, onTyp
               <div className="bk-sched-div"/>
               <div className="bk-time-col">
                 <div className="bk-sched-lbl">Үзвэрийн цаг</div>
-                {fromSchedule ? (
+                {false ? (
                   <div className="bk-fixed"><div className="bk-fixed-chip">{movie.selectedTime}</div><span className="bk-fixed-note">Тогтоогдсон өдөр</span></div>
                 ) : (
                   <div className="bk-times">
                     {availableSchedules.length===0 ? (
                       <span style={{fontSize:'.75rem',color:'var(--sub)',fontStyle:'italic'}}>Энэ өдөр хуваарь байхгүй</span>
                     ) : availableSchedules.map(sched=>{
-                      const time=utcToMN(sched.showTime), past=isPast(time,movie.selectedDate), active=movie.selectedTime===time;
+                      const time=utcToMN(sched.showTime), past=isPast(time,movie.selectedDate), active=String(movie.scheduleId)===String(sched._id);
                       return (
                         <button key={sched._id} className={`bk-time ${active?'t-sel':''} ${past?'t-past':''}`}
                           onClick={()=>!past&&handleTime(time,sched._id)} disabled={past}>
-                          <span className="bk-time-f"></span>
+                          <span className="bk-time-f">{sched.hall?.hallName || sched.hall?.name || 'Танхим'}</span>
                           <span className="bk-time-v">{time}</span>
                         </button>
                       );
@@ -953,7 +1053,7 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
                     </svg>
-                    QPay-р төлөх · {money(totalPrice)}
+                    Wire-р төлөх · {money(totalPrice)}
                   </span>
                 )}
               </button>
@@ -964,7 +1064,7 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
         <div className="bk-card">
           <div style={{fontSize:'.6rem',fontWeight:700,letterSpacing:'.15em',textTransform:'uppercase',color:'var(--sub)',marginBottom:'1rem'}}>Захиалгын тойм</div>
           {[
-            ['Кино',    movie.title],
+            ['Үзвэр',    movie.title],
             ['Огноо',   movie.selectedDate],
             ['Цаг',     movie.selectedTime],
             ['Суудлууд',seats.map(s=>s.id).join(', ')],
@@ -977,8 +1077,8 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
         <div className="bk-warn">
           <div className="bk-warn-t">⚠ Анхааруулга</div>
           <ul>
-            <li>Кино, огноо, цагаа сайтар шалгана уу.</li>
-            <li>QPay QR-г уншуулснаар төлбөр автоматаар баталгаажна.</li>
+            <li>Үзвэр, огноо, цагаа сайтар шалгана уу.</li>
+            <li>Wire hosted checkout дээр төлбөр баталгаажмагц тасалбар автоматаар үүснэ.</li>
             <li>Төлбөр төлсний дараа тасалбар буцаах боломжгүй.</li>
             <li>Цаг эхлэхээс 10 минутын өмнө ирнэ үү.</li>
           </ul>
@@ -1034,16 +1134,16 @@ function ConfirmModal({ movie, onClose, onOk }) {
 export default function BookingPage() {
   const location     = useLocation();
   const navigate     = useNavigate();
-  const days         = useMemo(() => weekDays(), []);
+  const [days, setDays] = useState([]);
   const fromSchedule = !!(location.state?.scheduleId || location.state?.fromSchedule);
 
   const [movie, setMovie] = useState({
-    id:null, title:'Кино ачаалж байна…', selectedTime:'', selectedDate:days[0]?.fullDate||'',
+    id:null, title:'Үзвэр ачаалж байна…', selectedTime:'', selectedDate:'',
     posterUrl:'', backdropUrl:'', trailerUrl:'', duration:'', genre:'', rating:'',
     director:'', cast:'', description:'', scheduleId:null, hall:null,
   });
   const [availableSchedules, setAvailableSchedules] = useState([]);
-  const [prices,     setPrices]     = useState(PRICES.standard);
+  const [prices,     setPrices]     = useState(DEFAULT_PRICES);
   const [step,       setStep]       = useState(1);
   const [seats,      setSeats]      = useState([]);
   const [takenSeats, setTakenSeats] = useState(new Set());
@@ -1053,13 +1153,12 @@ export default function BookingPage() {
   const [orderId,    setOrderId]    = useState(null);
   const [timeLeft,   setTLeft]      = useState(null);
   const [modal,      setModal]      = useState(false);
-  const [showQPay,   setShowQPay]   = useState(false);
+  const [showWire,   setShowWire]   = useState(false);
   const [pendingId,  setPendingId]  = useState(null);
 
   const timerRef = useRef(null);
 
   useEffect(() => {
-   const today = days[0]?.fullDate || new Date().toISOString().split('T')[0];
   const raw = location.state?.movie || { /* fallback */ };
     const src = {
     ...raw,
@@ -1067,17 +1166,34 @@ export default function BookingPage() {
     scheduleId: raw.scheduleId || location.state?.scheduleId,  // ← засвар
   };
     setMovie(src);
+    setDays([]);
+    setAvailableSchedules([]);
+    setPrices(pricesFromSchedule(null, src));
   const mid = getMovieId(raw);
   if (mid) {
-    fetchSchedulesForDate(mid, src.selectedDate).then(scheds => {
+    fetchSchedulesByMovie(mid).then(all => {
+      const future = all.filter(s => new Date(s.showTime).getTime() > Date.now());
+      const scheduleDays = Array.from(new Map(future.map(s => {
+        const day = dayFromShowTime(s.showTime);
+        return [day.fullDate, day];
+      })).values());
+      setDays(scheduleDays);
+      const initialSchedule = src.scheduleId
+        ? future.find(s => String(s._id) === String(src.scheduleId))
+        : null;
+      const initialDate = initialSchedule
+        ? dayFromShowTime(initialSchedule.showTime).fullDate
+        : (src.selectedDate || scheduleDays[0]?.fullDate || '');
+      return fetchSchedulesForDate(mid, initialDate);
+    }).then(scheds => {
       setAvailableSchedules(scheds);
       const targetSched = src.scheduleId
         ? (scheds.find(s => String(s._id) === String(src.scheduleId)) || scheds[0])
         : scheds[0];
       if (targetSched) {
         const t = utcToMN(targetSched.showTime);
-        setMovie(p => ({...p, selectedTime: t, scheduleId: targetSched._id}));
-        setPrices(parseInt(t.split(':')[0], 10) >= 18 ? PRICES.prime : PRICES.standard);
+        setMovie(p => ({...p, selectedDate: dayFromShowTime(targetSched.showTime).fullDate, selectedTime: t, scheduleId: targetSched._id}));
+        setPrices(pricesFromSchedule(targetSched, src));
         fetchTakenSeats(targetSched._id);
       }
     });
@@ -1097,19 +1213,29 @@ export default function BookingPage() {
   const fetchSchedulesForDate = async (movieId, date) => {
     if (!movieId||!date) return [];
     try {
-      const res = await fetch(`${API_BASE_URL}/schedules?date=${date}`, {headers:getHeaders()});
+      const res = await fetch(`${API_BASE_URL}/schedules/${movieId}?date=${date}`, {headers:getHeaders()});
       if (!res.ok) return [];
       const data = await res.json();
       const list = Array.isArray(data)?data:data.schedules||data.data||[];
-      return list.filter(s=>String(s.movie?._id??s.movie??'')===String(movieId))
-                 .sort((a,b)=>new Date(a.showTime)-new Date(b.showTime));
+      return list.sort((a,b)=>new Date(a.showTime)-new Date(b.showTime));
+    } catch { return []; }
+  };
+
+  const fetchSchedulesByMovie = async (movieId) => {
+    if (!movieId) return [];
+    try {
+      const res = await fetch(`${API_BASE_URL}/schedules/${movieId}`, {headers:getHeaders()});
+      if (!res.ok) return [];
+      const data = await res.json();
+      const list = Array.isArray(data)?data:data.schedules||data.data||[];
+      return list.sort((a,b)=>new Date(a.showTime)-new Date(b.showTime));
     } catch { return []; }
   };
 
   const doTimeout = useCallback(() => {
     clearInterval(timerRef.current); timerRef.current=null;
     setStep(1); setSeats([]); setForm({name:'',email:'',phone:''});
-    setTLeft(null); setModal(false); setError(null); setShowQPay(false);
+    setTLeft(null); setModal(false); setError(null); setShowWire(false);
   }, []);
 useEffect(() => {
   if (!movie?.scheduleId) return;
@@ -1143,7 +1269,7 @@ useEffect(() => {
       if (scheds.length>0) {
         const first=scheds[0], t=utcToMN(first.showTime);
         setMovie(p=>({...p,selectedDate:date,selectedTime:t,scheduleId:first._id}));
-        setPrices(parseInt(t.split(':')[0],10)>=18?PRICES.prime:PRICES.standard);
+        setPrices(pricesFromSchedule(first, movie));
         fetchTakenSeats(first._id);
       }
     }
@@ -1153,14 +1279,20 @@ useEffect(() => {
     if (isPast(time,movie.selectedDate)) return;
     setSeats([]);
     setMovie(p=>({...p,selectedTime:time,scheduleId}));
-    setPrices(parseInt(time.split(':')[0],10)>=18?PRICES.prime:PRICES.standard);
+    const selected = availableSchedules.find(s => String(s._id) === String(scheduleId));
+    setPrices(pricesFromSchedule(selected, movie));
     fetchTakenSeats(scheduleId);
-  }, [movie.selectedDate]);
+  }, [movie, availableSchedules]);
 
   const handleCheckout = async (e) => {
   e.preventDefault();
   setLoading(true);
   setError(null);
+  if (!localStorage.getItem('token')) {
+    setError('Тасалбар захиалахын тулд эхлээд нэвтэрнэ үү.');
+    setLoading(false);
+    return;
+  }
    const freshRes = await fetch(`${API_BASE_URL}/schedules/seats/${movie.scheduleId}`, {
     headers: getHeaders()
   });
@@ -1189,21 +1321,24 @@ const conflict = seats.find(s => freshTaken.has(s.id));
         seats:      seats.map(s=>({seatId:s.id,type:s.type})),
         totalPrice,
         customer:   form,
+        paymentMethod: 'wire',
         status:     'pending',
         ...(movie.hall?{hall:movie.hall}:{}),
       };
 
-      let bookId;
-      try {
-        const res  = await fetch(`${API_BASE_URL}/bookings`, {method:'POST',headers:getHeaders(),body:JSON.stringify(payload)});
-        const data = await handleResponse(res);
-        bookId = data.bookingId || data.booking?._id || data._id || genOrderId();
-      } catch {
-        bookId = genOrderId();
+      const res  = await fetch(`${API_BASE_URL}/bookings`, {method:'POST',headers:getHeaders(),body:JSON.stringify(payload)});
+      if (res.status === 401) {
+        throw new Error('Нэвтрэх хугацаа дууссан байна. Дахин нэвтэрч захиалгаа үргэлжлүүлнэ үү.');
+      }
+      const data = await handleResponse(res);
+      const bookId = data.bookingId || data.booking?._id || data._id;
+
+      if (!bookId) {
+        throw new Error('Захиалгын дугаар үүссэнгүй. Дахин оролдоно уу.');
       }
 
       setPendingId(bookId);
-      setShowQPay(true);
+      setShowWire(true);
     } catch (err) {
       setError(err.message || 'Алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
@@ -1211,8 +1346,8 @@ const conflict = seats.find(s => freshTaken.has(s.id));
     }
   };
 
-  const handleQPaySuccess = useCallback(async () => {
-    setShowQPay(false);
+  const handleWireSuccess = useCallback(async () => {
+    setShowWire(false);
     setOrderId(pendingId);
     clearInterval(timerRef.current);
     timerRef.current = null;
@@ -1220,8 +1355,8 @@ const conflict = seats.find(s => freshTaken.has(s.id));
     setStep(3);
   }, [pendingId]);
 
-  const handleQPayClose = useCallback(() => {
-    setShowQPay(false);
+  const handleWireClose = useCallback(() => {
+    setShowWire(false);
   }, []);
 
   const totalPrice = useMemo(()=>seats.reduce((a,s)=>a+(s.type==='adult'?prices.adult:prices.child),0),[seats,prices]);
@@ -1285,14 +1420,14 @@ const conflict = seats.find(s => freshTaken.has(s.id));
         />
       )}
 
-      {showQPay && (
-        <QPayModal
+      {showWire && (
+        <WireCheckoutModal
           bookingId={pendingId}
           amount={totalPrice}
           seats={seats.map(s=>s.id)}
           movieTitle={movie.title}
-          onSuccess={handleQPaySuccess}
-          onClose={handleQPayClose}
+          onSuccess={handleWireSuccess}
+          onClose={handleWireClose}
         />
       )}
     </div>
