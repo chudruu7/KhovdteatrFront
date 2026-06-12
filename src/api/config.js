@@ -1,5 +1,8 @@
-// src/api/config.js 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://khovdteatrbackend.onrender.com/api';
+// src/api/config.js
+const LOCAL_API_URL = 'http://localhost:5000/api';
+const PRODUCTION_API_URL = 'https://khovdteatrbackend.onrender.com/api';
+
+export const API_BASE_URL = import.meta.env.VITE_API_URL || PRODUCTION_API_URL;
 
 const getToken = () => localStorage.getItem('token');
 const setToken = (token) => localStorage.setItem('token', token);
@@ -30,14 +33,67 @@ const getOptions = (method, data) => ({
   ...(data ? { body: JSON.stringify(data) } : {})
 });
 
-const requestWithTimeout = async (url, options, timeoutMs = 12000) => {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isRetryableError = (error) => (
+  error?.name === 'AbortError' ||
+  error?.message?.includes('Failed to fetch') ||
+  error?.message?.includes('Back-end server')
+);
+
+const isRetryableStatus = (status) => [502, 503, 504].includes(status);
+
+const requestWithTimeout = async (url, options, timeoutMs = 45000) => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const timeoutId = setTimeout(() => {
+    controller.abort('request_timeout');
+  }, timeoutMs);
 
   try {
     return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      throw new Error('Back-end server асаж байна. Түр хүлээгээд дахин оролдоно уу.');
+    }
+    throw error;
   } finally {
     clearTimeout(timeoutId);
+  }
+};
+
+const requestWithRetry = async (url, options, { retries = 4, timeoutMs = 45000 } = {}) => {
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const response = await requestWithTimeout(url, options, timeoutMs);
+
+      if (!isRetryableStatus(response.status) || attempt === retries) {
+        return response;
+      }
+
+      lastError = new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableError(error) || attempt === retries) {
+        throw error;
+      }
+    }
+
+    await sleep(3000 * (attempt + 1));
+  }
+
+  throw lastError || new Error('Хүсэлт амжилтгүй боллоо.');
+};
+
+const readErrorMessage = async (response, fallback) => {
+  const text = await response.text();
+  console.error(fallback, response.status, text);
+  try {
+    const parsed = JSON.parse(text);
+    return parsed.message || parsed.error || `HTTP error! status: ${response.status}`;
+  } catch {
+    return `HTTP error! status: ${response.status}`;
   }
 };
 
@@ -46,12 +102,10 @@ const api = {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('GET request to:', url);
     
-    const response = await requestWithTimeout(url, getOptions('GET'));
+    const response = await requestWithRetry(url, getOptions('GET'));
     
     if (!response.ok) {
-      const text = await response.text();
-      console.error('GET Response not OK:', response.status, text);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(await readErrorMessage(response, 'GET Response not OK:'));
     }
     return response.json();
   },
@@ -63,17 +117,7 @@ const api = {
     const response = await requestWithTimeout(url, getOptions('POST', data));
     
     if (!response.ok) {
-      const text = await response.text();
-      console.error('POST Response not OK:', response.status, text);
-      try {
-        const parsed = JSON.parse(text);
-        throw new Error(parsed.message || `HTTP error! status: ${response.status}`);
-      } catch (parseError) {
-        if (parseError instanceof SyntaxError) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        throw parseError;
-      }
+      throw new Error(await readErrorMessage(response, 'POST Response not OK:'));
     }
     return response.json();
   },
@@ -85,9 +129,7 @@ const api = {
     const response = await requestWithTimeout(url, getOptions('PUT', data));
     
     if (!response.ok) {
-      const text = await response.text();
-      console.error('PUT Response not OK:', response.status, text);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(await readErrorMessage(response, 'PUT Response not OK:'));
     }
     return response.json();
   },
@@ -99,9 +141,7 @@ const api = {
     const response = await requestWithTimeout(url, getOptions('DELETE'));
     
     if (!response.ok) {
-      const text = await response.text();
-      console.error('DELETE Response not OK:', response.status, text);
-      throw new Error(`HTTP error! status: ${response.status}`);
+      throw new Error(await readErrorMessage(response, 'DELETE Response not OK:'));
     }
     return response.json();
   }

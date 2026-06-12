@@ -4,9 +4,14 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
 const getDevApiUrl = () => {
-  const hostUri = Constants.expoConfig?.hostUri || Constants.manifest2?.extra?.expoClient?.hostUri;
-  const host = hostUri?.split(':')[0];
-  return host ? `http://${host}:5000/api` : 'http://localhost:5000/api';
+  const configuredUrl = Constants.expoConfig?.extra?.apiUrl || process.env.EXPO_PUBLIC_API_URL;
+  if (configuredUrl) return configuredUrl;
+
+  if (Platform.OS === 'web') {
+    return 'https://khovdteatrbackend.onrender.com/api';
+  }
+
+  return 'https://khovdteatrbackend.onrender.com/api';
 };
 
 export const BASE_URL = __DEV__
@@ -33,9 +38,16 @@ export const removeToken = async () => {
 
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 10000,
+  timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 });
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const isRetryableWakeupError = (error: any) => {
+  const status = error?.response?.status;
+  return !error?.response || status === 502 || status === 503 || status === 504;
+};
 
 api.interceptors.request.use(
   async (config) => {
@@ -44,6 +56,29 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error?.config;
+    const method = String(config?.method || 'get').toLowerCase();
+    const canRetry = method === 'get' || method === 'head';
+
+    if (!config || !canRetry || !isRetryableWakeupError(error)) {
+      return Promise.reject(error);
+    }
+
+    const retryConfig = config as typeof config & { __retryCount?: number };
+    retryConfig.__retryCount = Number(retryConfig.__retryCount || 0) + 1;
+    if (retryConfig.__retryCount > 4) {
+      error.message = 'Back-end server асаж байна. Түр хүлээгээд дахин оролдоно уу.';
+      return Promise.reject(error);
+    }
+
+    await sleep(3500 * retryConfig.__retryCount);
+    return api(retryConfig);
+  }
 );
 
 // ─── AUTH API ──────────────────────────────────────────────────────────────────
@@ -62,8 +97,14 @@ export const authAPI = {
     const { data } = await api.post('/auth/social-login', payload);
     return data;
   },
-  register: async (name: string, email: string, password: string, phone: string) => {
-    const { data } = await api.post('/auth/register', { name, email, password, phone });
+  register: async (payload: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+    avatarUrl?: string;
+  }) => {
+    const { data } = await api.post('/auth/register', payload);
     return data;
   },
   getProfile: async () => {
@@ -136,7 +177,7 @@ export const scheduleAPI = {
     return data;
   },
 
-  // Кино + өдрөөр — хэрэгтэй бол
+  // Үзвэр + өдрөөр — хэрэгтэй бол
   getByMovieAndDate: async (movieId: string, date: string) => {
     if (!movieId) {
       const { data } = await api.get(`/schedules?date=${date}`);
@@ -146,7 +187,7 @@ export const scheduleAPI = {
     return data;
   },
 
-  // Киноны бүх хуваарь
+  // Үзвэрийн бүх хуваарь
   getByMovie: async (movieId: string) => {
     const { data } = await api.get(`/schedules/${movieId}`);
     return data;
@@ -173,6 +214,10 @@ export const bookingAPI = {
     const { data } = await api.get(`/bookings/${bookingId}`);
     return data;
   },
+  resendConfirmation: async (bookingId: string) => {
+    const { data } = await api.post(`/bookings/${bookingId}/resend-confirmation`, {});
+    return data;
+  },
 };
 
 export const qpayAPI = {
@@ -181,7 +226,7 @@ export const qpayAPI = {
     return data;
   },
   checkPayment: async (invoiceId: string) => {
-    const { data } = await api.get(`/qpay/payment/${invoiceId}`);
+    const { data } = await api.get(`/qpay/payment/${invoiceId}`, { timeout: 60000 });
     return data;
   },
   confirmBooking: async (bookingId: string) => {
@@ -189,7 +234,7 @@ export const qpayAPI = {
     return data;
   },
   testComplete: async (invoiceId: string, bookingId: string) => {
-    const { data } = await api.post(`/qpay/test-complete/${invoiceId}`, { bookingId });
+    const { data } = await api.post(`/qpay/test-complete/${invoiceId}`, { bookingId }, { timeout: 60000 });
     return data;
   },
   cancelBooking: async (bookingId: string) => {
@@ -198,6 +243,17 @@ export const qpayAPI = {
   },
   cancelInvoice: async (invoiceId: string) => {
     const { data } = await api.delete(`/qpay/invoice/${invoiceId}`);
+    return data;
+  },
+};
+
+export const wireAPI = {
+  createCheckout: async (payload: { bookingId: string; successUrl?: string }) => {
+    const { data } = await api.post('/wire/checkout', payload);
+    return data;
+  },
+  checkPaymentStatus: async (bookingId: string) => {
+    const { data } = await api.get(`/wire/payments/${bookingId}/status`, { timeout: 60000 });
     return data;
   },
 };
