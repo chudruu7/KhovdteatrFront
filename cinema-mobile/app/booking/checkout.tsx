@@ -182,7 +182,7 @@ export default function CheckoutScreen() {
         const alreadyPaid = await isBookingPaid(bId);
         if (!alreadyPaid) {
           paidRef.current = false;
-          setErrMsg(error?.response?.data?.message || 'Ð¢Ó©Ð»Ð±Ó©Ñ€ Ð±Ð°Ñ‚Ð°Ð»Ð³Ð°Ð°Ð¶ÑƒÑƒÐ»Ð°Ñ…Ð°Ð´ Ð°Ð»Ð´Ð°Ð° Ð³Ð°Ñ€Ð»Ð°Ð°. Ð”Ð°Ñ…Ð¸Ð½ Ð¾Ñ€Ð¾Ð»Ð´Ð¾Ð½Ð¾ ÑƒÑƒ.');
+          setErrMsg(error?.response?.data?.message || 'Төлбөр баталгаажуулахад алдаа гарлаа. Дахин оролдоно уу.');
           setQpayStep('error');
           return;
         }
@@ -216,7 +216,7 @@ export default function CheckoutScreen() {
         await completePaidBooking(bookingId);
         return;
       }
-      setErrMsg(error?.response?.data?.message || 'Ð¢ÐµÑÑ‚ Ñ‚Ó©Ð»Ð±Ó©Ñ€ Ð±Ð°Ñ‚Ð°Ð»Ð³Ð°Ð°Ð¶ÑƒÑƒÐ»Ð°Ñ…Ð°Ð´ Ð°Ð»Ð´Ð°Ð° Ð³Ð°Ñ€Ð»Ð°Ð°.');
+      setErrMsg(error?.response?.data?.message || 'Тест төлбөр баталгаажуулахад алдаа гарлаа.');
       setQpayStep('error');
       return;
     }
@@ -237,7 +237,7 @@ export default function CheckoutScreen() {
         seats:      seats.map(s => s.id),
         movieTitle: params.movieTitle,
       });
-      if (!res.success) throw new Error('Invoice Ò¯Ò¯ÑÐ³ÑÑ…ÑÐ´ Ð°Ð»Ð´Ð°Ð° Ð³Ð°Ñ€Ð»Ð°Ð°');
+      if (!res.success) throw new Error('Invoice үүсгэхэд алдаа гарлаа');
       const { invoiceId: ivId, qrCode: qr, urls = [] } = res.data;
       setInvoiceId(ivId);
       setQrCode(qr || '');
@@ -246,7 +246,7 @@ export default function CheckoutScreen() {
       startPoll(ivId, bId);
       startTimer();
     } catch (e: any) {
-      setErrMsg(e?.message || 'QPay Ñ…Ð¾Ð»Ð±Ð¾Ð»Ñ‚Ñ‹Ð½ Ð°Ð»Ð´Ð°Ð°');
+      setErrMsg(e?.message || 'QPay холболтын алдаа');
       setQpayStep('error');
     }
   };
@@ -310,7 +310,7 @@ export default function CheckoutScreen() {
         if (prev <= 1) {
           cleanup();
           setQpayStep('error');
-          setErrMsg('Ð¢Ó©Ð»Ð±Ó©Ñ€Ð¸Ð¹Ð½ Ñ…ÑƒÐ³Ð°Ñ†Ð°Ð° Ð´ÑƒÑƒÑÐ»Ð°Ð°. Ð”Ð°Ñ…Ð¸Ð½ Ð¾Ñ€Ð¾Ð»Ð´Ð¾Ð½Ð¾ ÑƒÑƒ.');
+          setErrMsg('Төлбөрийн хугацаа дууслаа. Дахин оролдоно уу.');
           return 0;
         }
         return prev - 1;
@@ -333,12 +333,12 @@ export default function CheckoutScreen() {
   // â”€â”€ Main pay handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const handlePay = async () => {
     if (!isBookableShowTime(params.showTime, params.date, params.time)) {
-      Alert.alert('ÐÐ½Ñ…Ð°Ð°Ñ€ÑƒÑƒÐ»Ð³Ð°', 'Ð­Ð½Ñ Ò¯Ð·Ð²ÑÑ€Ð¸Ð¹Ð½ Ñ†Ð°Ð³ Ó©Ð½Ð³Ó©Ñ€ÑÓ©Ð½ Ñ‚ÑƒÐ» Ñ‚Ð°ÑÐ°Ð»Ð±Ð°Ñ€ Ð·Ð°Ñ…Ð¸Ð°Ð»Ð°Ñ… Ð±Ð¾Ð»Ð¾Ð¼Ð¶Ð³Ò¯Ð¹.');
+      Alert.alert('Анхааруулга', 'Энэ үзвэрийн цаг өнгөрсөн тул тасалбар захиалах боломжгүй.');
       safeBack(router, '/booking/seats');
       return;
     }
     if (!name.trim() || !email.trim() || !phone.trim()) {
-      Alert.alert('ÐÐ½Ñ…Ð°Ð°Ñ€ÑƒÑƒÐ»Ð³Ð°', 'Ð‘Ò¯Ñ… Ñ‚Ð°Ð»Ð±Ð°Ñ€Ñ‹Ð³ Ð±Ó©Ð³Ð»Ó©Ð½Ó© Ò¯Ò¯');
+      Alert.alert('Анхааруулга', 'Бүх талбарыг бөглөнө үү');
       return;
     }
     setLoading(true);
@@ -362,7 +362,7 @@ export default function CheckoutScreen() {
         status:     'pending',
       });
       const bId = res.bookingId || res.booking?._id || res._id;
-      if (!bId) throw new Error('Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ñ‹Ð½ Ð´ÑƒÐ³Ð°Ð°Ñ€ Ò¯Ò¯ÑÑÑÐ½Ð³Ò¯Ð¹. Ð”Ð°Ñ…Ð¸Ð½ Ð¾Ñ€Ð¾Ð»Ð´Ð¾Ð½Ð¾ ÑƒÑƒ.');
+      if (!bId) throw new Error('Захиалгын дугаар үүссэнгүй. Дахин оролдоно уу.');
       const bookedTotalPrice = Number(res.totalPrice || res.booking?.totalPrice) || totalPrice;
       setConfirmedTotalPrice(bookedTotalPrice);
       payableTotalRef.current = bookedTotalPrice;
@@ -372,7 +372,7 @@ export default function CheckoutScreen() {
     } catch (error: any) {
       const message = error?.response?.data?.message
         || error?.message
-        || 'Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ò¯Ò¯ÑÐ³ÑÑ…ÑÐ´ Ð°Ð»Ð´Ð°Ð° Ð³Ð°Ñ€Ð»Ð°Ð°. Ð”Ð°Ñ…Ð¸Ð½ Ð¾Ñ€Ð¾Ð»Ð´Ð¾Ð½Ð¾ ÑƒÑƒ.';
+        || 'Захиалга үүсгэхэд алдаа гарлаа. Дахин оролдоно уу.';
       setErrMsg(message);
       setQpayStep('error');
     } finally {
@@ -493,12 +493,12 @@ export default function CheckoutScreen() {
                 </View>
 
                 <Text style={[styles.timer, { color: timeLeft < 30 ? colors.coral : colors.teal }]}>
-                  â± {fmt(timeLeft)} Ð´Ð¾Ñ‚Ð¾Ñ€ Ñ‚Ó©Ð»Ð½Ó© Ò¯Ò¯
+                  ⏱ {fmt(timeLeft)} дотор төлнө үү
                 </Text>
 
                 {bankUrls.length > 0 && (
                   <>
-                    <Text style={styles.qpayHint}>Ð­ÑÐ²ÑÐ» Ð±Ð°Ð½ÐºÐ°Ð° ÑÐ¾Ð½Ð³Ð¾Ð½Ð¾ ÑƒÑƒ:</Text>
+                    <Text style={styles.qpayHint}>Эсвэл банкаа сонгоно уу:</Text>
                     <View style={styles.banksGrid}>
                       {bankUrls.slice(0, 6).map((u, i) => (
                         <TouchableOpacity
@@ -508,21 +508,21 @@ export default function CheckoutScreen() {
                             if (u?.link) Linking.openURL(u.link).catch(() => {});
                           }}
                         >
-                          <Text style={styles.bankText}>{u?.name || `Ð‘Ð°Ð½Ðº ${i + 1}`}</Text>
+                          <Text style={styles.bankText}>{u?.name || `Банк ${i + 1}`}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
                   </>
                 )}
 
-                <Text style={styles.qpayHint}>Ð‘Ð°Ð½ÐºÐ½Ñ‹ Ð°Ð¿Ð¿Ð°Ð°Ñ€Ð°Ð° QR ÑƒÐ½ÑˆÑƒÑƒÐ»Ð½Ð° ÑƒÑƒ</Text>
+                <Text style={styles.qpayHint}>Банкны апп-аараа QR уншуулна уу</Text>
 
                 <TouchableOpacity
                   style={styles.testPayBtn}
                   onPress={completeTestPayment}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.testPayText}>[TEST] Ð¢Ó©Ð»Ó©Ð³Ð´ÑÓ©Ð½ Ð±Ð¾Ð»Ð³Ð¾Ñ…</Text>
+                  <Text style={styles.testPayText}>[TEST] Төлөгдсөн болгох</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -531,10 +531,10 @@ export default function CheckoutScreen() {
             {qpayStep === 'success' && (
               <>
                 <View style={[styles.resultIcon, styles.resultIconSuccess]}>
-                  <Text style={{ fontSize: 32 }}>âœ“</Text>
+                  <Text style={{ fontSize: 32 }}>✓</Text>
                 </View>
-                <Text style={[styles.resultTitle, { color: colors.teal }]}>Ð¢Ó©Ð»Ð±Ó©Ñ€ Ð°Ð¼Ð¶Ð¸Ð»Ñ‚Ñ‚Ð°Ð¹!</Text>
-                <Text style={styles.qpayHint}>Ð¢Ð°ÑÐ°Ð»Ð±Ð°Ñ€ Ð±ÑÐ»Ð´ÑÐ¶ Ð±Ð°Ð¹Ð½Ð°â€¦</Text>
+                <Text style={[styles.resultTitle, { color: colors.teal }]}>Төлбөр амжилттай!</Text>
+                <Text style={styles.qpayHint}>Тасалбар бэлдэж байна...</Text>
                 <ActivityIndicator color={colors.teal} style={{ marginTop: SPACING.md }} />
               </>
             )}
@@ -543,16 +543,16 @@ export default function CheckoutScreen() {
             {qpayStep === 'error' && (
               <>
                 <View style={[styles.resultIcon, styles.resultIconError]}>
-                  <Text style={{ fontSize: 32 }}>âœ•</Text>
+                  <Text style={{ fontSize: 32 }}>×</Text>
                 </View>
-                <Text style={[styles.resultTitle, { color: colors.coral }]}>ÐÐ»Ð´Ð°Ð° Ð³Ð°Ñ€Ð»Ð°Ð°</Text>
+                <Text style={[styles.resultTitle, { color: colors.coral }]}>Алдаа гарлаа</Text>
                 <Text style={styles.qpayHint}>{errMsg}</Text>
                 <TouchableOpacity
                   style={styles.retryBtn}
                   onPress={() => initWireCheckout(bookingId)}
                   activeOpacity={0.8}
                 >
-                  <Text style={styles.retryText}>Ð”Ð°Ñ…Ð¸Ð½ Ð¾Ñ€Ð¾Ð»Ð´Ð¾Ñ…</Text>
+                  <Text style={styles.retryText}>Дахин оролдох</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -566,18 +566,18 @@ export default function CheckoutScreen() {
   // Checkout form
   // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const summaryRows: [string, string | null][] = [
-    ['Ò®Ð·Ð²ÑÑ€',      params.movieTitle || null],
-    ['ÐžÐ³Ð½Ð¾Ð¾',     params.date       || null],
-    ['Ð¦Ð°Ð³',       params.time       || null],
-    ['Ð¡ÑƒÑƒÐ´Ð»ÑƒÑƒÐ´',  seats.map(s => s.id).join(', ')  || null],
-    ['Ð¢Ð¾Ð¼ Ñ…Ò¯Ð½',   adultCount > 0 ? `${adultCount} Ã— ${money(prices.adult)}` : null],
-    ['Ð¥Ò¯Ò¯Ñ…ÑÐ´',    childCount > 0 ? `${childCount} Ã— ${money(prices.child)}` : null],
+    ['Үзвэр',      params.movieTitle || null],
+    ['Огноо',     params.date       || null],
+    ['Цаг',       params.time       || null],
+    ['Суудлууд',  seats.map(s => s.id).join(', ')  || null],
+    ['Том хүн',   adultCount > 0 ? `${adultCount} × ${money(prices.adult)}` : null],
+    ['Хүүхэд',    childCount > 0 ? `${childCount} × ${money(prices.child)}` : null],
   ];
 
   const fields = [
-    { label: 'ÐÐ­Ð ',   value: name,  set: setName,  placeholder: 'Ð¢Ð°Ð½Ñ‹ Ð½ÑÑ€',         type: 'default'       },
-    { label: 'Ð˜ÐœÐ­Ð™Ð›', value: email, set: setEmail, placeholder: 'name@example.com', type: 'email-address' },
-    { label: 'Ð£Ð¢ÐÐ¡',  value: phone, set: setPhone, placeholder: '9911xxxx',          type: 'phone-pad'     },
+    { label: 'НЭР',   value: name,  set: setName,  placeholder: 'Таны нэр',          type: 'default'       },
+    { label: 'ИМЭЙЛ', value: email, set: setEmail, placeholder: 'name@example.com', type: 'email-address' },
+    { label: 'УТАС',  value: phone, set: setPhone, placeholder: '9911xxxx',         type: 'phone-pad'     },
   ] as const;
 
   return (
@@ -589,9 +589,9 @@ export default function CheckoutScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => safeBack(router, '/booking/seats')} style={styles.backBtn} hitSlop={8}>
-            <Text style={styles.backText}>â†</Text>
+            <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ð° Ð±Ð°Ñ‚Ð°Ð»Ð³Ð°Ð°Ð¶ÑƒÑƒÐ»Ð°Ñ…</Text>
+          <Text style={styles.headerTitle}>Захиалга баталгаажуулах</Text>
           <View style={{ width: 38 }} />
         </View>
 
@@ -602,7 +602,7 @@ export default function CheckoutScreen() {
         >
           {/* Order summary */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Ð—Ð°Ñ…Ð¸Ð°Ð»Ð³Ñ‹Ð½ Ñ‚Ð¾Ð¹Ð¼</Text>
+            <Text style={styles.cardTitle}>Захиалгын тойм</Text>
             {summaryRows
               .filter((row): row is [string, string] => row[1] !== null)
               .map(([k, v]) => (
@@ -612,14 +612,14 @@ export default function CheckoutScreen() {
                 </View>
               ))}
             <View style={styles.totalRow}>
-              <Text style={styles.totalKey}>ÐÐ¸Ð¹Ñ‚ Ð´Ò¯Ð½</Text>
+              <Text style={styles.totalKey}>Нийт дүн</Text>
               <Text style={styles.totalVal}>{money(payableTotal)}</Text>
             </View>
           </View>
 
           {/* Customer info */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Ð¥ÑƒÐ²Ð¸Ð¹Ð½ Ð¼ÑÐ´ÑÑÐ»ÑÐ»</Text>
+            <Text style={styles.cardTitle}>Хувийн мэдээлэл</Text>
             {fields.map(f => (
               <View key={f.label} style={styles.field}>
                 <Text style={styles.fieldLabel}>{f.label}</Text>
@@ -639,10 +639,10 @@ export default function CheckoutScreen() {
 
           {/* Warning */}
           <View style={styles.warning}>
-            <Text style={styles.warningTitle}>âš  ÐÐ½Ñ…Ð°Ð°Ñ€ÑƒÑƒÐ»Ð³Ð°</Text>
-            <Text style={styles.warningText}>â€¢ Ò®Ð·Ð²ÑÑ€, Ð¾Ð³Ð½Ð¾Ð¾, Ñ†Ð°Ð³Ð°Ð° ÑÐ°Ð¹Ñ‚Ð°Ñ€ ÑˆÐ°Ð»Ð³Ð°Ð½Ð° ÑƒÑƒ.</Text>
-            <Text style={styles.warningText}>â€¢ Ð¢Ó©Ð»Ð±Ó©Ñ€ Ñ‚Ó©Ð»ÑÐ½Ð¸Ð¹ Ð´Ð°Ñ€Ð°Ð° Ñ‚Ð°ÑÐ°Ð»Ð±Ð°Ñ€ Ð±ÑƒÑ†Ð°Ð°Ñ… Ð±Ð¾Ð»Ð¾Ð¼Ð¶Ð³Ò¯Ð¹.</Text>
-            <Text style={styles.warningText}>â€¢ Ð¦Ð°Ð³ ÑÑ…Ð»ÑÑ…ÑÑÑ 10 Ð¼Ð¸Ð½ÑƒÑ‚Ñ‹Ð½ Ó©Ð¼Ð½Ó© Ð¸Ñ€Ð½Ñ Ò¯Ò¯.</Text>
+            <Text style={styles.warningTitle}>⚠ Анхааруулга</Text>
+            <Text style={styles.warningText}>• Үзвэр, огноо, цагаа сайн шалгана уу.</Text>
+            <Text style={styles.warningText}>• Төлбөр төлсний дараа тасалбар буцаах боломжгүй.</Text>
+            <Text style={styles.warningText}>• Цаг эхлэхээс 10 минутын өмнө ирнэ үү.</Text>
           </View>
 
           <View style={{ height: 120 }} />
@@ -661,7 +661,7 @@ export default function CheckoutScreen() {
                 <ActivityIndicator color="#0f261c" />
               ) : (
                 <Text style={styles.payText}>
-                  Wire-Ñ€ Ñ‚Ó©Ð»Ó©Ñ… Â· {money(payableTotal)}
+                  Wire-р төлөх · {money(payableTotal)}
                 </Text>
               )}
             </LinearGradient>
