@@ -16,6 +16,24 @@ function formatTime(seconds) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 }
 
+function QPayMark({ logo }) {
+  if (logo) {
+    return <img src={logo} alt="qPay" className="h-7 w-7 rounded-lg object-contain" />;
+  }
+
+  return (
+    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#0b4f91]">
+      <svg viewBox="0 0 32 32" className="h-6 w-6" aria-label="qPay logo">
+        <circle cx="16" cy="16" r="11" fill="#ffffff" />
+        <path
+          d="M22.8 22.2 27 26.3l-4.4 1-2.2-2.2A10.2 10.2 0 1 1 26.2 16h-5.3a4.9 4.9 0 1 0-1.8 3.8l-2.8-2.8h6.5v5.2Z"
+          fill="#0b4f91"
+        />
+      </svg>
+    </div>
+  );
+}
+
 function parseWireAction(nextAction) {
   const banks = [];
   const qrImages = [];
@@ -84,6 +102,7 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
   const [timeLeft, setTimeLeft] = useState(PAYMENT_TIMEOUT_SECS);
   const [nextAction, setNextAction] = useState(null);
   const [checking, setChecking] = useState(false);
+  const [isMobilePaymentView, setIsMobilePaymentView] = useState(false);
   const pollRef = useRef(null);
   const timerRef = useRef(null);
   const paidRef = useRef(false);
@@ -91,6 +110,21 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
   const statusCheckRef = useRef(false);
 
   const action = useMemo(() => parseWireAction(nextAction), [nextAction]);
+  const qpayLogo = useMemo(() => (
+    action.banks.find((bank) => /q\s*pay|qpay/i.test(bank.label || ''))?.logo || ''
+  ), [action.banks]);
+
+  useEffect(() => {
+    const updatePaymentView = () => {
+      const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches;
+      const smallScreen = window.matchMedia?.('(max-width: 640px)').matches;
+      setIsMobilePaymentView(Boolean(coarsePointer && smallScreen));
+    };
+
+    updatePaymentView();
+    window.addEventListener('resize', updatePaymentView);
+    return () => window.removeEventListener('resize', updatePaymentView);
+  }, []);
 
   const cleanup = () => {
     clearInterval(pollRef.current);
@@ -214,10 +248,8 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
 
         <div className="flex items-center justify-between border-b border-gray-100 px-5 pb-3 pt-1">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-600">
-              <span className="text-sm font-bold text-white">W</span>
-            </div>
-            <span className="text-[15px] font-semibold text-gray-900">Wire checkout</span>
+            <QPayMark logo={qpayLogo} />
+            <span className="text-[15px] font-semibold text-gray-900">Төлбөрийн арга</span>
           </div>
           <button onClick={handleClose} className="flex h-7 w-7 items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors text-sm">
             ×
@@ -243,7 +275,7 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
         {step === 'loading' && (
           <div className="flex flex-col items-center justify-center gap-3 py-16">
             <div className="h-9 w-9 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
-            <p className="text-sm text-gray-500">Wire checkout бэлдэж байна...</p>
+            <p className="text-sm text-gray-500">Нэхэмжлэх үүсгэж байна...</p>
           </div>
         )}
 
@@ -263,11 +295,17 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
               </div>
             </div>
 
-            <p className="mb-3 text-center text-sm text-gray-500 leading-relaxed">
+            {!isMobilePaymentView && (
+              <p className="mb-3 text-center text-sm text-gray-500 leading-relaxed">
+                QR кодыг банкны апп-аараа уншуулж төлбөрөө төлнө үү.
+              </p>
+            )}
+
+            <p className={`${isMobilePaymentView ? '' : 'hidden'} mb-3 text-center text-sm text-gray-500 leading-relaxed`}>
               QR уншуулах эсвэл доорх банкнаас сонгож апп руугаа шилжин төлбөрөө төлнө үү.
             </p>
 
-            {action.banks.length > 0 && (
+            {isMobilePaymentView && action.banks.length > 0 && (
               <div className="grid grid-cols-4 gap-2 max-h-56 overflow-y-auto pr-1">
                 {action.banks.map((bank, index) => (
                   <button

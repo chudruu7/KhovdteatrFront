@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 
 // --- Assets & Data ---
-const HERO_IMAGE = "https://scontent.fuln1-1.fna.fbcdn.net/v/t39.30808-6/476967268_929474882684572_2942961818996190460_n.jpg?_nc_cat=107&ccb=1-7&_nc_sid=2a1932&_nc_ohc=vQ7LWsEoKWIQ7kNvwHV7f7F&_nc_oc=Ado1Qf_69WZp7P0lEV-TldhjLr5WUmqtuOBmzSBS5MtfTd3QMLyXEteSEP6FgdH8olw&_nc_zt=23&_nc_ht=scontent.fuln1-1.fna&_nc_gid=qHD1PgLbRkGuq5HnDO9wPg&_nc_ss=7a3a8&oh=00_Af3LWoot6JIWs4NgbFBn7sCZ7F_5jwGvcc3inh7Z03jDjg&oe=69EE7CED";
+const HERO_IMAGE = "/teatrbackground.jpg";
 
 const STATS = [
     { label: "Байгуулагдсан он", value: "1950" },
@@ -65,7 +65,7 @@ const About = () => {
                         <div className="w-full md:w-1/2 relative">
                             <div className="absolute -top-10 -left-10 w-32 h-32 bg-red-600 rounded-full blur-[80px] opacity-40 dark:opacity-20"></div>
                             <img 
-                                src="https://scontent.fuln1-1.fna.fbcdn.net/v/t1.6435-9/173006689_278902727144141_1540042823781681460_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=2a1932&_nc_ohc=GlDHJZUIdcIQ7kNvwHnQHTL&_nc_oc=Adq_EWAWnOA1hUzt05WdhFGbegG_GhChzQkR1QPjcYO9xj2wN42tnUZcbcOxBlL0qyU&_nc_zt=23&_nc_ht=scontent.fuln1-1.fna&_nc_gid=WnChQqBJj-4p5Dk-dxzBpg&_nc_ss=7a3a8&oh=00_Af1IhvBuSRVkBJxO01tXykU_OL986txW36k4Q-OyET8aZw&oe=6A100806" 
+                                src="/anhni%20teart.jpg" 
                                 alt="Audience" 
                                 className="rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 grayscale hover:grayscale-0 transition-all duration-700 ease-in-out"
                             />
@@ -111,7 +111,7 @@ const About = () => {
                         {/* Box 1 */}
                         <div className="md:col-span-2 md:row-span-2 relative group overflow-hidden rounded-3xl border border-gray-200 dark:border-white/10">
                             <img 
-                                src="https://scontent.fuln1-1.fna.fbcdn.net/v/t39.30808-6/607853909_3124769451043899_1732635920897859390_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=109&ccb=1-7&_nc_sid=7b2446&_nc_ohc=x9b_dIHN7JUQ7kNvwGLvbC3&_nc_oc=AdrcBrw-bojMmIxJ02Wvu-HYiNJhg3VYgB0gw6LnOrIxQRG-IDje5Wzf6eGEZFQSkVI&_nc_zt=23&_nc_ht=scontent.fuln1-1.fna&_nc_gid=y-GY3i3yxtgp8Tf3ayiCaQ&_nc_ss=7b2a8&oh=00_Af7GQGV6EewvQf23kW7HxmdbUKqPTl7naG2iOSMiURk57g&oe=6A08D171" 
+                                src="/teart.jpg" 
                                 alt="Seat" 
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />
@@ -138,7 +138,7 @@ const About = () => {
                         {/* Box 3 */}
                         <div className="relative bg-gray-50 dark:bg-[#111] rounded-3xl border border-gray-200 dark:border-white/10 overflow-hidden group">
                              <img 
-                                src="/public/seat.png" 
+                                src="/seat.png" 
                                 alt="Seat" 
                                 className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-700"
                             />

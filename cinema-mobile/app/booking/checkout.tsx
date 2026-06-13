@@ -688,7 +688,7 @@ export default function CheckoutScreen() {
                 <View style={styles.payBtnContent}>
                   <Ionicons name="card-outline" size={20} color="#ffffff" />
                   <Text style={styles.payText}>
-                    Төлбөр төлөх · {money(payableTotal)}
+                    Төлбөр төлөх
                   </Text>
                 </View>
               )}
