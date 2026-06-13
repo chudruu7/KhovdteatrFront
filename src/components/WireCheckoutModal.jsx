@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import wireAPI from '../api/wireAPI';
 
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_MS = 1000;
 const PAYMENT_TIMEOUT_SECS = 600;
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const isUrl = (value) => /^[a-z][a-z0-9+.-]*:\/\//i.test(String(value || ''));
 const isImageUrl = (value) => (
@@ -87,6 +88,7 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
   const timerRef = useRef(null);
   const paidRef = useRef(false);
   const initRef = useRef(false);
+  const statusCheckRef = useRef(false);
 
   const action = useMemo(() => parseWireAction(nextAction), [nextAction]);
 
@@ -107,12 +109,18 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
 
   const checkPaymentNow = async ({ silent = false } = {}) => {
     if (!bookingId || paidRef.current) return false;
+    if (statusCheckRef.current) return false;
+    statusCheckRef.current = true;
     if (!silent) setChecking(true);
     try {
-      const res = await wireAPI.checkPaymentStatus(bookingId);
-      if (res.success && res.paid) {
-        finishPaid();
-        return true;
+      const attempts = silent ? 1 : 5;
+      for (let attempt = 0; attempt < attempts; attempt += 1) {
+        const res = await wireAPI.checkPaymentStatus(bookingId);
+        if (res.success && res.paid) {
+          finishPaid();
+          return true;
+        }
+        if (!silent && attempt < attempts - 1) await wait(700);
       }
       if (!silent) setErrorMsg('Төлбөр хараахан баталгаажаагүй байна.');
       return false;
@@ -122,6 +130,7 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
       }
       return false;
     } finally {
+      statusCheckRef.current = false;
       if (!silent) setChecking(false);
     }
   };
@@ -243,7 +252,7 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
             <div className="flex justify-center mb-4">
               <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
                 {action.qrImage ? (
-                  <img src={action.qrImage} alt="QPay QR" className="h-52 w-52 object-contain" />
+                  <img src={action.qrImage} alt="Wire QR" className="h-52 w-52 object-contain" />
                 ) : action.qrText ? (
                   <QRCodeSVG value={action.qrText} size={208} includeMargin />
                 ) : (

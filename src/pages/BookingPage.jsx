@@ -1157,6 +1157,7 @@ export default function BookingPage() {
   const [pendingId,  setPendingId]  = useState(null);
 
   const timerRef = useRef(null);
+  const checkoutInFlightRef = useRef(false);
 
   useEffect(() => {
   const raw = location.state?.movie || { /* fallback */ };
@@ -1286,10 +1287,13 @@ useEffect(() => {
 
   const handleCheckout = async (e) => {
   e.preventDefault();
+  if (checkoutInFlightRef.current || loading || showWire) return;
+  checkoutInFlightRef.current = true;
   setLoading(true);
   setError(null);
   if (!localStorage.getItem('token')) {
     setError('Тасалбар захиалахын тулд эхлээд нэвтэрнэ үү.');
+    checkoutInFlightRef.current = false;
     setLoading(false);
     return;
   }
@@ -1303,11 +1307,13 @@ const conflict = seats.find(s => freshTaken.has(s.id));
     setTakenSeats(freshTaken); // UI шинэчлэх
     setSeats(prev => prev.filter(s => !freshTaken.has(s.id))); // давхардсан суудал хасах
     setError(`"${conflict.id}" суудал саяхан өөр хүн захиалсан байна. Дахин сонгоно уу.`);
+    checkoutInFlightRef.current = false;
     setLoading(false);
     return;
   }
     if (!movie.scheduleId) {
       setError('Цаг сонгоогүй байна. Цагаа сонгоно уу.');
+      checkoutInFlightRef.current = false;
       setLoading(false); return;
     }
 
@@ -1342,6 +1348,7 @@ const conflict = seats.find(s => freshTaken.has(s.id));
     } catch (err) {
       setError(err.message || 'Алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
+      checkoutInFlightRef.current = false;
       setLoading(false);
     }
   };

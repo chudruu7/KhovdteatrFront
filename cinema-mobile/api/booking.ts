@@ -10,7 +10,7 @@ export interface SeatSelection {
 export interface CreateBookingPayload {
   scheduleId: string;
   seats: SeatSelection[];
-  paymentMethod?: 'qpay' | 'cash';
+  paymentMethod?: 'wire' | 'cash';
 }
 
 export interface BookedSeat {
@@ -78,7 +78,7 @@ export const cancelBooking = async (bookingId: string): Promise<Booking> => {
   return data.booking;
 };
 
-/** QPay төлбөр шалгах */
+/** Wire төлбөр шалгах */
 export const checkPayment = async (bookingId: string): Promise<Booking> => {
   const { data } = await api.get<BookingResponse>(`/bookings/${bookingId}/payment-status`);
   return data.booking;

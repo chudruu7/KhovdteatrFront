@@ -7,7 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import QRCode from 'react-native-qrcode-svg';
-import { bookingAPI, qpayAPI, wireAPI } from '../../api';
+import { bookingAPI, wireAPI } from '../../api';
 import { useAuth } from '../../hooks/useAuth';
 import { SPACING, RADIUS, ThemeColors } from '../../constants/theme';
 import { useTheme } from '../../hooks/useTheme';
@@ -122,7 +122,7 @@ export default function CheckoutScreen() {
   const [phone, setPhone] = useState(user?.phone || '');
   const [loading, setLoading] = useState(false);
 
-  // QPay state
+  // Payment state
   const [qpayStep,  setQpayStep]  = useState<QpayStep>('idle');
   const [invoiceId, setInvoiceId] = useState('');
   const [qrCode,    setQrCode]    = useState('');
@@ -137,6 +137,9 @@ export default function CheckoutScreen() {
   const pollRef  = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const paidRef  = useRef(false);
+  const payInFlightRef = useRef(false);
+  const bankOpenInFlightRef = useRef(false);
+  const statusCheckInFlightRef = useRef(false);
 
   // ── Cleanup ────────────────────────────────────────────────────────────
   const cleanup = () => {
@@ -183,8 +186,8 @@ export default function CheckoutScreen() {
     let emailResult = knownEmailResult;
     if (!skipServerConfirm) {
       try {
-        const confirmResult = await qpayAPI.confirmBooking(bId);
-        emailResult = confirmResult?.email;
+        const alreadyPaid = await isBookingPaid(bId);
+        if (!alreadyPaid) throw new Error('Төлбөр хараахан баталгаажаагүй байна.');
       } catch (error: any) {
         const alreadyPaid = await isBookingPaid(bId);
         if (!alreadyPaid) {
@@ -211,54 +214,7 @@ export default function CheckoutScreen() {
     }
   };
 
-  const completeTestPayment = async () => {
-    if (!invoiceId || !bookingId || paidRef.current) return;
-    paidRef.current = true;
-    cleanup();
-    try {
-      const result = await qpayAPI.testComplete(invoiceId, bookingId);
-      const emailResult = result?.email || result?.data?.email;
-      setQpayStep('success');
-      setTimeout(() => goToTicket(bookingId, name.trim(), email.trim(), emailResult), 1200);
-      return;
-    } catch (error: any) {
-      paidRef.current = false;
-      if (await isBookingPaid(bookingId)) {
-        await completePaidBooking(bookingId);
-        return;
-      }
-      setErrMsg(error?.response?.data?.message || 'Тест төлбөр баталгаажуулахад алдаа гарлаа.');
-      setQpayStep('error');
-      return;
-    }
-  };
-
-  // ── QPay: create invoice ──────────────────────────────────────────────
-  const initQPay = async (bId: string) => {
-    paidRef.current = false;
-    setQpayStep('loading');
-    setTimeLeft(180);
-    cleanup();
-    try {
-      const res = await qpayAPI.createInvoice({
-        bookingId:  String(bId),
-        amount:     payableTotalRef.current,
-        seats:      seats.map(s => s.id),
-        movieTitle: params.movieTitle,
-      });
-      if (!res.success) throw new Error('Invoice үүсгэхэд алдаа гарлаа');
-      const { invoiceId: ivId, qrCode: qr, urls = [] } = res.data;
-      setInvoiceId(ivId);
-      setQrCode(qr || '');
-      setBankUrls(urls);
-      setQpayStep('qr');
-      startPoll(ivId, bId);
-      startTimer();
-    } catch (e: any) {
-      setErrMsg(e?.message || 'QPay холболтын алдаа');
-      setQpayStep('error');
-    }
-  };
+  const completeTestPayment = async () => {};
 
   const initWireCheckout = async (bId: string) => {
     paidRef.current = false;
@@ -289,23 +245,29 @@ export default function CheckoutScreen() {
 
   const startWirePoll = (bId: string) => {
     pollRef.current = setInterval(async () => {
-      if (paidRef.current) return;
+      if (paidRef.current || statusCheckInFlightRef.current) return;
+      statusCheckInFlightRef.current = true;
       try {
         const res = await wireAPI.checkPaymentStatus(bId);
         if (res.success && res.paid) {
-          await completePaidBooking(bId, true);
+          await completePaidBooking(bId, true, res.email);
         }
       } catch { /* silent — keep polling */ }
+      finally {
+        statusCheckInFlightRef.current = false;
+      }
     }, 3000);
   };
 
-  // ── QPay: poll payment status ─────────────────────────────────────────
+  // ── Wire: poll payment status ─────────────────────────────────────────
   const checkWirePaymentNow = async (messageWhenPending = 'Төлбөр хараахан баталгаажаагүй байна. Банкны апп дээр алдаа гарсан бол дахин QR уншуулахгүйгээр дансны хуулгаа шалгана уу.') => {
     if (!bookingId) {
       setErrMsg('Захиалгын дугаар олдсонгүй. Шинэ захиалга эхлүүлнэ үү.');
       return false;
     }
 
+    if (statusCheckInFlightRef.current) return false;
+    statusCheckInFlightRef.current = true;
     setCheckingWire(true);
     try {
       const res = await wireAPI.checkPaymentStatus(bookingId);
@@ -319,23 +281,26 @@ export default function CheckoutScreen() {
       setErrMsg(e?.response?.data?.message || 'Төлбөр баталгаажуулахад алдаа гарлаа. Давхар төлөлтөөс сэргийлж дахин QR уншуулахгүй байна.');
       return false;
     } finally {
+      statusCheckInFlightRef.current = false;
       setCheckingWire(false);
     }
   };
 
-  const startPoll = (ivId: string, bId: string) => {
-    pollRef.current = setInterval(async () => {
-      if (paidRef.current) return;
-      try {
-        const res = await qpayAPI.checkPayment(ivId);
-        if (res.success && res.data?.paid) {
-          await completePaidBooking(bId);
-        }
-      } catch { /* silent — keep polling */ }
-    }, 3000);
+  // Wire countdown timer ─────────────────────────────────────────────
+  const openBankUrl = async (url?: string) => {
+    if (!url || bankOpenInFlightRef.current) return;
+    bankOpenInFlightRef.current = true;
+    try {
+      await Linking.openURL(url);
+    } catch {
+      // Ignore deeplink failures; the payment status poll remains active.
+    } finally {
+      setTimeout(() => {
+        bankOpenInFlightRef.current = false;
+      }, 2500);
+    }
   };
 
-  // ── QPay: countdown timer ─────────────────────────────────────────────
   const startTimer = () => {
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
@@ -353,17 +318,15 @@ export default function CheckoutScreen() {
   // ── Cancel & go back ──────────────────────────────────────────────────
   const handleCancel = async () => {
     cleanup();
-    if (invoiceId) {
-      try { await qpayAPI.cancelInvoice(invoiceId); } catch { /* best-effort */ }
-    }
     if (bookingId) {
-      try { await qpayAPI.cancelBooking(bookingId); } catch { /* best-effort */ }
+      try { await bookingAPI.cancelBooking(bookingId); } catch { /* best-effort */ }
     }
     setQpayStep('idle');
   };
 
   // ── Main pay handler ──────────────────────────────────────────────────
   const handlePay = async () => {
+    if (payInFlightRef.current || loading || qpayStep !== 'idle') return;
     if (!isBookableShowTime(params.showTime, params.date, params.time)) {
       Alert.alert('Анхааруулга', 'Энэ үзвэрийн цаг өнгөрсөн тул тасалбар захиалах боломжгүй.');
       safeBack(router, '/booking/seats');
@@ -373,6 +336,7 @@ export default function CheckoutScreen() {
       Alert.alert('Анхааруулга', 'Бүх талбарыг бөглөнө үү');
       return;
     }
+    payInFlightRef.current = true;
     setLoading(true);
     try {
       const res = await bookingAPI.create({
@@ -408,12 +372,13 @@ export default function CheckoutScreen() {
       setErrMsg(message);
       setQpayStep('error');
     } finally {
+      payInFlightRef.current = false;
       setLoading(false);
     }
   };
 
   // ════════════════════════════════════════════════════════════════════════
-  // QPay overlay
+  // Payment overlay
   // ════════════════════════════════════════════════════════════════════════
   if (qpayStep !== 'idle') {
     return (
@@ -451,7 +416,7 @@ export default function CheckoutScreen() {
             {qpayStep === 'loading' && (
               <>
                 <ActivityIndicator color={colors.teal} size="large" style={{ marginTop: 16 }} />
-                <Text style={styles.qpayHint}>Wire checkout бэлдэж байна...</Text>
+                <Text style={styles.qpayHint}>Төлбөрийн QR үүсгэж байна...</Text>
               </>
             )}
 
@@ -489,9 +454,7 @@ export default function CheckoutScreen() {
                       <TouchableOpacity
                         key={`${u.link}-${i}`}
                         style={styles.bankBtn}
-                        onPress={() => {
-                          if (u?.link) Linking.openURL(u.link).catch(() => {});
-                        }}
+                        onPress={() => openBankUrl(u?.link)}
                         activeOpacity={0.7}
                       >
                         {u?.logo ? (
@@ -553,9 +516,7 @@ export default function CheckoutScreen() {
                         <TouchableOpacity
                           key={i}
                           style={styles.bankBtn}
-                          onPress={() => {
-                            if (u?.link) Linking.openURL(u.link).catch(() => {});
-                          }}
+                          onPress={() => openBankUrl(u?.link)}
                           activeOpacity={0.7}
                         >
                           <Text style={styles.bankText}>{u?.name || `Банк ${i + 1}`}</Text>
@@ -717,7 +678,7 @@ export default function CheckoutScreen() {
           <TouchableOpacity
             style={[styles.payBtn, loading && { opacity: 0.6 }]}
             onPress={handlePay}
-            disabled={loading}
+            disabled={loading || qpayStep !== 'idle'}
             activeOpacity={0.85}
           >
             <LinearGradient colors={['#e11d48', '#f59e0b']} style={styles.payGrad}>
@@ -843,7 +804,7 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
   payBtnContent: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   payText:       { color: '#ffffff', fontWeight: '800', fontSize: 17 },
 
-  // QPay overlay
+  // Payment overlay
   qpayContainer:     { flex: 1, alignItems: 'center', justifyContent: 'center', padding: SPACING.lg },
   qpayCard:          { 
     width: '100%', 

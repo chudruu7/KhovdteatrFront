@@ -95,7 +95,7 @@ const createNotifications = (bookings: BookingItem[], readIds: string[], prefs: 
         bookingId,
         type: 'payment',
         title: paid ? 'Төлбөр баталгаажлаа' : 'Төлбөр хүлээгдэж байна',
-        body: `${title} · ${money(booking.totalPrice)} · ${paid ? 'QPay төлбөр амжилттай' : 'QPay төлбөрөө шалгана уу'}`,
+        body: `${title} · ${money(booking.totalPrice)} · ${paid ? 'Wire төлбөр амжилттай' : 'Wire төлбөрөө шалгана уу'}`,
         createdAt: String(booking.date || booking.createdAt || ''),
         read: read.has(id),
       });

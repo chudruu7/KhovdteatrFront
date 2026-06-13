@@ -104,11 +104,11 @@ const getHall = (booking: BookingItem) =>
 const getSeats = (booking: BookingItem) =>
   Array.isArray(booking.seats) ? booking.seats.map((seat: any) => typeof seat === 'string' ? seat : seat.seatId || seat.id).filter(Boolean) : [];
 const getPaymentMethod = (booking: BookingItem) => {
-  const method = String(booking.paymentMethod || booking.payment?.method || 'qpay').toLowerCase();
-  if (method === 'qpay' || !method) return 'QPay';
+  const method = String(booking.paymentMethod || booking.payment?.method || 'wire').toLowerCase();
+  if (method === 'wire' || !method) return 'Wire';
   if (method === 'card') return 'Карт';
   if (method === 'cash') return 'Бэлэн';
-  return booking.paymentMethod || booking.payment?.method || 'QPay';
+  return booking.paymentMethod || booking.payment?.method || 'Wire';
 };
 const getPaymentStatus = (booking: BookingItem) => booking.paymentStatus || booking.payment?.status || 'pending';
 const getCustomerName = (booking: BookingItem) =>

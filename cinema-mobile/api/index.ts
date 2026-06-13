@@ -218,31 +218,8 @@ export const bookingAPI = {
     const { data } = await api.post(`/bookings/${bookingId}/resend-confirmation`, {});
     return data;
   },
-};
-
-export const qpayAPI = {
-  createInvoice: async (payload: any) => {
-    const { data } = await api.post('/qpay/invoice', payload);
-    return data;
-  },
-  checkPayment: async (invoiceId: string) => {
-    const { data } = await api.get(`/qpay/payment/${invoiceId}`, { timeout: 60000 });
-    return data;
-  },
-  confirmBooking: async (bookingId: string) => {
-    const { data } = await api.post(`/bookings/${bookingId}/confirm`, {});
-    return data;
-  },
-  testComplete: async (invoiceId: string, bookingId: string) => {
-    const { data } = await api.post(`/qpay/test-complete/${invoiceId}`, { bookingId }, { timeout: 60000 });
-    return data;
-  },
   cancelBooking: async (bookingId: string) => {
     const { data } = await api.post(`/bookings/${bookingId}/cancel`, {});
-    return data;
-  },
-  cancelInvoice: async (invoiceId: string) => {
-    const { data } = await api.delete(`/qpay/invoice/${invoiceId}`);
     return data;
   },
 };
@@ -253,7 +230,7 @@ export const wireAPI = {
     return data;
   },
   checkPaymentStatus: async (bookingId: string) => {
-    const { data } = await api.get(`/wire/payments/${bookingId}/status`, { timeout: 60000 });
+    const { data } = await api.get(`/wire/payments/${bookingId}/status`, { timeout: 15000 });
     return data;
   },
 };
