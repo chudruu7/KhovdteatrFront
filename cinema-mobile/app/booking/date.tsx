@@ -14,7 +14,7 @@ import { safeBack } from '../../utils/navigation';
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SHORT  = ['Ня', 'Да', 'Мя', 'Лх', 'Пү', 'Ба', 'Бя'];
 const MONTHS = ['1-р','2-р','3-р','4-р','5-р','6-р','7-р','8-р','9-р','10-р','11-р','12-р'];
-const MONGOLIA_OFFSET_MS = 8 * 60 * 60 * 1000;   // UTC+8
+const MONGOLIA_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function dayFromShowTime(showTime: string): DayItem {

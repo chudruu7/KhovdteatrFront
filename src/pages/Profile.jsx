@@ -55,7 +55,7 @@ const ProfilePage = ({ user: userProp, isLoggedIn = true, onLogout }) => {
     const { showToast, toasts } = useToast();
     const [currentUser, setCurrentUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('profile');
+    const [activeTab, setActiveTab] = useState(() => new URLSearchParams(window.location.search).get('tab') || 'profile');
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState({});
     const [bookings, setBookings] = useState([]);
@@ -113,6 +113,10 @@ const ProfilePage = ({ user: userProp, isLoggedIn = true, onLogout }) => {
         } catch {
             showToast('Хадгалахад алдаа гарлаа', 'error');
         }
+    };
+
+    const handleHideBooking = (bookingId) => {
+        setBookings((prev) => prev.filter((booking) => String(booking.id || booking._id || booking.bookingCode) !== String(bookingId)));
     };
 
     if (isLoading) return <LoadingScreen />;
@@ -212,8 +216,8 @@ const ProfilePage = ({ user: userProp, isLoggedIn = true, onLogout }) => {
                                         transition={{ duration: 0.4 }}
                                     >
                                         {activeTab === 'profile' && <ProfileTab isEditing={isEditing} form={editForm} setForm={setEditForm} onSave={handleSave} />}
-                                        {activeTab === 'bookings' && <BookingsTab bookings={bookings} mode="history" />}
-                                        {activeTab === 'tickets' && <BookingsTab bookings={bookings} mode="tickets" />}
+                                        {activeTab === 'bookings' && <BookingsTab bookings={bookings} mode="history" onHidden={handleHideBooking} />}
+                                        {activeTab === 'tickets' && <BookingsTab bookings={bookings} mode="tickets" onHidden={handleHideBooking} />}
                                         {activeTab === 'settings' && <SettingsTab form={editForm} setForm={setEditForm} onSave={handleSave} />}
                                     </motion.div>
                                 </AnimatePresence>
@@ -274,9 +278,10 @@ const ProfileTab = ({ isEditing, form, setForm, onSave }) => (
     </div>
 );
 
-const BookingsTab = ({ bookings, mode = 'history' }) => {
+const BookingsTab = ({ bookings, mode = 'history', onHidden }) => {
     const [selected, setSelected] = useState(null);
     const [detailsLoading, setDetailsLoading] = useState(false);
+    const [deletingId, setDeletingId] = useState('');
     const isTickets = mode === 'tickets';
     const getTitle = (item) => item?.title || item?.movieTitle || item?.movie?.title || item?.schedule?.movie?.title || 'Тодорхойгүй үзвэр';
     const getBookingId = (item) => item?.id || item?._id || item?.bookingCode;
@@ -297,6 +302,22 @@ const BookingsTab = ({ bookings, mode = 'history' }) => {
             setSelected({ ...item, ...result.booking });
         }
         setDetailsLoading(false);
+    };
+
+    const handleDelete = async (item, event) => {
+        event?.stopPropagation();
+        const bookingId = getBookingId(item);
+        if (!bookingId || deletingId) return;
+        const ok = window.confirm('Энэ захиалгыг таны жагсаалтаас устгах уу? Тайланд хэвээр хадгалагдана.');
+        if (!ok) return;
+        setDeletingId(bookingId);
+        try {
+            await bookingAPI.hideForMe(bookingId);
+            onHidden?.(bookingId);
+            if (selected && getBookingId(selected) === bookingId) setSelected(null);
+        } finally {
+            setDeletingId('');
+        }
     };
 
     return (

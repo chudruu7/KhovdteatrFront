@@ -1,7 +1,7 @@
 // src/components/Header.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LogOut, User, Calendar, Settings, ChevronDown, Home, Clock, Newspaper, Info, Gift, ScanLine } from 'lucide-react';
+import { LogOut, User, Calendar, Settings, ChevronDown, Home, Clock, Newspaper, Info, Gift, ScanLine, ShieldCheck, Ticket } from 'lucide-react';
 import SearchBar from './SearchBar';
 import ThemeToggle from './ThemeToggle';
 import { movies } from '../data/movies';
@@ -185,6 +185,25 @@ const Header = ({ onSearchResults, isLoggedIn, user, onLogout }) => {
                                                     setIsProfileDropdownOpen(false);
                                                 }}
                                             />
+                                            <DropdownItem
+                                                icon={Ticket}
+                                                label="Миний тасалбар"
+                                                onClick={() => {
+                                                    navigate('/profile?tab=tickets');
+                                                    setIsProfileDropdownOpen(false);
+                                                }}
+                                            />
+                                            {user?.role === 'admin' && (
+                                                <DropdownItem
+                                                    icon={ShieldCheck}
+                                                    label="Admin panel"
+                                                    accent
+                                                    onClick={() => {
+                                                        navigate('/admin');
+                                                        setIsProfileDropdownOpen(false);
+                                                    }}
+                                                />
+                                            )}
                                             {['admin', 'cashier'].includes(user?.role) && (
                                                 <DropdownItem
                                                     icon={ScanLine}
@@ -283,7 +302,7 @@ const Header = ({ onSearchResults, isLoggedIn, user, onLogout }) => {
                                 Миний профайл
                             </button>
                             <button
-                                onClick={() => { navigate('/booking'); setIsMobileMenuOpen(false); }}
+                                onClick={() => { navigate('/profile?tab=tickets'); setIsMobileMenuOpen(false); }}
                                 className="text-left text-sm site-nav-item hover:site-header-text transition-colors py-1 flex items-center gap-2"
                             >
                                 <Calendar className="w-4 h-4" />
@@ -311,10 +330,12 @@ const Header = ({ onSearchResults, isLoggedIn, user, onLogout }) => {
     );
 };
 
-const DropdownItem = ({ icon: Icon, label, onClick }) => (
+const DropdownItem = ({ icon: Icon, label, onClick, accent = false }) => (
     <button
         onClick={onClick}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg site-nav-item hover:bg-black/5 dark:hover:bg-white/10 hover:site-header-text transition-all text-sm font-medium"
+        className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-all text-sm font-medium ${
+            accent ? 'text-amber-500 dark:text-amber-400 font-black bg-amber-500/10' : 'site-nav-item hover:site-header-text'
+        }`}
     >
         <Icon className="w-4 h-4" />
         {label}

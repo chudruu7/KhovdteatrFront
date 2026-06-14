@@ -265,7 +265,7 @@ export default function Cashier({ user, onLogout }) {
   const [manualCode, setManualCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [admitting, setAdmitting] = useState(false);
-  const scannerUrl = useMemo(() => `${window.location.origin}/cashier?station=${stationKey}&scan=1`, [stationKey]);
+  const scannerUrl = useMemo(() => `https://hovdteatr.com/mobile/cashier?station=${stationKey}&scan=1`, [stationKey]);
   const booking = scan?.payload || scan?.booking;
 
   useEffect(() => {

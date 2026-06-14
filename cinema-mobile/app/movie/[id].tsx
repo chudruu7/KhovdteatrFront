@@ -21,7 +21,7 @@ import { PressScale } from '../../components/ui/Motion';
 const { width: W, height: H } = Dimensions.get('window');
 const POSTER_H  = H * 0.62;
 const FALLBACK  = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=900&q=80';
-const MN_OFFSET = 8 * 60 * 60 * 1000;
+const MN_OFFSET = 7 * 60 * 60 * 1000;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getYouTubeId = (url?: string | null): string | null => {

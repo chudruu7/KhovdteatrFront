@@ -21,7 +21,7 @@ const DEFAULT_PRICES = { child: 10000, adult: 15000 };
 const QUICK_TIMES = ['10:00', '12:00', '14:00', '16:00', '18:00', '19:00', '20:30', '22:00'];
 
 /* ─── Timezone helpers ───────────────────────────────────────────────────── */
-const MN_OFFSET = 8 * 3600 * 1000;
+const MN_OFFSET = 7 * 3600 * 1000;
 
 const utcToMn = (iso) => {
   const d = new Date(new Date(iso).getTime() + MN_OFFSET);

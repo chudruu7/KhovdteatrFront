@@ -35,7 +35,7 @@ const MovieDetailModal = ({ isOpen, onClose, movie, onBookTicket, onWatchTrailer
 
   const cast = movie?.cast || [];
   const isComingSoon = movie?.status === 'comingSoon';
-  const MONGOLIA_MS = 8 * 60 * 60 * 1000;
+  const MONGOLIA_MS = 7 * 60 * 60 * 1000;
   const formatDay = (iso) => {
     const d = new Date(new Date(iso).getTime() + MONGOLIA_MS);
     return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;

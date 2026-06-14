@@ -16,7 +16,7 @@ const positivePriceOr = (value, fallback) => {
 };
 
 
-const MONGOLIA_MS = 8 * 60 * 60 * 1000;
+const MONGOLIA_MS = 7 * 60 * 60 * 1000;
 const utcToMN = (iso) => {
   const d = new Date(new Date(iso).getTime() + MONGOLIA_MS);
   return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;

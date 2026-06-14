@@ -41,6 +41,16 @@ const bookingAPI = {
     }
   },
 
+  hideForMe: async (id) => {
+    try {
+      const data = await api.delete(`/bookings/${id}/my-history`);
+      return { success: true, data };
+    } catch (err) {
+      console.error('bookingAPI.hideForMe error:', err);
+      throw err;
+    }
+  },
+
   // ✅ Нэмэгдсэн — api helper ашиглаж байна
   markExpired: async () => {
     try {

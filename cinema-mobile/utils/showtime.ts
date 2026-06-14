@@ -1,4 +1,4 @@
-const MONGOLIA_OFFSET_MS = 8 * 60 * 60 * 1000;
+const MONGOLIA_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 export function isFutureShowTime(showTime?: string | null) {
   if (!showTime) return false;
