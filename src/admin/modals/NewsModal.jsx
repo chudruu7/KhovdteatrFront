@@ -386,17 +386,17 @@ const NewsModal = ({ editingNews, formData, onClose, onSubmit, onChange }) => {
               <div>
                 <Label>Төрөл</Label>
                 <GlassSelect name="category" value={formData.category} onChange={onChange}>
-                  <option value="Зарлал" style={{ background: '#111' }}><Megaphone className="w-3 h-3 inline mr-1" /> Зарлал</option>
-                  <option value="news" style={{ background: '#111' }}><Newspaper className="w-3 h-3 inline mr-1" /> Мэдээ</option>
-                  <option value="promotion" style={{ background: '#111' }}><Gift className="w-3 h-3 inline mr-1" /> Урамшуулал</option>
-                  <option value="event" style={{ background: '#111' }}><Calendar className="w-3 h-3 inline mr-1" /> Үйл явдал</option>
+                  <option value="announcement" style={{ background: '#111' }}>Онцлох</option>
+                  <option value="news" style={{ background: '#111' }}>Мэдээ</option>
+                  <option value="promotion" style={{ background: '#111' }}>Урамшуулал</option>
+                  <option value="event" style={{ background: '#111' }}>Арга хэмжээ</option>
                 </GlassSelect>
               </div>
               <div>
                 <Label>Статус</Label>
                 <GlassSelect name="status" value={formData.status} onChange={onChange}>
-                  <option value="draft" style={{ background: '#111' }}><FileText className="w-3 h-3 inline mr-1" /> Ноорог</option>
-                  <option value="published" style={{ background: '#111' }}><Globe className="w-3 h-3 inline mr-1" /> Нийтлэх</option>
+                  <option value="draft" style={{ background: '#111' }}>Ноорог</option>
+                  <option value="published" style={{ background: '#111' }}>Нийтлэх</option>
                 </GlassSelect>
               </div>
             </div>

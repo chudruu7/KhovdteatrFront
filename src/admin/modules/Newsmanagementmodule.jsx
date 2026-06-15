@@ -7,7 +7,7 @@ import toast from '../Toast';
 
 const EMPTY_FORM = {
   title: '', excerpt: '', content: [], callout: '',
-  image: '', category: 'Зарлал', status: 'draft',
+  image: '', category: 'announcement', status: 'draft',
 };
 
 const CATEGORY_LABELS = {
@@ -143,7 +143,7 @@ const NewsManagementModule = () => {
       content: rawContent,
       image: str(item.image) !== '—' ? str(item.image) : '',
       callout: item.callout || '',
-      category: item.category || 'Зарлал',
+      category: item.category || 'announcement',
       status: item.status || 'draft',
     });
     setShowAddModal(true);
