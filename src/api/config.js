@@ -2,7 +2,7 @@
 
 // 💡 ЗАСВАР: LOCAL болон PRODUCTION хаягуудыг шинэ сервер рүү зааж өгөв
 const LOCAL_API_URL = 'http://localhost:7000/api'; 
-const PRODUCTION_API_URL = 'http://west.edu.mn:7000/api';
+const PRODUCTION_API_URL = 'https://khovdteatrbackend.onrender.com/api';
 
 // VITE_API_URL байхгүй бол шууд таны шинэ сервер рүү хандана
 export const API_BASE_URL = import.meta.env.VITE_API_URL || PRODUCTION_API_URL;

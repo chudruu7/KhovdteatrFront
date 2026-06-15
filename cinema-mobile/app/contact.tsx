@@ -24,7 +24,7 @@ const CONTACT = {
   address: 'Hovd Theater',
   phone: '+976 7777-2292',
   phoneDial: '+97677772292',
-  email: 'khovdthearer1950@gmail.com',
+  email: 'khovdtheater1950@gmail.com',
   mapsUrl: 'https://www.google.com/maps/place/Ховд+аймаг',
   mapsQuery: 'Hovd Theater',
 };
