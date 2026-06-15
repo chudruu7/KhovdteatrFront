@@ -34,34 +34,40 @@ const getStationKey = () => {
 const statusStyle = (admission) => {
   if (admission?.allowed) return {
     icon: CheckCircle2,
-    panel: 'border-emerald-500/40 bg-emerald-500/10',
-    text: 'text-emerald-300',
+    panel: 'border-emerald-500/30 bg-gradient-to-br from-emerald-500/10 via-emerald-900/5 to-transparent',
+    text: 'text-emerald-400',
     badge: 'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30',
+    glow: 'shadow-lg shadow-emerald-500/10',
+    statusLabel: 'Баталгаажсан',
   };
   if (admission?.result === 'warning') return {
     icon: Clock,
-    panel: 'border-amber-500/40 bg-amber-500/10',
-    text: 'text-amber-300',
+    panel: 'border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-900/5 to-transparent',
+    text: 'text-amber-400',
     badge: 'bg-amber-500/15 text-amber-300 ring-amber-500/30',
+    glow: 'shadow-lg shadow-amber-500/10',
+    statusLabel: 'Анхааруулга',
   };
   return {
     icon: XCircle,
-    panel: 'border-red-500/40 bg-red-500/10',
-    text: 'text-red-300',
+    panel: 'border-red-500/30 bg-gradient-to-br from-red-500/10 via-red-900/5 to-transparent',
+    text: 'text-red-400',
     badge: 'bg-red-500/15 text-red-300 ring-red-500/30',
+    glow: 'shadow-lg shadow-red-500/10',
+    statusLabel: 'Татгалзсан',
   };
 };
 
 const TicketPanel = ({ booking, scan, onAdmit, admitting }) => {
   if (!booking && !scan) {
     return (
-      <div className="flex min-h-[520px] flex-col items-center justify-center rounded-2xl border border-slate-800 bg-slate-900/70 p-8 text-center">
-        <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-800 text-slate-400">
-          <ScanLine className="h-10 w-10" />
+      <div className="flex min-h-[520px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-700/60 bg-slate-900/40 p-10 text-center backdrop-blur-sm">
+        <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-slate-800 to-slate-900 ring-1 ring-slate-700/50">
+          <ScanLine className="h-11 w-11 text-slate-500" />
         </div>
-        <h2 className="text-2xl font-black text-white">QR уншуулахад бэлэн</h2>
-        <p className="mt-2 max-w-md text-sm text-slate-400">
-          Утсаа station-д холбоод хэрэглэгчийн тасалбарын QR-ийг уншуулна. Мэдээлэл энэ дэлгэц дээр автоматаар гарна.
+        <h2 className="text-xl font-bold text-white">QR уншуулахад бэлэн</h2>
+        <p className="mt-3 max-w-sm text-sm leading-relaxed text-slate-500">
+          Утсаа station-д холбоод хэрэглэгчийн тасалбарын QR-ийг уншуулна. Эсвэл доорх <span className="text-slate-300 font-semibold">«Гараар шалгах»</span> хэсгээр захиалгын кодоо оруулаарай.
         </p>
       </div>
     );
@@ -72,43 +78,49 @@ const TicketPanel = ({ booking, scan, onAdmit, admitting }) => {
   const StatusIcon = style.icon;
 
   return (
-    <div className={`rounded-2xl border p-6 shadow-2xl ${style.panel}`}>
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div className="flex items-start gap-4">
-          <div className={`flex h-16 w-16 items-center justify-center rounded-2xl bg-black/25 ${style.text}`}>
-            <StatusIcon className="h-9 w-9" />
+    <div className={`rounded-3xl border p-6 backdrop-blur-sm ${style.panel} ${style.glow}`}>
+      {/* Status Header */}
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-black/30 ring-1 ring-white/5 ${style.text}`}>
+            <StatusIcon className="h-8 w-8" />
           </div>
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-400">Тасалбарын төлөв</p>
-            <h2 className={`mt-1 text-3xl font-black ${style.text}`}>
-              {admission.label || scan?.message || 'Шалгагдсан'}
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Тасалбарын төлөв</p>
+            <h2 className={`text-2xl font-black leading-tight ${style.text}`}>
+              {admission.label || scan?.message || style.statusLabel}
             </h2>
-            <p className="mt-1 text-sm font-semibold text-slate-300">{admission.reason || scan?.message}</p>
           </div>
         </div>
-        <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-black ring-1 ${style.badge}`}>
-          <ShieldCheck className="h-4 w-4" />
-          {booking?.paymentStatus === 'paid' ? 'Төлөгдсөн' : 'Төлбөр баталгаажаагүй'}
+        <span className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold ring-1 ${style.badge}`}>
+          <ShieldCheck className="h-3.5 w-3.5" />
+          {booking?.paymentStatus === 'paid' ? 'Төлөгдсөн' : 'Баталгаажаагүй'}
         </span>
       </div>
 
+      {admission.reason && (
+        <p className="mb-5 rounded-xl bg-black/20 px-4 py-2.5 text-sm font-medium text-slate-300 ring-1 ring-white/5">
+          {admission.reason}
+        </p>
+      )}
+
       {booking && (
         <>
-          <div className="grid gap-5 lg:grid-cols-[180px_1fr]">
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/25">
+          <div className="grid gap-5 lg:grid-cols-[160px_1fr]">
+            <div className="overflow-hidden rounded-2xl ring-1 ring-white/10">
               {booking.posterUrl ? (
-                <img src={booking.posterUrl} alt={booking.movieTitle} className="h-full min-h-[250px] w-full object-cover" />
+                <img src={booking.posterUrl} alt={booking.movieTitle} className="h-full min-h-[220px] w-full object-cover" />
               ) : (
-                <div className="flex min-h-[250px] items-center justify-center text-slate-500">
-                  <Ticket className="h-16 w-16" />
+                <div className="flex min-h-[220px] items-center justify-center bg-slate-800/50 text-slate-600">
+                  <Ticket className="h-14 w-14" />
                 </div>
               )}
             </div>
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-              <h3 className="text-2xl font-black text-white">{booking.movieTitle}</h3>
-              <p className="mt-1 text-xs font-bold text-slate-500">#{booking.bookingCode}</p>
+            <div className="rounded-2xl bg-black/20 p-5 ring-1 ring-white/5">
+              <h3 className="text-xl font-black text-white">{booking.movieTitle}</h3>
+              <p className="mt-0.5 text-xs font-semibold text-slate-500">#{booking.bookingCode}</p>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
                 {[
                   ['Огноо', booking.date],
                   ['Цаг', booking.time],
@@ -119,20 +131,20 @@ const TicketPanel = ({ booking, scan, onAdmit, admitting }) => {
                   ['Имэйл', booking.customerEmail],
                   ['Нийт дүн', money(booking.totalPrice)],
                 ].map(([label, value]) => (
-                  <div key={label} className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
-                    <p className="mt-1 break-words text-sm font-bold text-white">{value || '—'}</p>
+                  <div key={label} className="rounded-xl bg-white/[0.03] px-3.5 py-2.5 ring-1 ring-white/5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+                    <p className="mt-0.5 break-words text-sm font-semibold text-white">{value || '—'}</p>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+          <div className="mt-5">
             <button
               onClick={onAdmit}
               disabled={!admission.allowed || admitting}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-4 text-sm font-black text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+              className="inline-flex w-full items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-4 text-sm font-black text-black shadow-lg shadow-emerald-500/20 transition-all hover:from-emerald-400 hover:to-emerald-500 hover:shadow-emerald-500/30 disabled:cursor-not-allowed disabled:bg-slate-800 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:shadow-none"
             >
               {admitting ? <RefreshCw className="h-5 w-5 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
               Нэвтрүүлж ашигласан болгох
@@ -379,50 +391,65 @@ export default function Cashier({ user, onLogout }) {
       <div className="mx-auto max-w-7xl px-5 mt-6 flex gap-4">
         <button 
           onClick={() => setActiveTab('verify')}
-          className={`px-6 py-3 rounded-xl font-bold transition ${activeTab === 'verify' ? 'bg-emerald-500 text-black' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
+          className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'verify' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-black shadow-lg shadow-emerald-500/20' : 'bg-slate-900/80 text-slate-400 ring-1 ring-slate-700/50 hover:bg-slate-800 hover:text-slate-200'}`}
         >
-          Тасалбар шалгах
+          🎫 Тасалбар шалгах
         </button>
         <button 
           onClick={() => setActiveTab('sell')}
-          className={`px-6 py-3 rounded-xl font-bold transition ${activeTab === 'sell' ? 'bg-emerald-500 text-black' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
+          className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${activeTab === 'sell' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-black shadow-lg shadow-emerald-500/20' : 'bg-slate-900/80 text-slate-400 ring-1 ring-slate-700/50 hover:bg-slate-800 hover:text-slate-200'}`}
         >
-          Тасалбар борлуулах
+          💰 Тасалбар борлуулах
         </button>
       </div>
 
       <main className="mx-auto max-w-7xl px-5 py-6">
         {activeTab === 'verify' ? (
-          <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+          <div className="grid gap-6 lg:grid-cols-[340px_1fr]">
             <aside className="space-y-5">
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+              {/* QR Connect Card */}
+              <div className="rounded-3xl border border-slate-700/40 bg-slate-900/60 p-5 backdrop-blur-sm">
                 <div className="mb-4 flex items-center gap-3">
-                  <MonitorSmartphone className="h-5 w-5 text-emerald-400" />
-                  <h2 className="font-black">Утас холбох</h2>
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 ring-1 ring-emerald-500/20">
+                    <MonitorSmartphone className="h-4.5 w-4.5 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-bold text-white">Утас холбох</h2>
+                    <p className="text-[11px] text-slate-500">QR-ийг утсаар уншуулна</p>
+                  </div>
                 </div>
-                <div className="rounded-2xl bg-white p-3">
+                <div className="overflow-hidden rounded-2xl bg-white p-3 ring-1 ring-white/10">
                   <QRCodeSVG value={scannerUrl} size={260} className="h-auto w-full" />
                 </div>
-                <p className="mt-4 text-sm text-slate-400">
-                  Cashier эрхтэй утсаараа энэ QR-ийг уншуулж scanner нээнэ. Уншсан тасалбар энэ компьютер дээр гарна.
+                <p className="mt-4 text-xs leading-relaxed text-slate-500">
+                  Cashier эрхтэй утсаараа энэ QR-ийг уншуулж scanner нээнэ. Уншсан тасалбар энэ дэлгэц дээр гарна.
                 </p>
-                <button onClick={resetStation} className="mt-4 w-full rounded-xl border border-slate-700 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-800">
+                <button onClick={resetStation} className="mt-4 w-full rounded-xl border border-slate-700/60 bg-slate-800/40 px-4 py-2.5 text-xs font-bold text-slate-300 transition hover:bg-slate-800 hover:text-white">
                   Station шинэчлэх
                 </button>
               </div>
 
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
-                <h2 className="font-black">Гараар шалгах</h2>
-                <input
-                  value={manualCode}
-                  onChange={(event) => setManualCode(event.target.value)}
-                  placeholder="Захиалгын код эсвэл QR URL"
-                  className="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-emerald-500"
-                />
+              {/* Manual Check Card */}
+              <div className="rounded-3xl border border-slate-700/40 bg-slate-900/60 p-5 backdrop-blur-sm">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-700/40 ring-1 ring-slate-600/30">
+                    <ScanLine className="h-4.5 w-4.5 text-slate-400" />
+                  </div>
+                  <h2 className="text-sm font-bold text-white">Гараар шалгах</h2>
+                </div>
+                <div className="relative">
+                  <input
+                    value={manualCode}
+                    onChange={(event) => setManualCode(event.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && submitManualScan()}
+                    placeholder="Захиалгын код эсвэл QR URL..."
+                    className="w-full rounded-xl border border-slate-700/60 bg-slate-950/80 px-4 py-3 pr-12 text-sm outline-none ring-1 ring-transparent transition-all focus:border-emerald-500/50 focus:ring-emerald-500/20"
+                  />
+                </div>
                 <button
                   onClick={submitManualScan}
                   disabled={loading || !manualCode.trim()}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-black hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-sm font-bold text-black shadow-md shadow-emerald-500/15 transition-all hover:from-emerald-400 hover:to-emerald-500 disabled:from-slate-800 disabled:to-slate-800 disabled:text-slate-500 disabled:shadow-none"
                 >
                   {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
                   Шалгах

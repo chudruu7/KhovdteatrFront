@@ -27,6 +27,7 @@ export const getDailySales     = (filters) => api.get(`/reports/financial/daily$
 export const getMonthlySales   = (filters) => api.get(`/reports/financial/monthly${toParams(filters)}`);
 export const getPaymentMethods = (filters) => api.get(`/reports/financial/payment-methods${toParams(filters)}`);
 export const getRefunds        = (filters) => api.get(`/reports/financial/refunds${toParams(filters)}`);
+export const getTransactions   = (filters) => api.get(`/reports/financial/transactions${toParams(filters)}`);
 
 // ================================================================
 // КИНО БА ҮЗЭЛТИЙН ТАЙЛАН

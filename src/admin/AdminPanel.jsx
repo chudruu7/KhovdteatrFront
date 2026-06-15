@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, Bell, Search, Home, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
@@ -14,6 +14,7 @@ import { ConfirmModalContainer, useConfirm } from './modals/ConfirmModal';
 import ReportsModule from './modules/ReportsModule';
 import UserManagementModule from './modules/UserManagementModule';
 import Cashier from '../pages/Cashier';
+import { getDashboard } from '../api/reportAPI';
 // ✅ ScheduleModal import
 import ScheduleModal from './modals/ScheduleModal';
 
@@ -61,6 +62,60 @@ const AdminPanelContent = ({ onLogout }) => {
     onLogout?.();
     toast.success('Системээс амжилттай гарлаа');
     navigate('/login', { replace: true });
+  };
+
+  const [headerStats, setHeaderStats] = useState({ revenue: 0, growth: 0 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+
+        const getMonthRange = (date) => {
+          const y = date.getFullYear();
+          const m = date.getMonth();
+          const start = new Date(y, m, 1, 0, 0, 0); // local time
+          // shift timezone for ISO string to avoid date offset issues
+          const startStr = new Date(start.getTime() - start.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+          const end = new Date(y, m + 1, 0, 23, 59, 59);
+          const endStr = new Date(end.getTime() - end.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+          return { startDate: startStr, endDate: endStr };
+        };
+
+        const now = new Date();
+        const thisMonth = getMonthRange(now);
+        const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const lastMonth = getMonthRange(lastMonthDate);
+
+        const [thisMonthRes, lastMonthRes] = await Promise.all([
+          getDashboard(thisMonth),
+          getDashboard(lastMonth)
+        ]);
+
+        const thisRevenue = thisMonthRes?.summary?.totalRevenue || 0;
+        const lastRevenue = lastMonthRes?.summary?.totalRevenue || 0;
+
+        let growth = 0;
+        if (lastRevenue > 0) {
+          growth = ((thisRevenue - lastRevenue) / lastRevenue) * 100;
+        } else if (thisRevenue > 0) {
+          growth = 100;
+        }
+
+        setHeaderStats({
+          revenue: thisRevenue,
+          growth: Math.round(growth)
+        });
+      } catch (error) {
+        console.error('Failed to fetch header stats:', error);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const formatMoney = (amount) => {
+    if (amount >= 1000000) return `₮ ${(amount / 1000000).toFixed(1)}M`;
+    if (amount >= 1000) return `₮ ${(amount / 1000).toFixed(1)}K`;
+    return `₮ ${amount}`;
   };
 
   const renderContent = () => {
@@ -140,12 +195,14 @@ const AdminPanelContent = ({ onLogout }) => {
                 </div>
                 <div className="hidden md:flex items-center gap-6">
                   <div className="text-right">
-                    <div className="text-sm font-bold text-white">₮ 12.5M</div>
+                    <div className="text-sm font-bold text-white">{formatMoney(headerStats.revenue)}</div>
                     <div className="text-xs text-slate-400">Энэ сар</div>
                   </div>
                   <div className="h-8 w-px bg-slate-700"></div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-emerald-400">+24%</div>
+                    <div className={`text-sm font-bold ${headerStats.growth >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {headerStats.growth >= 0 ? '+' : ''}{headerStats.growth}%
+                    </div>
                     <div className="text-xs text-slate-400">Өсөлт</div>
                   </div>
                 </div>

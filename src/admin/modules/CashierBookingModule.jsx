@@ -1,62 +1,70 @@
-import { useState, useEffect, useMemo } from 'react';
-import { movieAPI, scheduleAPI } from '../../api/adminAPI';
+import { useState, useEffect } from 'react';
+import { scheduleAPI } from '../../api/adminAPI';
 import bookingAPI from '../../api/bookingAPI';
 import { ROW_CELLS, makeSeatId } from '../../components/SeatLayout';
-import { Ticket, CalendarDays, Clock, Users, CreditCard, Banknote } from 'lucide-react';
+import { Ticket, CalendarDays, Users, Banknote, CreditCard, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from '../Toast';
-import { API_BASE_URL } from '../../api/config';
 
 const MONGOLIA_MS = 7 * 60 * 60 * 1000;
 const formatDay = (iso) => {
+  if (!iso) return '';
   const d = new Date(new Date(iso).getTime() + MONGOLIA_MS);
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 };
 const formatTime = (iso) => {
+  if (!iso) return '';
   const d = new Date(new Date(iso).getTime() + MONGOLIA_MS);
   return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 };
 
 export default function CashierBookingModule() {
+  const [selectedDate, setSelectedDate] = useState(formatDay(new Date().toISOString()));
+  const [allSchedules, setAllSchedules] = useState([]);
+  
   const [movies, setMovies] = useState([]);
   const [selectedMovie, setSelectedMovie] = useState(null);
+  
   const [schedules, setSchedules] = useState([]);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [soldSeats, setSoldSeats] = useState([]);
   
+  const [ticketCounts, setTicketCounts] = useState({ adult: 0, child: 0 });
   const [selectedSeats, setSelectedSeats] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState('cash'); // cash or transfer
+  const [paymentMethod, setPaymentMethod] = useState('cash_1');
   
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successBooking, setSuccessBooking] = useState(null);
 
   useEffect(() => {
-    loadMovies();
-  }, []);
+    loadSchedulesByDate(selectedDate);
+  }, [selectedDate]);
 
-  const loadMovies = async () => {
+  const loadSchedulesByDate = async (dateStr) => {
     setLoading(true);
+    setSelectedMovie(null);
+    setSelectedSchedule(null);
+    setSchedules([]);
+    setMovies([]);
+    setSelectedSeats([]);
+    setSoldSeats([]);
+    setTicketCounts({ adult: 0, child: 0 });
+    
     try {
-      const data = await movieAPI.getAll();
-      if (data.success) {
-        setMovies(data.movies?.filter(m => m.status === 'showing' || m.status === 'comingSoon') || []);
-      }
+      const data = await scheduleAPI.getByDate(dateStr);
+      const list = Array.isArray(data) ? data : (data.schedules || []);
+      setAllSchedules(list);
+      
+      // Extract unique movies
+      const uniqueMoviesMap = new Map();
+      list.forEach(sch => {
+        if (sch.movie && !uniqueMoviesMap.has(sch.movie._id)) {
+          uniqueMoviesMap.set(sch.movie._id, sch.movie);
+        }
+      });
+      setMovies(Array.from(uniqueMoviesMap.values()));
     } catch (err) {
-      toast.error('Киноны жагсаалт татахад алдаа гарлаа');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSchedules = async (movieId) => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/movies/${movieId}`);
-      const data = await res.json();
-      if (data.success && data.schedules) {
-        setSchedules(data.schedules);
-      }
-    } catch (err) {
+      console.error('loadSchedulesByDate error:', err);
       toast.error('Хуваарь татахад алдаа гарлаа');
     } finally {
       setLoading(false);
@@ -66,11 +74,9 @@ export default function CashierBookingModule() {
   const loadSeats = async (scheduleId) => {
     try {
       const data = await scheduleAPI.getSeats(scheduleId);
-      if (data.success) {
-        setSoldSeats(data.seats || []);
-      }
+      setSoldSeats(data.soldSeats || data.seats || []);
     } catch (err) {
-      toast.error('Суудлын мэдээлэл татахад алдаа гарлаа');
+      console.error('loadSeats error:', err);
     }
   };
 
@@ -79,8 +85,9 @@ export default function CashierBookingModule() {
     setSelectedSchedule(null);
     setSelectedSeats([]);
     setSuccessBooking(null);
-    setSchedules([]);
-    // Call API using config.js API_BASE_URL logic if possible, wait I'll import API_BASE_URL
+    
+    const movieSchedules = allSchedules.filter(s => s.movie?._id === movie._id);
+    setSchedules(movieSchedules);
   };
 
   const handleScheduleSelect = (schedule) => {
@@ -91,25 +98,33 @@ export default function CashierBookingModule() {
 
   const toggleSeat = (seatId) => {
     if (soldSeats.includes(seatId)) return;
-    if (selectedSeats.find(s => s.seatId === seatId)) {
+    
+    const isSelected = selectedSeats.find(s => s.seatId === seatId);
+    if (isSelected) {
       setSelectedSeats(prev => prev.filter(s => s.seatId !== seatId));
-    } else {
-      setSelectedSeats(prev => [...prev, { seatId: seatId, type: 'adult' }]);
+      return;
     }
-  };
-
-  const toggleSeatType = (seatId) => {
-    setSelectedSeats(prev => prev.map(s => {
-      if (s.seatId === seatId) {
-        return { ...s, type: s.type === 'adult' ? 'child' : 'adult' };
-      }
-      return s;
-    }));
+    
+    // Attempt to select a seat based on quota
+    const totalRequired = ticketCounts.adult + ticketCounts.child;
+    if (selectedSeats.length >= totalRequired) {
+      toast.error(`Та ${totalRequired} ширхэг тасалбар сонгосон байна. Тоог нэмэх бол дээрээс сонгоно уу.`);
+      return;
+    }
+    
+    const currentAdults = selectedSeats.filter(s => s.type === 'adult').length;
+    const currentChildren = selectedSeats.filter(s => s.type === 'child').length;
+    
+    if (currentAdults < ticketCounts.adult) {
+      setSelectedSeats(prev => [...prev, { seatId, type: 'adult' }]);
+    } else if (currentChildren < ticketCounts.child) {
+      setSelectedSeats(prev => [...prev, { seatId, type: 'child' }]);
+    }
   };
 
   const calculateTotal = () => {
     if (!selectedSchedule) return 0;
-    const adultPrice = selectedSchedule.basePrice || selectedMovie?.basePrice || 15000;
+    const adultPrice = selectedSchedule.basePrice || selectedSchedule.adultPrice || selectedMovie?.adultPrice || selectedMovie?.basePrice || 15000;
     const childPrice = selectedSchedule.childPrice || selectedMovie?.childPrice || 10000;
     return selectedSeats.reduce((sum, s) => sum + (s.type === 'adult' ? adultPrice : childPrice), 0);
   };
@@ -126,15 +141,23 @@ export default function CashierBookingModule() {
           phone: '00000000',
           email: 'cashier@khovdteatr.mn'
         },
-        paymentMethod: paymentMethod // 'cash' or 'transfer'
+        paymentMethod: paymentMethod
       };
       const data = await bookingAPI.create(payload);
+      // bookingAPI.create returns { success: true, message, bookingId, totalPrice, seats, tickets }
       if (data.success) {
-        setSuccessBooking(data.booking);
-        toast.success('Тасалбар амжилттай борлуулагдлаа!');
+        setSuccessBooking({
+          bookingCode: data.bookingId,
+          totalPrice: data.totalPrice,
+          seats: data.seats,
+          paymentMethod: paymentMethod,
+          date: formatDay(selectedSchedule.showTime),
+          time: formatTime(selectedSchedule.showTime),
+        });
         setSelectedMovie(null);
         setSelectedSchedule(null);
         setSelectedSeats([]);
+        setSoldSeats([]);
       }
     } catch (err) {
       toast.error(err.message || 'Захиалга үүсгэхэд алдаа гарлаа');
@@ -154,7 +177,14 @@ export default function CashierBookingModule() {
         
         <div className="grid grid-cols-2 gap-4 text-left bg-slate-950 p-6 rounded-xl border border-slate-800 w-full max-w-md mb-8">
           <div><p className="text-xs text-slate-500 uppercase">Нийт дүн</p><p className="font-bold text-emerald-400">{successBooking.totalPrice?.toLocaleString()}₮</p></div>
-          <div><p className="text-xs text-slate-500 uppercase">Төлбөр</p><p className="font-bold text-white">{successBooking.paymentMethod === 'cash' ? 'Бэлнээр' : 'Шилжүүлгээр'}</p></div>
+          <div><p className="text-xs text-slate-500 uppercase">Төлбөр</p><p className="font-bold text-white">
+            {{
+              'cash_1': 'Бэлэн (Касс 1)',
+              'cash_2': 'Бэлэн (Касс 2)',
+              'khaan_bank': 'Хаан банк',
+              'golomt_bank': 'Голомт банк'
+            }[successBooking.paymentMethod] || successBooking.paymentMethod}
+          </p></div>
           <div><p className="text-xs text-slate-500 uppercase">Суудал</p><p className="font-bold text-white">{successBooking.seats?.join(', ')}</p></div>
           <div><p className="text-xs text-slate-500 uppercase">Огноо/Цаг</p><p className="font-bold text-white">{successBooking.date} {successBooking.time}</p></div>
         </div>
@@ -171,14 +201,34 @@ export default function CashierBookingModule() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Movie & Schedule Selection */}
+      {/* 1. Date Selection */}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <CalendarDays className="w-6 h-6 text-emerald-400" />
+          <div>
+            <h3 className="text-lg font-bold text-white">Огноо сонгох</h3>
+            <p className="text-xs text-slate-400">Хуваарь хайх өдрийг сонгоно уу</p>
+          </div>
+        </div>
+        <input 
+          type="date" 
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          className="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-white outline-none focus:border-emerald-500 transition-colors w-full md:w-auto"
+        />
+      </div>
+
+      {/* 2. Movie & Schedule Selection */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
           <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4"><Ticket className="w-5 h-5 text-emerald-400"/> Үзвэр сонгох</h3>
-          <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
-            {movies.map(movie => (
-              <button
-                key={movie._id}
+          {movies.length === 0 && !loading ? (
+            <div className="text-slate-500 text-center py-10">Энэ өдөр хуваарь олдсонгүй</div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
+              {movies.map(movie => (
+                <button
+                  key={movie._id}
                 onClick={() => handleMovieSelect(movie)}
                 className={`p-3 rounded-xl border text-left transition ${selectedMovie?._id === movie._id ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700 hover:border-slate-500 bg-slate-950'}`}
               >
@@ -188,6 +238,7 @@ export default function CashierBookingModule() {
             ))}
             {loading && !movies.length && <div className="text-slate-500 p-4">Уншиж байна...</div>}
           </div>
+          )}
         </div>
 
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
@@ -201,19 +252,28 @@ export default function CashierBookingModule() {
               {schedules.map(sch => {
                 const day = formatDay(sch.showTime);
                 const time = formatTime(sch.showTime);
+                const showTimeMs = new Date(sch.showTime).getTime();
+                const nowMs = new Date().getTime();
+                const isPastDeadline = nowMs > (showTimeMs + 15 * 60 * 1000);
+                
                 return (
                   <button
                     key={sch._id}
+                    disabled={isPastDeadline}
                     onClick={() => handleScheduleSelect(sch)}
-                    className={`p-3 rounded-xl border flex justify-between items-center transition ${selectedSchedule?._id === sch._id ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700 hover:border-slate-500 bg-slate-950'}`}
+                    className={`p-3 rounded-xl border flex justify-between items-center transition ${isPastDeadline ? 'opacity-50 cursor-not-allowed border-slate-800 bg-slate-900' : selectedSchedule?._id === sch._id ? 'border-emerald-500 bg-emerald-500/10' : 'border-slate-700 hover:border-slate-500 bg-slate-950'}`}
                   >
                     <div>
                       <div className="font-bold text-white">{day}</div>
                       <div className="text-sm text-emerald-400">{time}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-xs text-slate-400">Танхим {sch.hall}</div>
-                      <div className="text-xs text-slate-400">{sch.basePrice?.toLocaleString()}₮</div>
+                      <div className="text-xs text-slate-400">Танхим {sch.hall?.hallName || sch.hall}</div>
+                      {isPastDeadline ? (
+                        <div className="text-xs text-red-400 font-bold mt-1">Хаагдсан</div>
+                      ) : (
+                        <div className="text-xs text-slate-400">{sch.basePrice?.toLocaleString()}₮</div>
+                      )}
                     </div>
                   </button>
                 )
@@ -223,17 +283,63 @@ export default function CashierBookingModule() {
         </div>
       </div>
 
-      {/* 2. Seat Selection */}
+      {/* 3. Ticket Counts & Seat Selection */}
       {selectedSchedule && (
-        <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
-          <div className="flex justify-between items-end mb-6">
-            <h3 className="text-lg font-bold text-white flex items-center gap-2"><Users className="w-5 h-5 text-emerald-400"/> Суудал сонгох</h3>
-            <div className="flex gap-4 text-xs font-bold text-slate-400 uppercase">
-              <span className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded-sm"></div> Том хүн</span>
-              <span className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-sm"></div> Хүүхэд</span>
-              <span className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500/20 rounded-sm"></div> Зарагдсан</span>
+        <div className="space-y-6">
+          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1"><Users className="w-5 h-5 text-emerald-400"/> Тасалбарын тоо</h3>
+              <p className="text-xs text-slate-400">Тасалбарын тоог эхэлж сонгоод суудлаа дарна уу</p>
+            </div>
+            
+            <div className="flex flex-wrap gap-4">
+              <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 rounded-xl p-2">
+                <div className="px-3">
+                  <div className="text-sm font-bold text-emerald-400">Том хүн</div>
+                  <div className="text-[10px] text-slate-500">{(selectedSchedule.adultPrice || selectedSchedule.basePrice || selectedMovie?.basePrice || 15000).toLocaleString()}₮</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setTicketCounts(p => ({...p, adult: Math.max(0, p.adult - 1)}))}
+                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-white"
+                  ><ChevronLeft className="w-4 h-4"/></button>
+                  <span className="w-6 text-center font-bold text-white">{ticketCounts.adult}</span>
+                  <button 
+                    onClick={() => setTicketCounts(p => ({...p, adult: p.adult + 1}))}
+                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-white"
+                  ><ChevronRight className="w-4 h-4"/></button>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 bg-slate-950 border border-slate-800 rounded-xl p-2">
+                <div className="px-3">
+                  <div className="text-sm font-bold text-purple-400">Хүүхэд</div>
+                  <div className="text-[10px] text-slate-500">{(selectedSchedule.childPrice || selectedMovie?.childPrice || 10000).toLocaleString()}₮</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => setTicketCounts(p => ({...p, child: Math.max(0, p.child - 1)}))}
+                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-white"
+                  ><ChevronLeft className="w-4 h-4"/></button>
+                  <span className="w-6 text-center font-bold text-white">{ticketCounts.child}</span>
+                  <button 
+                    onClick={() => setTicketCounts(p => ({...p, child: p.child + 1}))}
+                    className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-white"
+                  ><ChevronRight className="w-4 h-4"/></button>
+                </div>
+              </div>
             </div>
           </div>
+
+          <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">Суудал сонгох</h3>
+              <div className="flex flex-wrap gap-4 text-xs font-bold text-slate-400 uppercase">
+                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500 rounded-sm"></div> Том хүн ({selectedSeats.filter(s=>s.type==='adult').length}/{ticketCounts.adult})</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-purple-500 rounded-sm"></div> Хүүхэд ({selectedSeats.filter(s=>s.type==='child').length}/{ticketCounts.child})</span>
+                <span className="flex items-center gap-1"><div className="w-3 h-3 bg-red-500/20 rounded-sm"></div> Зарагдсан</span>
+              </div>
+            </div>
           
           <div className="overflow-x-auto pb-4">
             <div className="min-w-[700px] flex flex-col items-center">
@@ -278,7 +384,7 @@ export default function CashierBookingModule() {
                         const sId = makeSeatId(row.label, cell.num);
                         const isSold = soldSeats.includes(sId);
                         const isBroken = cell.broken;
-                        const selSeat = selectedSeats.find(s => s.seat === sId);
+                        const selSeat = selectedSeats.find(s => s.seatId === sId);
                         
                         let bg = 'bg-slate-700/50 text-slate-500 hover:bg-slate-600';
                         if (isSold) bg = 'bg-red-500/20 text-red-500/50 cursor-not-allowed';
@@ -304,15 +410,17 @@ export default function CashierBookingModule() {
               </div>
             </div>
           </div>
+        </div>
           
-          {selectedSeats.length > 0 && (
+        {selectedSeats.length > 0 && (
             <div className="mt-6 border-t border-slate-800 pt-6">
               <div className="flex flex-wrap gap-2 mb-4">
                 {selectedSeats.map(s => (
                   <button 
                     key={s.seatId}
-                    onClick={() => toggleSeatType(s.seatId)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 ${s.type === 'adult' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'}`}
+                    onClick={() => toggleSeat(s.seatId)}
+                    title="Дарж устгах"
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-2 hover:opacity-80 ${s.type === 'adult' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-purple-500/20 text-purple-400 border border-purple-500/30'}`}
                   >
                     {s.seatId}
                     <span className="opacity-50">•</span>
@@ -320,13 +428,13 @@ export default function CashierBookingModule() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-slate-500">Дээрх суудал дээр дарж Том хүн / Хүүхэд төрлийг солино уу.</p>
+              <p className="text-xs text-slate-500">Сонгосон суудлаа хасах бол дээр нь дарна уу.</p>
             </div>
           )}
         </div>
       )}
 
-      {/* 3. Checkout */}
+      {/* 4. Checkout */}
       {selectedSeats.length > 0 && (
         <div className="bg-slate-900/50 border border-slate-800 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-center justify-between">
           <div>
@@ -336,18 +444,16 @@ export default function CashierBookingModule() {
           
           <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
             <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 shrink-0">
-              <button 
-                onClick={() => setPaymentMethod('cash')}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition ${paymentMethod === 'cash' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'}`}
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="bg-transparent text-slate-300 font-bold px-4 py-2 w-full focus:outline-none appearance-none cursor-pointer"
               >
-                <Banknote className="w-4 h-4" /> Бэлэн
-              </button>
-              <button 
-                onClick={() => setPaymentMethod('transfer')}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-bold transition ${paymentMethod === 'transfer' ? 'bg-emerald-500 text-black' : 'text-slate-400 hover:text-white'}`}
-              >
-                <CreditCard className="w-4 h-4" /> Шилжүүлэг
-              </button>
+                <option value="cash_1">Бэлэн (Касс 1)</option>
+                <option value="cash_2">Бэлэн (Касс 2)</option>
+                <option value="khaan_bank">Хаан банк</option>
+                <option value="golomt_bank">Голомт банк</option>
+              </select>
             </div>
             
             <button

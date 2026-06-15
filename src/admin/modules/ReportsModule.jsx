@@ -3,7 +3,7 @@
 // Байршил: frontend/src/admin/modules/ReportsModule.jsx
 // ================================================================
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Armchair,
   BarChart3,
@@ -24,7 +24,7 @@ import {
   getDashboard, getDailySales, getMonthlySales, getPaymentMethods,
   getMovieViewership, getBookingChannels, getSeatTypes,
   getHallOccupancy, getPeakHours, getLostRevenue, getUserActivity, getLoyaltyReport,
-  getCancellations, getDiscounts, getRefunds,
+  getCancellations, getDiscounts, getRefunds, getTransactions,
 } from '../../api/reportAPI';
 
 // ─── Туслах функцүүд ────────────────────────────────────────────
@@ -298,26 +298,49 @@ const FinancialTab = ({ filters }) => {
   if (loading) return <Loader />;
 
   const maxRev = Math.max(...monthly.map(m => m.totalRevenue), 1);
-  const exportFinancial = () => exportRowsToCsv(
-    `financial-report-${filters.startDate || 'all'}-${filters.endDate || 'all'}.csv`,
-    [
-      { label: 'Огноо', value: r => r._id },
-      { label: 'Орлого', value: r => r.totalRevenue },
-      { label: 'Тасалбар', value: r => r.ticketCount },
-      { label: 'Захиалга', value: r => r.bookingCount },
-      { label: 'Дундаж үнэ', value: r => Math.round(r.avgTicketPrice || 0) },
-    ],
-    daily
-  );
+  const exportFinancial = async () => {
+    try {
+      const res = await getTransactions(filters);
+      if (res && res.data) {
+        exportRowsToCsv(
+          `transactions-${filters.startDate || 'all'}-${filters.endDate || 'all'}.csv`,
+          [
+            { label: 'Огноо, цаг', value: r => new Date(r.date).toLocaleString('mn-MN') },
+            { label: 'Захиалгын ID', value: r => r.orderId },
+            { label: 'Үзвэрийн нэр', value: r => r.movieTitle },
+            { label: 'Төлбөрийн хэрэгсэл', value: r => PAYMENT_LABELS[r.paymentMethod] || r.paymentMethod },
+            { label: 'Гүйлгээний төлөв', value: r => r.status === 'cancelled' ? 'Буцаагдсан' : (r.status === 'active' || r.status === 'used' ? 'Амжилттай' : r.status) },
+            { label: 'Дүн', value: r => r.amount }
+          ],
+          res.data
+        );
+      }
+    } catch (err) {
+      console.error('Failed to export transactions', err);
+      alert('Гүйлгээний жагсаалт татаж авахад алдаа гарлаа.');
+    }
+  };
+
+  const PAYMENT_LABELS = { 
+    card: 'Онлайнаар (Card)', 
+    cash: 'Бэлнээр', 
+    cash_1: 'Бэлэн (Касс 1)', 
+    cash_2: 'Бэлэн (Касс 2)', 
+    wire: 'Шилжүүлгээр (Касс)', 
+    qpay: 'QPay', 
+    khaan_bank: 'Хаан банк', 
+    golomt_bank: 'Голомт банк', 
+    other: 'Бусад' 
+  };
 
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap gap-4">
         <StatCard label="Нийт захиалгын дүн" value={`${fmt(summary.totalRevenue)}₮`} color="green" />
         <StatCard label="Төлөгдсөн орлого" value={`${fmt(summary.paidRevenue)}₮`} color="blue" />
-        <StatCard label="Нийт тасалбар" value={fmt(summary.ticketCount)} color="blue" />
-        <StatCard label="Нийт захиалга" value={fmt(summary.bookingCount)} color="purple" />
-        <StatCard label="Цуцалсан" value={fmt(summary.cancelledCount)} color="red" />
+        <StatCard label="Авлага" value={`${fmt(summary.unpaidRevenue)}₮`} color="amber" />
+        <StatCard label="Цуцлагдсан дүн" value={`${fmt(summary.refundedRevenue)}₮`} color="red" />
+        <StatCard label="Нийт тасалбар" value={fmt(summary.ticketCount)} color="purple" />
         <button
           onClick={exportFinancial}
           className="self-stretch px-5 py-3 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
@@ -353,16 +376,19 @@ const FinancialTab = ({ filters }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white border border-gray-200 rounded-xl p-5">
-          <SectionTitle title="Төлбөрийн арга" icon={Receipt} />
-          {payments.map((p, i) => (
-            <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-              <span className="text-sm text-gray-700">{p._id || 'Бусад'}</span>
-              <div className="text-right">
-                <p className="text-sm font-semibold">{fmt(p.totalRevenue)}₮</p>
-                <p className="text-xs text-gray-400">{p.count} захиалга · {pct(p.percentage)}</p>
+          <SectionTitle title="Төлбөрийн хэлбэр" icon={Receipt} />
+          {payments.map((p, i) => {
+            const label = PAYMENT_LABELS[p._id] || p._id || 'Тодорхойгүй';
+            return (
+              <div key={i} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                <span className="text-sm text-gray-700">{label}</span>
+                <div className="text-right">
+                  <p className="text-sm font-semibold">{fmt(p.totalRevenue)}₮</p>
+                  <p className="text-xs text-gray-400">{p.count} захиалга · {pct(p.percentage)}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl p-5">
@@ -391,6 +417,7 @@ const FinancialTab = ({ filters }) => {
 const MoviesTab = ({ filters }) => {
   const [viewership, setViewership] = useState([]);
   const [loading, setLoading]       = useState(true);
+  const [expandedRow, setExpandedRow] = useState(null);
 
   useEffect(() => {
     setLoading(true);
@@ -401,19 +428,88 @@ const MoviesTab = ({ filters }) => {
 
   if (loading) return <Loader />;
 
+  const PAYMENT_LABELS = { 
+    card: 'Онлайнаар (Card)', 
+    cash: 'Бэлнээр', 
+    cash_1: 'Бэлэн (Касс 1)', 
+    cash_2: 'Бэлэн (Касс 2)', 
+    wire: 'Шилжүүлгээр (Касс)', 
+    qpay: 'QPay', 
+    khaan_bank: 'Хаан банк', 
+    golomt_bank: 'Голомт банк', 
+    other: 'Бусад' 
+  };
+
   return (
     <div className="space-y-6">
-      <Table
-        columns={[
-          { key: 'rank',         label: '#',          render: (_, i) => i + 1 },
-          { key: 'movieTitle',   label: 'Үзвэрийн нэр'  },
-          { key: 'genre',        label: 'Ангилал'        },
-          { key: 'ticketCount',  label: 'Тасалбар',   right: true, render: r => fmt(r.ticketCount)  },
-          { key: 'bookingCount', label: 'Захиалга',   right: true, render: r => fmt(r.bookingCount) },
-          { key: 'totalRevenue', label: 'Орлого',     right: true, render: r => `${fmt(r.totalRevenue)}₮` },
-        ]}
-        rows={viewership.map((r, i) => ({ ...r, rank: i + 1 }))}
-      />
+      <div className="overflow-x-auto rounded-xl border border-gray-200">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-50 border-b border-gray-200">
+            <tr>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">#</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Үзвэрийн нэр</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-left">Ангилал</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Тасалбар</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Захиалга</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Орлого</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {viewership.length === 0 ? (
+              <tr><td colSpan={6} className="text-center py-10 text-gray-400">Өгөгдөл байхгүй</td></tr>
+            ) : viewership.map((row, i) => (
+              <React.Fragment key={i}>
+                <tr 
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => setExpandedRow(expandedRow === i ? null : i)}
+                >
+                  <td className="px-4 py-3 text-gray-700">{i + 1}</td>
+                  <td className="px-4 py-3 text-gray-700 font-medium text-blue-600">{row.movieTitle}</td>
+                  <td className="px-4 py-3 text-gray-700">{row.genre}</td>
+                  <td className="px-4 py-3 text-gray-700 text-right font-medium">{fmt(row.ticketCount)}</td>
+                  <td className="px-4 py-3 text-gray-700 text-right font-medium">{fmt(row.bookingCount)}</td>
+                  <td className="px-4 py-3 text-gray-700 text-right font-medium">{fmt(row.totalRevenue)}₮</td>
+                </tr>
+                {expandedRow === i && (
+                  <tr className="bg-slate-900 text-white">
+                    <td colSpan={6} className="px-6 py-4">
+                      <div className="grid grid-cols-2 gap-8 text-sm">
+                        <div>
+                          <p className="text-xs text-slate-400 font-bold mb-2 uppercase">Төлбөрийн задаргаа</p>
+                          <ul className="space-y-1">
+                            {row.paymentBreakdown && Object.entries(row.paymentBreakdown).map(([method, amount]) => (
+                              <li key={method} className="flex justify-between border-b border-slate-800 pb-1">
+                                <span className="text-slate-300">{PAYMENT_LABELS[method] || method}</span>
+                                <span className="font-semibold">{fmt(amount)}₮</span>
+                              </li>
+                            ))}
+                            {(!row.paymentBreakdown || Object.keys(row.paymentBreakdown).length === 0) && (
+                              <li className="text-slate-500 italic">Мэдээлэлгүй</li>
+                            )}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-400 font-bold mb-2 uppercase">Суудлын задаргаа</p>
+                          <ul className="space-y-1">
+                            <li className="flex justify-between border-b border-slate-800 pb-1">
+                              <span className="text-slate-300">Том хүн</span>
+                              <span className="font-semibold">{fmt(row.adultSeats || 0)} ширхэг</span>
+                            </li>
+                            <li className="flex justify-between border-b border-slate-800 pb-1">
+                              <span className="text-slate-300">Хүүхэд</span>
+                              <span className="font-semibold">{fmt(row.childSeats || 0)} ширхэг</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
