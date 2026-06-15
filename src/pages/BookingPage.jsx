@@ -735,8 +735,14 @@ return (
 function Step1({ movie, fromSchedule, availableSchedules, seats, onToggle, onTypeChange, onRemoveSeat, totalPrice, onNext, days, onDate, onTime, takenSeats, prices }) {
   const [showTrailer, setShowTrailer] = useState(false);
   const [timeChosen,  setTimeChosen]  = useState(fromSchedule);
-  const [activeSeatType, setActiveSeatType] = useState('adult');
-  const wrappedToggle = (id) => onToggle(id, activeSeatType);
+  const [selectingSeatId, setSelectingSeatId] = useState(null);
+  const handleSeatClick = (id) => {
+    if(seats.some(s=>s.id===id)){
+      onToggle(id, 'adult');
+    } else {
+      setSelectingSeatId(id);
+    }
+  };
   const handleDate = d => { setTimeChosen(false); onDate(d); };
   const handleTime = (t,schedId) => { setTimeChosen(true); onTime(t,schedId); };
   const posterSrc = movie.posterUrl||'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500&q=80';
@@ -825,12 +831,48 @@ function Step1({ movie, fromSchedule, availableSchedules, seats, onToggle, onTyp
           {/* Суудлын схем - зургийн дагуу */}
           <SeatMap
             seats={seats}
-            onToggle={wrappedToggle}
+            onToggle={handleSeatClick}
             takenSeats={takenSeats}
             prices={prices}
           />
         </div>
       </main>
+
+      {/* Type Selection Modal */}
+      <AnimatePresence>
+        {selectingSeatId && (
+          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.6)',backdropFilter:'blur(4px)'}} onClick={() => setSelectingSeatId(null)}>
+            <motion.div initial={{scale:0.95,y:20}} animate={{scale:1,y:0}} exit={{scale:0.95,y:20}} onClick={e=>e.stopPropagation()} style={{background:'#111318',borderRadius:'24px',padding:'2rem',width:'90%',maxWidth:'360px',boxShadow:'0 24px 60px rgba(0,0,0,0.5)',border:'1px solid rgba(255,255,255,0.1)',textAlign:'center'}}>
+              <h3 style={{color:'#fff',fontSize:'1.2rem',fontWeight:800,marginBottom:'0.5rem',fontFamily:'Nunito Sans,sans-serif'}}>Суудлын төрөл</h3>
+              <p style={{color:'var(--sub)',fontSize:'0.9rem',marginBottom:'1.5rem'}}>Сонгосон суудал: <strong style={{color:'var(--teal)'}}>{selectingSeatId}</strong></p>
+              
+              <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+                <button onClick={() => { onToggle(selectingSeatId, 'adult'); setSelectingSeatId(null); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderRadius:'16px',background:'rgba(29,233,182,0.1)',border:'1px solid rgba(29,233,182,0.3)',color:'#fff',fontSize:'1rem',fontWeight:700,cursor:'pointer',transition:'all 0.2s'}}>
+                  <span>🧑 Том хүн</span>
+                  <span style={{color:'var(--teal)'}}>{prices.adult.toLocaleString()} ₮</span>
+                </button>
+                <button onClick={() => { onToggle(selectingSeatId, 'child'); setSelectingSeatId(null); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderRadius:'16px',background:'rgba(167,139,250,0.1)',border:'1px solid rgba(167,139,250,0.3)',color:'#fff',fontSize:'1rem',fontWeight:700,cursor:'pointer',transition:'all 0.2s'}}>
+                  <span>👶 Хүүхэд</span>
+                  <span style={{color:'#a78bfa'}}>{prices.child.toLocaleString()} ₮</span>
+                </button>
+              </div>
+              <button onClick={() => setSelectingSeatId(null)} style={{marginTop:'1.5rem',background:'transparent',border:'none',color:'var(--sub)',fontSize:'0.9rem',fontWeight:600,cursor:'pointer',padding:'8px 16px',borderRadius:'8px'}}>
+                Буцах
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <ShoppingCart
+        seats={seats}
+        onUpdateType={onTypeChange}
+        onRemoveSeat={onRemoveSeat}
+        prices={prices}
+        totalPrice={totalPrice}
+        onNext={onNext}
+        timeChosen={timeChosen}
+      />
     </div>
   );
 }

@@ -222,11 +222,11 @@ export default function WireCheckoutModal({ bookingId, amount, seats, movieTitle
     return () => cleanup();
   }, [bookingId]);
 
-  const handleClose = async () => {
+  const handleClose = () => {
+    // ЗАСВАР: Wire payment intent үүссэн тохиолдолд booking-г устгахгүй.
+    // Хэрэглэгч дахиад modal нээхэд хуучин payment intent-г reuse хийнэ.
+    // Ингэснээр банкны апп-д "давхар гүйлгээ" алдаа гарахгүй болно.
     cleanup();
-    if (bookingId && step !== 'success') {
-      try { await wireAPI.cancelBooking(bookingId); } catch {}
-    }
     onClose?.();
   };
 
