@@ -59,7 +59,7 @@ const News = () => {
     const hasMore = visible.length < news.length;
 
      return (
-        <div className="min-h-screen bg-white dark:bg-[#0A0A0A] text-gray-900 dark:text-white selection:bg-red-600 selection:text-white transition-colors duration-300">
+        <div className="min-h-screen bg-white dark:bg-[#0A0A0A] !text-gray-900 dark:!text-white selection:bg-red-600 selection:text-white transition-colors duration-300">
             <Header movies={[]} onSearchResults={() => {}} />
 
               <main className="pt-20">

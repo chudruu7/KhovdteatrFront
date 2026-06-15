@@ -216,7 +216,11 @@ const About = () => {
 
             {/* Footer */}
             <footer className="py-8 text-center text-gray-400 dark:text-gray-500 text-sm border-t border-gray-200 dark:border-white/5">
-                <p>© 2026 Б.Төмөрчөдөрийн бүтээл. Бүх эрх хуулиар хамгаалагдсан.</p>
+                <p>
+                    <a href="https://www.facebook.com/Simi.Soap.St" target="_blank" rel="noopener noreferrer" className="hover:text-red-500 transition-colors">
+                        © 2026 Б.Төмөрчөдөрийн бүтээл. Бүх эрх хуулиар хамгаалагдсан.
+                    </a>
+                </p>
             </footer>
         </div>
     );

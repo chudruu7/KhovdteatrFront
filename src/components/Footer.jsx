@@ -120,12 +120,14 @@ const Footer = () => {
         {/* Bottom Bar */}
         <div className="border-t border-white/10 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
           <p className="mb-4 md:mb-0">
-            ©2025 Б.ТӨМӨРЧӨДӨРИЙН БҮТЭЭЛ
+            <a href="https://www.facebook.com/Simi.Soap.St" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+              ©2026 Б.ТӨМӨРЧӨДӨРИЙН БҮТЭЭЛ
+            </a>
           </p>
           <div className="flex space-x-6">
             <a href="#" className="hover:text-white transition-colors">Cookies</a>
             <a href="#" className="hover:text-white transition-colors">Sitemap</a>
-          </div>
+          </div>  
         </div>
       </div>
     </footer>

@@ -505,7 +505,11 @@ const CinematicLogin = ({ onLogin }) => {
 
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 1 }}
             className="text-center mt-6 md:mt-8 text-gray-400 text-xs md:text-sm">
-            <p>©2026 Б.ТӨМӨРЧӨДӨРИЙН бүтээл. Бүх эрх хуулиар хамгаалагдсан.</p>
+            <p>
+              <a href="https://www.facebook.com/Simi.Soap.St" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                ©2026 Б.ТӨМӨРЧӨДӨРИЙН бүтээл. Бүх эрх хуулиар хамгаалагдсан.
+              </a>
+            </p>
           </motion.div>
         </motion.div>
       </div>

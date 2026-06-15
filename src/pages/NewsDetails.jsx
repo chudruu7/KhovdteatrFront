@@ -683,8 +683,8 @@ const NewsDetail = () => {
     const shareTitle = encodeURIComponent(str(news.title));
 
     return (
-        <div className="min-h-screen bg-white dark:bg-[#0A0A0A] text-gray-900 dark:text-white transition-colors duration-300">
-            <Header movies={[]} onSearchResults={() => {}} />
+        <div className="min-h-screen bg-white dark:bg-[#0A0A0A] !text-gray-900 dark:!text-white selection:bg-red-600 selection:text-white transition-colors duration-300">
+            <Header onSearchResults={() => {}} />
 
             <main className="pt-20 pb-16">
                 <div className="container mx-auto px-4 max-w-6xl">

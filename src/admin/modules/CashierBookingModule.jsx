@@ -30,7 +30,7 @@ export default function CashierBookingModule() {
   
   const [ticketCounts, setTicketCounts] = useState({ adult: 0, child: 0 });
   const [selectedSeats, setSelectedSeats] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState('cash_1');
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -141,7 +141,8 @@ export default function CashierBookingModule() {
           phone: '00000000',
           email: 'cashier@khovdteatr.mn'
         },
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod,
+        isCashier: true
       };
       const data = await bookingAPI.create(payload);
       // bookingAPI.create returns { success: true, message, bookingId, totalPrice, seats, tickets }
@@ -179,10 +180,8 @@ export default function CashierBookingModule() {
           <div><p className="text-xs text-slate-500 uppercase">Нийт дүн</p><p className="font-bold text-emerald-400">{successBooking.totalPrice?.toLocaleString()}₮</p></div>
           <div><p className="text-xs text-slate-500 uppercase">Төлбөр</p><p className="font-bold text-white">
             {{
-              'cash_1': 'Бэлэн (Касс 1)',
-              'cash_2': 'Бэлэн (Касс 2)',
-              'khaan_bank': 'Хаан банк',
-              'golomt_bank': 'Голомт банк'
+              'wire': 'Дансаар шилжүүлэг',
+              'cash': 'Бэлэн мөнгө'
             }[successBooking.paymentMethod] || successBooking.paymentMethod}
           </p></div>
           <div><p className="text-xs text-slate-500 uppercase">Суудал</p><p className="font-bold text-white">{successBooking.seats?.join(', ')}</p></div>
@@ -449,10 +448,8 @@ export default function CashierBookingModule() {
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 className="bg-transparent text-slate-300 font-bold px-4 py-2 w-full focus:outline-none appearance-none cursor-pointer"
               >
-                <option value="cash_1">Бэлэн (Касс 1)</option>
-                <option value="cash_2">Бэлэн (Касс 2)</option>
-                <option value="khaan_bank">Хаан банк</option>
-                <option value="golomt_bank">Голомт банк</option>
+                <option value="wire">Дансаар шилжүүлэг</option>
+                <option value="cash">Бэлэн мөнгө</option>
               </select>
             </div>
             
