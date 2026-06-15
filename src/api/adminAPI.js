@@ -1,6 +1,5 @@
 // src/api/adminAPI.js
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://khovdteatrbackend.onrender.com/api';
+import { API_BASE_URL } from './config.js'; // 💡 ЗАСВАР: Хаягийг config-оос шууд уншина
 
 const getHeaders = () => {
     const headers = { 'Content-Type': 'application/json' };
@@ -37,9 +36,7 @@ const handleResponse = async (response) => {
     }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Schedule API
-// ─────────────────────────────────────────────────────────────────────────────
 export const scheduleAPI = {
     getByDate: async (date) => {
         const response = await fetch(`${API_BASE_URL}/schedules?date=${date}`, {
@@ -89,9 +86,7 @@ export const scheduleAPI = {
     },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Admin API
-// ─────────────────────────────────────────────────────────────────────────────
 export const adminAPI = {
     getDashboardStats:   async () => handleResponse(await fetch(`${API_BASE_URL}/admin/dashboard`,        { headers: getHeaders(), credentials: 'include' })),
     getRecentShowtimes:  async () => handleResponse(await fetch(`${API_BASE_URL}/admin/recent-showtimes`, { headers: getHeaders(), credentials: 'include' })),
@@ -112,16 +107,14 @@ export const cashierAPI = {
     submitScan: async (stationKey, qrData) => handleResponse(await fetch(`${API_BASE_URL}/cashier/stations/${stationKey}/scans`, { method: 'POST', headers: getHeaders(), credentials: 'include', body: JSON.stringify({ qrData }) })),
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Movie API
-// ─────────────────────────────────────────────────────────────────────────────
+// Upload API
 export const uploadAPI = {
     image: async (file) => {
         if (!file) throw new Error('Upload хийх зураг сонгоно уу.');
         if (!file.type?.startsWith('image/')) throw new Error('Зөвхөн зураг файл сонгоно уу.');
         if (file.size > 10 * 1024 * 1024) throw new Error('Зургийн хэмжээ 10MB-аас бага байх ёстой.');
 
-        const response = await fetch(`${API_BASE_URL}/uploads/image`, {
+        const response = await fetch(`${API_BASE_URL}/upload/image`, {
             method: 'POST',
             headers: {
                 ...getAuthHeaders(),
@@ -134,6 +127,7 @@ export const uploadAPI = {
     },
 };
 
+// Movie API
 export const movieAPI = {
     getAll: async () => {
         const response = await fetch(`${API_BASE_URL}/movies`, { method: 'GET', headers: getHeaders(), credentials: 'include' });
@@ -157,9 +151,7 @@ export const movieAPI = {
     },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // News API
-// ─────────────────────────────────────────────────────────────────────────────
 export const newsAPI = {
     getAll: async (params = {}) => {
         const qs = new URLSearchParams(params).toString();
@@ -198,9 +190,7 @@ export const newsAPI = {
     },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Cinema API
-// ─────────────────────────────────────────────────────────────────────────────
 export const cinemaAPI = {
     getInfo: async () => {
         const response = await fetch(`${API_BASE_URL}/cinema-info`, { method: 'GET', headers: getHeaders(), credentials: 'include' });
@@ -212,9 +202,7 @@ export const cinemaAPI = {
     },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Cleanup API
-// ─────────────────────────────────────────────────────────────────────────────
 export const cleanupAPI = {
     getPending: async () => {
         const response = await fetch(`${API_BASE_URL}/cleanup/pending`, {

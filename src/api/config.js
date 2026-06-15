@@ -1,7 +1,10 @@
 // src/api/config.js
-const LOCAL_API_URL = 'http://localhost:5000/api';
-const PRODUCTION_API_URL = 'https://khovdteatrbackend.onrender.com/api';
 
+// 💡 ЗАСВАР: LOCAL болон PRODUCTION хаягуудыг шинэ сервер рүү зааж өгөв
+const LOCAL_API_URL = 'http://localhost:7000/api'; 
+const PRODUCTION_API_URL = 'http://west.edu.mn:7000/api';
+
+// VITE_API_URL байхгүй бол шууд таны шинэ сервер рүү хандана
 export const API_BASE_URL = import.meta.env.VITE_API_URL || PRODUCTION_API_URL;
 
 const getToken = () => localStorage.getItem('token');
@@ -19,17 +22,15 @@ const getUser = () => {
 };
 const removeUser = () => localStorage.removeItem('user');
 
-// ✅ Нийтлэг header үүсгэх helper
 const getHeaders = () => ({
   'Content-Type': 'application/json',
   ...(getToken() ? { 'Authorization': `Bearer ${getToken()}` } : {})
 });
 
-// ✅ Нийтлэг options үүсгэх helper  
 const getOptions = (method, data) => ({
   method,
   headers: getHeaders(),
-  credentials: 'include', // ← ЭНЭ Л ГҮЙДЭГ БАЙСАН
+  credentials: 'include', 
   ...(data ? { body: JSON.stringify(data) } : {})
 });
 
