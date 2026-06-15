@@ -5,7 +5,6 @@ import MyBookingHeader from '../components/Header';
 import TicketDesign from './TicketDesign';
 import WireCheckoutModal from '../components/WireCheckoutModal';
 import { API_BASE_URL } from '../api/config';
-import { ROW_CELLS, makeSeatId } from '../components/SeatLayout';
 
 
 const TIMEOUT_SECS = 600;
@@ -17,7 +16,7 @@ const positivePriceOr = (value, fallback) => {
 };
 
 
-const MONGOLIA_MS = 7 * 60 * 60 * 1000;
+const MONGOLIA_MS = 8 * 60 * 60 * 1000;
 const utcToMN = (iso) => {
   const d = new Date(new Date(iso).getTime() + MONGOLIA_MS);
   return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`;
@@ -74,8 +73,125 @@ const genOrderId = () => 'TK-' + Date.now().toString(36).toUpperCase().slice(-5)
 // { num: null, phantom: true } — харагдахгүй хоосон зай
 // { num: number, broken: true } — эвдэрсэн/disabled суудал
 
+const ROW_CELLS = [
+{ label: '1-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '2-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '3-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '4-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '0-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '5-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '6-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '7-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '8-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '9-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ label: '10-р эгнээ', left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
+{ 
+  label: '11-р эгнээ', 
+  left:  [22,21,20,19,18,17,16,15,14,13,12].map(num => ({ num })), 
+  right: [
+    {num:11},{num:10},{num:9},{num:8},{num:7},
+    {num:6},{num:5},{num:4},{num:3},{num:2},
+    {num:1, broken:true}
+  ]
+},
 
-// ROW_CELLS and makeSeatId moved to SeatLayout.jsx
+  // 12р эгнээ
+  // Зүүн: A,B хоосон → C=11,D=10,E=9,F=8,G=7,H=6,I=5 → J,K хоосон
+  // Баруун: L,M хоосон → N=4,O=3,P=2,Q=1 → R,S,T,U,V хоосон
+  {
+    label: '12-р эгнээ',
+    left:  [
+      {num:null,phantom:true},{num:null,phantom:true},
+      {num:11},{num:10},{num:9},{num:8},{num:7},{num:6},{num:5},
+      {num:null,phantom:true},{num:null,phantom:true},
+    ],
+    right: [
+      {num:null,phantom:true},{num:null,phantom:true},
+      {num:4},{num:3},{num:2},{num:1},
+      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
+    ],
+  },
+
+  // 13р эгнээ
+  // Зүүн: A,B хоосон → C=13..I=7, J=6(disabled), K хоосон
+  // Баруун: L хоосон → M=5(disabled) → N=4..Q=1 → R..V хоосон
+  {
+    label: '13-р эгнээ',
+    left:  [
+      {num:null,phantom:true},{num:null,phantom:true},
+      {num:13},{num:12},{num:11},{num:10},{num:9},{num:8},{num:7},
+      {num:6,broken:true},
+      {num:null,phantom:true},
+    ],
+    right: [
+      {num:null,phantom:true},
+      {num:5,broken:true},
+      {num:4},{num:3},{num:2},{num:1},
+      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
+    ],
+  },
+
+  // 14р эгнээ
+  // Зүүн: A,B хоосон → C=12..I=6 → J,K хоосон
+  // Баруун: L хоосон → M=5(disabled) → N=4..Q=1 → R..V хоосон
+  {
+    label: '14-р эгнээ',
+    left:  [
+      {num:null,phantom:true},{num:null,phantom:true},
+      {num:12},{num:11},{num:10},{num:9},{num:8},{num:7},{num:6},
+      {num:null,phantom:true},{num:null,phantom:true},
+    ],
+    right: [
+      {num:null,phantom:true},
+      {num:5,broken:true},
+      {num:4},{num:3},{num:2},{num:1},
+      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
+    ],
+  },
+
+  // 15р эгнээ
+  // Зүүн: A,B хоосон → C=11..H=6, I=5(disabled) → J,K хоосон
+  // Баруун: L,M хоосон → N=4..Q=1 → R..V хоосон
+  {
+    label: '15-р эгнээ',
+    left:  [
+      {num:null,phantom:true},{num:null,phantom:true},
+      {num:11},{num:10},{num:9},{num:8},{num:7},{num:6},
+      {num:5,broken:true},
+      {num:null,phantom:true},{num:null,phantom:true},
+    ],
+    right: [
+      {num:null,phantom:true},{num:null,phantom:true},
+      {num:4},{num:3},{num:2},{num:1},
+      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
+    ],
+  },
+
+  // 16р эгнээ
+  // Зүүн: A,B хоосон → C=9..H=4 → I,J,K хоосон
+  // Баруун: L,M хоосон → N=3,O=2,P=1 → Q..V хоосон
+  {
+    label: '16-р эгнээ',
+    left:  [
+      {num:null,phantom:true},{num:null,phantom:true},
+      {num:9},{num:8},{num:7},{num:6},{num:5},{num:4},
+      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
+    ],
+    right: [
+      {num:null,phantom:true},{num:null,phantom:true},
+      {num:3},{num:2},{num:1},
+      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
+    ],
+  },
+];
+
+// Эгнээний суудлуудыг үүсгэх хэрэгсэл функц
+// left талаас [max..min], дараа нь gap, right талаас [max..min]
+// Seat ID: "1эг-15" хэлбэрт
+function makeSeatId(rowLabel, num) {
+  return `${rowLabel.replace('-р эгнээ', 'эг')}-${num}`;
+}
+
 /* ══ CSS ══════════════════════════════════════════════════════════════════ */
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&family=DM+Mono:wght@400;500&display=swap');
@@ -373,9 +489,6 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-cart{position:fixed;z-index:200;width:340px;background:var(--cart-bg);border:1px solid var(--cart-border);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden;animation:slideIn .3s ease;backdrop-filter:blur(12px);user-select:none;}
 .dark .bk-cart{box-shadow:0 20px 50px rgba(0,0,0,.65);}
 .bk-cart-handle{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;background:linear-gradient(135deg,var(--teal) 0%,#13c4a3 100%);cursor:grab;}
-.bk-cart{position:fixed;z-index:200;width:340px;background:var(--cart-bg);border:1px solid var(--cart-border);border-radius:18px;box-shadow:0 20px 50px rgba(0,0,0,.25);overflow:hidden;animation:slideIn .3s ease;backdrop-filter:blur(12px);user-select:none;}
-.dark .bk-cart{box-shadow:0 20px 50px rgba(0,0,0,.65);}
-.bk-cart-handle{display:flex;justify-content:space-between;align-items:center;padding:13px 16px;background:linear-gradient(135deg,var(--teal) 0%,#13c4a3 100%);cursor:grab;}
 .bk-cart-handle:active{cursor:grabbing;}
 .bk-cart-handle-left{display:flex;align-items:center;gap:10px;color:#0f261c;}
 .bk-cart-grip{display:flex;flex-direction:column;gap:3px;opacity:.5;}
@@ -393,7 +506,7 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-cart-item:last-child{border-bottom:none;}
 .bk-cart-seat-id{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:700;color:var(--teal);margin-bottom:5px;}
 .bk-cart-type-row{display:flex;gap:5px;}
-.bk-cart-type-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--sub2);font-size:.75rem;font-weight:600;cursor:pointer;transition:all .13s;}
+.bk-cart-type-btn{padding:3px 9px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--sub2);font-size:.65rem;font-weight:600;cursor:pointer;transition:all .13s;}
 .bk-cart-type-btn:hover:not(.on){border-color:var(--sub2);color:var(--text);}
 .bk-cart-type-btn.on{background:var(--teal);border-color:var(--teal);color:#0f261c;font-weight:700;}
 .bk-cart-type-btn.child-on{background:#a78bfa;border-color:#a78bfa;color:#1e1040;}
@@ -463,20 +576,6 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-warn ul{list-style:disc;padding-left:1.1rem;}
 .bk-warn li{font-size:.72rem;color:rgba(180,130,50,.85);line-height:1.65;}
 .light .bk-warn li{color:#a07020;}
-
-/* ══ PAYMENT METHOD SELECTOR ════════════════════════════════════════════ */
-.bk-pm-group{display:flex;gap:.75rem;margin-bottom:1.2rem;}
-.bk-pm-opt{flex:1;display:flex;align-items:center;gap:.75rem;padding:1rem 1.1rem;border-radius:10px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;transition:all .18s;}
-.bk-pm-opt:hover{border-color:rgba(29,233,182,.35);background:rgba(29,233,182,.04);}
-.bk-pm-opt.pm-sel{border-color:var(--teal);background:rgba(29,233,182,.1);box-shadow:0 0 14px rgba(29,233,182,.12);}
-.bk-pm-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--sub);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color .15s;}
-.bk-pm-opt.pm-sel .bk-pm-radio{border-color:var(--teal);}
-.bk-pm-radio-dot{width:10px;height:10px;border-radius:50%;background:var(--teal);transform:scale(0);transition:transform .15s;}
-.bk-pm-opt.pm-sel .bk-pm-radio-dot{transform:scale(1);}
-.bk-pm-text{display:flex;flex-direction:column;gap:.15rem;}
-.bk-pm-label{font-size:.85rem;font-weight:700;color:var(--text);}
-.bk-pm-desc{font-size:.68rem;color:var(--sub);}
-.bk-pm-icon{font-size:1.3rem;flex-shrink:0;}
 
 /* ══ STEP 3 ══════════════════════════════════════════════════════════════ */
 .bk-s3{display:flex;justify-content:center;align-items:center;min-height:80vh;padding:2rem;}
@@ -573,6 +672,56 @@ function TrailerModal({ trailerUrl, onClose, movieTitle }) {
   );
 }
 
+/* ══ SEAT TYPE SELECTOR ══════════════════════════════════════════════════ */
+function SeatTypeSelector({ seatId, currentType, onTypeChange, displayLabel, prices }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener('mousedown', fn);
+    return () => document.removeEventListener('mousedown', fn);
+  }, []);
+  return (
+    <div className="bk-stype-selector" ref={ref}>
+      <button className={`bk-stype-btn ${currentType}`} onClick={() => setOpen(!open)}>
+        {currentType==='adult'
+          ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="9.5" y1="13.5" x2="14.5" y2="13.5"/></svg>
+        }
+        <span className="bk-stype-label">{currentType==='adult'?'Том хүн':'Хүүхэд'}</span>
+        <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor"><path d={open?"M1 7 L5 3 L9 7":"M1 3 L5 7 L9 3"}/></svg>
+      </button>
+      {open && (
+        <div className="bk-stype-dropdown">
+          <div className="bk-stype-header">
+            <span className="bk-stype-seat">{displayLabel}</span>
+            <button className="bk-stype-close" onClick={() => setOpen(false)}>✕</button>
+          </div>
+          {[
+            {type:'adult', label:'Том хүн', price:prices?.adult||15000},
+            {type:'child', label:'Хүүхэд',  price:prices?.child||DEFAULT_PRICES.child},
+          ].map(o => (
+            <button key={o.type} className={`bk-stype-option ${currentType===o.type?'selected':''}`}
+              onClick={() => { onTypeChange(seatId, o.type); setOpen(false); }}>
+              <span className="bk-stype-icon">
+                {o.type==='adult'
+                  ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="9.5" y1="13.5" x2="14.5" y2="13.5"/></svg>
+                }
+              </span>
+              <div className="bk-stype-info">
+                <span className="bk-stype-title">{o.label}</span>
+                <span className="bk-stype-price">{money(o.price)}</span>
+              </div>
+              {currentType===o.type && <span className="bk-stype-check">✓</span>}
+            </button>
+          ))}
+          <div className="bk-stype-note">ⓘ Хүүхэд: 3–12 нас</div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ══ SHOPPING CART ═══════════════════════════════════════════════════════ */
 function ShoppingCart({ seats, onUpdateType, onRemoveSeat, prices, totalPrice, onNext, timeChosen }) {
@@ -666,7 +815,6 @@ function ShoppingCart({ seats, onUpdateType, onRemoveSeat, prices, totalPrice, o
   );
 }
 
-
 /* ══ SEAT MAP COMPONENT ══════════════════════════════════════════════════ */
 // Зургийн схемийн дагуу суудлын зураглалыг дүрслэх
 function SeatMap({ seats, onToggle, onTypeChange, takenSeats, prices }) {
@@ -698,7 +846,15 @@ function SeatMap({ seats, onToggle, onTypeChange, takenSeats, prices }) {
 
 return (
   <div key={`cell-${id}`} style={{ position: 'relative' }}>
-        
+        {chosen && !broken && (
+          <SeatTypeSelector
+            seatId={id}
+            currentType={type}
+            onTypeChange={onTypeChange}
+            displayLabel={id}
+            prices={prices}
+          />
+        )}
         <button
           className={cls}
           onClick={() => !taken && !broken && onToggle(id)}
@@ -735,14 +891,6 @@ return (
 function Step1({ movie, fromSchedule, availableSchedules, seats, onToggle, onTypeChange, onRemoveSeat, totalPrice, onNext, days, onDate, onTime, takenSeats, prices }) {
   const [showTrailer, setShowTrailer] = useState(false);
   const [timeChosen,  setTimeChosen]  = useState(fromSchedule);
-  const [selectingSeatId, setSelectingSeatId] = useState(null);
-  const handleSeatClick = (id) => {
-    if(seats.some(s=>s.id===id)){
-      onToggle(id, 'adult');
-    } else {
-      setSelectingSeatId(id);
-    }
-  };
   const handleDate = d => { setTimeChosen(false); onDate(d); };
   const handleTime = (t,schedId) => { setTimeChosen(true); onTime(t,schedId); };
   const posterSrc = movie.posterUrl||'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500&q=80';
@@ -831,39 +979,33 @@ function Step1({ movie, fromSchedule, availableSchedules, seats, onToggle, onTyp
           {/* Суудлын схем - зургийн дагуу */}
           <SeatMap
             seats={seats}
-            onToggle={handleSeatClick}
+            onToggle={onToggle}
+            onTypeChange={onTypeChange}
             takenSeats={takenSeats}
             prices={prices}
           />
+
+          {/* Доод хэсэг: тайлбар, анхааруулга */}
+          <div className="bk-bottom">
+            <div className="bk-legend">
+              {[
+                {bg:'var(--teal)',        lbl:'Том хүн'},
+                {bg:'#a78bfa',           lbl:'Хүүхэд'},
+                {bg:'var(--avail)',       lbl:'Сул'},
+                {bg:'var(--coral-bg)',   lbl:'Захиалгатай'},
+              ].map(({bg,lbl})=>(
+                <div key={lbl} className="bk-leg">
+                  <div className="bk-leg-dot" style={{background:bg}}/>
+                  <span className="bk-leg-lbl">{lbl}</span>
+                </div>
+              ))}
+            </div>
+            {!timeChosen&&<span style={{fontSize:'.7rem',color:'var(--coral)',fontWeight:700}}>⚠ Цаг сонгоно уу</span>}
+          </div>
         </div>
       </main>
 
-      {/* Type Selection Modal */}
-      <AnimatePresence>
-        {selectingSeatId && (
-          <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} style={{position:'fixed',inset:0,zIndex:9999,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.6)',backdropFilter:'blur(4px)'}} onClick={() => setSelectingSeatId(null)}>
-            <motion.div initial={{scale:0.95,y:20}} animate={{scale:1,y:0}} exit={{scale:0.95,y:20}} onClick={e=>e.stopPropagation()} style={{background:'#111318',borderRadius:'24px',padding:'2rem',width:'90%',maxWidth:'360px',boxShadow:'0 24px 60px rgba(0,0,0,0.5)',border:'1px solid rgba(255,255,255,0.1)',textAlign:'center'}}>
-              <h3 style={{color:'#fff',fontSize:'1.2rem',fontWeight:800,marginBottom:'0.5rem',fontFamily:'Nunito Sans,sans-serif'}}>Суудлын төрөл</h3>
-              <p style={{color:'var(--sub)',fontSize:'0.9rem',marginBottom:'1.5rem'}}>Сонгосон суудал: <strong style={{color:'var(--teal)'}}>{selectingSeatId}</strong></p>
-              
-              <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-                <button onClick={() => { onToggle(selectingSeatId, 'adult'); setSelectingSeatId(null); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderRadius:'16px',background:'rgba(29,233,182,0.1)',border:'1px solid rgba(29,233,182,0.3)',color:'#fff',fontSize:'1rem',fontWeight:700,cursor:'pointer',transition:'all 0.2s'}}>
-                  <span>🧑 Том хүн</span>
-                  <span style={{color:'var(--teal)'}}>{prices.adult.toLocaleString()} ₮</span>
-                </button>
-                <button onClick={() => { onToggle(selectingSeatId, 'child'); setSelectingSeatId(null); }} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 20px',borderRadius:'16px',background:'rgba(167,139,250,0.1)',border:'1px solid rgba(167,139,250,0.3)',color:'#fff',fontSize:'1rem',fontWeight:700,cursor:'pointer',transition:'all 0.2s'}}>
-                  <span>👶 Хүүхэд</span>
-                  <span style={{color:'#a78bfa'}}>{prices.child.toLocaleString()} ₮</span>
-                </button>
-              </div>
-              <button onClick={() => setSelectingSeatId(null)} style={{marginTop:'1.5rem',background:'transparent',border:'none',color:'var(--sub)',fontSize:'0.9rem',fontWeight:600,cursor:'pointer',padding:'8px 16px',borderRadius:'8px'}}>
-                Буцах
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
+      {/* Худалдааны тэрэг */}
       <ShoppingCart
         seats={seats}
         onUpdateType={onTypeChange}
@@ -873,6 +1015,9 @@ function Step1({ movie, fromSchedule, availableSchedules, seats, onToggle, onTyp
         onNext={onNext}
         timeChosen={timeChosen}
       />
+
+      {/* Trailer modal */}
+      {showTrailer&&<TrailerModal trailerUrl={movie.trailerUrl||movie.trailer} movieTitle={movie.title} onClose={()=>setShowTrailer(false)}/>}
     </div>
   );
 }
@@ -908,7 +1053,7 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
                     </svg>
-                    Төлбөр төлөх
+                    Төлбөр төлөх · {money(totalPrice)}
                   </span>
                 )}
               </button>
@@ -935,7 +1080,7 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
             <li>Үзвэр, огноо, цагаа сайтар шалгана уу.</li>
             <li>Wire hosted checkout дээр төлбөр баталгаажмагц тасалбар автоматаар үүснэ.</li>
             <li>Төлбөр төлсний дараа тасалбар буцаах боломжгүй.</li>
-            <li>Цаг эхлэхээс 15 минутын өмнө ирнэ үү.</li>
+            <li>Цаг эхлэхээс 10 минутын өмнө ирнэ үү.</li>
           </ul>
         </div>
       </div>
@@ -1111,7 +1256,7 @@ useEffect(() => {
   }, [step,timeLeft]);
   useEffect(()=>()=>clearInterval(timerRef.current),[]);
 
-  const toggleSeat     = useCallback((id, type) => setSeats(p => p.find(s=>s.id===id) ? p.filter(s=>s.id!==id) : [...p,{id,type}]), []);
+  const toggleSeat     = useCallback(id => setSeats(p => p.find(s=>s.id===id) ? p.filter(s=>s.id!==id) : [...p,{id,type:'adult'}]), []);
   const changeSeatType = useCallback((id,type) => setSeats(p => p.map(s=>s.id===id?{...s,type}:s)), []);
   const removeSeat     = useCallback(id => setSeats(p => p.filter(s=>s.id!==id)), []);
 
@@ -1159,8 +1304,8 @@ useEffect(() => {
   const freshTaken = new Set(freshData.soldSeats || []);
 const conflict = seats.find(s => freshTaken.has(s.id));
   if (conflict) {
-    setTakenSeats(freshTaken);
-    setSeats(prev => prev.filter(s => !freshTaken.has(s.id)));
+    setTakenSeats(freshTaken); // UI шинэчлэх
+    setSeats(prev => prev.filter(s => !freshTaken.has(s.id))); // давхардсан суудал хасах
     setError(`"${conflict.id}" суудал саяхан өөр хүн захиалсан байна. Дахин сонгоно уу.`);
     checkoutInFlightRef.current = false;
     setLoading(false);
@@ -1201,31 +1346,6 @@ const conflict = seats.find(s => freshTaken.has(s.id));
       setPendingId(bookId);
       setShowWire(true);
     } catch (err) {
-      // Timeout алдаа гарсан бол booking үүссэн эсэхийг шалгах
-      const isTimeout = /timeout|abort|Back-end server/i.test(err.message || '');
-      if (isTimeout) {
-        try {
-          const checkRes = await fetch(`${API_BASE_URL}/bookings/my-history`, { headers: getHeaders() });
-          if (checkRes.ok) {
-            const checkData = await checkRes.json();
-            const myBookings = checkData.bookings || checkData || [];
-            // Сүүлийн 2 минутын дотор үүссэн, ижил schedule-тэй booking-г хайх
-            const recentBooking = myBookings.find(b => {
-              const created = new Date(b.createdAt).getTime();
-              const twoMinAgo = Date.now() - 2 * 60 * 1000;
-              return created > twoMinAgo && String(b.scheduleId || b.schedule) === String(movie.scheduleId);
-            });
-            if (recentBooking) {
-              const recoveredId = recentBooking._id || recentBooking.id;
-              setPendingId(recoveredId);
-              setShowWire(true);
-              checkoutInFlightRef.current = false;
-              setLoading(false);
-              return;
-            }
-          }
-        } catch (_) { /* recovery шалгалт амжилтгүй бол алдааг харуулна */ }
-      }
       setError(err.message || 'Алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
       checkoutInFlightRef.current = false;
