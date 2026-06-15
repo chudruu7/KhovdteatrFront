@@ -5,6 +5,7 @@ import MyBookingHeader from '../components/Header';
 import TicketDesign from './TicketDesign';
 import WireCheckoutModal from '../components/WireCheckoutModal';
 import { API_BASE_URL } from '../api/config';
+import { ROW_CELLS, makeSeatId } from '../components/SeatLayout';
 
 
 const TIMEOUT_SECS = 600;
@@ -73,125 +74,8 @@ const genOrderId = () => 'TK-' + Date.now().toString(36).toUpperCase().slice(-5)
 // { num: null, phantom: true } — харагдахгүй хоосон зай
 // { num: number, broken: true } — эвдэрсэн/disabled суудал
 
-const ROW_CELLS = [
-{ label: '1-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '2-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '3-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '4-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '0-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '5-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '6-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '7-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '8-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '9-р эгнээ',  left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ label: '10-р эгнээ', left: [22,21,20,19,18,17,16,15,14,13,12].map(num=>({num})), right: [11,10,9,8,7,6,5,4,3,2,1].map(num=>({num})) },
-{ 
-  label: '11-р эгнээ', 
-  left:  [22,21,20,19,18,17,16,15,14,13,12].map(num => ({ num })), 
-  right: [
-    {num:11},{num:10},{num:9},{num:8},{num:7},
-    {num:6},{num:5},{num:4},{num:3},{num:2},
-    {num:1, broken:true}
-  ]
-},
 
-  // 12р эгнээ
-  // Зүүн: A,B хоосон → C=11,D=10,E=9,F=8,G=7,H=6,I=5 → J,K хоосон
-  // Баруун: L,M хоосон → N=4,O=3,P=2,Q=1 → R,S,T,U,V хоосон
-  {
-    label: '12-р эгнээ',
-    left:  [
-      {num:null,phantom:true},{num:null,phantom:true},
-      {num:11},{num:10},{num:9},{num:8},{num:7},{num:6},{num:5},
-      {num:null,phantom:true},{num:null,phantom:true},
-    ],
-    right: [
-      {num:null,phantom:true},{num:null,phantom:true},
-      {num:4},{num:3},{num:2},{num:1},
-      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
-    ],
-  },
-
-  // 13р эгнээ
-  // Зүүн: A,B хоосон → C=13..I=7, J=6(disabled), K хоосон
-  // Баруун: L хоосон → M=5(disabled) → N=4..Q=1 → R..V хоосон
-  {
-    label: '13-р эгнээ',
-    left:  [
-      {num:null,phantom:true},{num:null,phantom:true},
-      {num:13},{num:12},{num:11},{num:10},{num:9},{num:8},{num:7},
-      {num:6,broken:true},
-      {num:null,phantom:true},
-    ],
-    right: [
-      {num:null,phantom:true},
-      {num:5,broken:true},
-      {num:4},{num:3},{num:2},{num:1},
-      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
-    ],
-  },
-
-  // 14р эгнээ
-  // Зүүн: A,B хоосон → C=12..I=6 → J,K хоосон
-  // Баруун: L хоосон → M=5(disabled) → N=4..Q=1 → R..V хоосон
-  {
-    label: '14-р эгнээ',
-    left:  [
-      {num:null,phantom:true},{num:null,phantom:true},
-      {num:12},{num:11},{num:10},{num:9},{num:8},{num:7},{num:6},
-      {num:null,phantom:true},{num:null,phantom:true},
-    ],
-    right: [
-      {num:null,phantom:true},
-      {num:5,broken:true},
-      {num:4},{num:3},{num:2},{num:1},
-      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
-    ],
-  },
-
-  // 15р эгнээ
-  // Зүүн: A,B хоосон → C=11..H=6, I=5(disabled) → J,K хоосон
-  // Баруун: L,M хоосон → N=4..Q=1 → R..V хоосон
-  {
-    label: '15-р эгнээ',
-    left:  [
-      {num:null,phantom:true},{num:null,phantom:true},
-      {num:11},{num:10},{num:9},{num:8},{num:7},{num:6},
-      {num:5,broken:true},
-      {num:null,phantom:true},{num:null,phantom:true},
-    ],
-    right: [
-      {num:null,phantom:true},{num:null,phantom:true},
-      {num:4},{num:3},{num:2},{num:1},
-      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
-    ],
-  },
-
-  // 16р эгнээ
-  // Зүүн: A,B хоосон → C=9..H=4 → I,J,K хоосон
-  // Баруун: L,M хоосон → N=3,O=2,P=1 → Q..V хоосон
-  {
-    label: '16-р эгнээ',
-    left:  [
-      {num:null,phantom:true},{num:null,phantom:true},
-      {num:9},{num:8},{num:7},{num:6},{num:5},{num:4},
-      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
-    ],
-    right: [
-      {num:null,phantom:true},{num:null,phantom:true},
-      {num:3},{num:2},{num:1},
-      {num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},{num:null,phantom:true},
-    ],
-  },
-];
-
-// Эгнээний суудлуудыг үүсгэх хэрэгсэл функц
-// left талаас [max..min], дараа нь gap, right талаас [max..min]
-// Seat ID: "1эг-15" хэлбэрт
-function makeSeatId(rowLabel, num) {
-  return `${rowLabel.replace('-р эгнээ', 'эг')}-${num}`;
-}
-
+// ROW_CELLS and makeSeatId moved to SeatLayout.jsx
 /* ══ CSS ══════════════════════════════════════════════════════════════════ */
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&family=DM+Mono:wght@400;500&display=swap');

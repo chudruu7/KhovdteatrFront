@@ -1,6 +1,16 @@
 import { api } from './config';
 
 const bookingAPI = {
+  create: async (data) => {
+    try {
+      const response = await api.post('/bookings', data);
+      return { success: true, ...response };
+    } catch (err) {
+      console.error('bookingAPI.create error:', err);
+      throw err;
+    }
+  },
+
   getAll: async () => {
     try {
       const data = await api.get('/bookings');

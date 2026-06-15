@@ -14,6 +14,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { cashierAPI } from '../api/adminAPI';
+import CashierBookingModule from '../admin/modules/CashierBookingModule';
 
 const money = (value) => `${Number(value || 0).toLocaleString('mn-MN')}₮`;
 
@@ -267,6 +268,7 @@ export default function Cashier({ user, onLogout }) {
   const [admitting, setAdmitting] = useState(false);
   const scannerUrl = useMemo(() => `${window.location.origin}/cashier?station=${stationKey}&scan=1`, [stationKey]);
   const booking = scan?.payload || scan?.booking;
+  const [activeTab, setActiveTab] = useState('verify'); // 'verify' or 'sell'
 
   useEffect(() => {
     if (stationFromUrl && stationFromUrl !== stationKey) setStationKey(stationFromUrl);
@@ -374,44 +376,65 @@ export default function Cashier({ user, onLogout }) {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-7xl gap-6 px-5 py-6 lg:grid-cols-[360px_1fr]">
-        <aside className="space-y-5">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
-            <div className="mb-4 flex items-center gap-3">
-              <MonitorSmartphone className="h-5 w-5 text-emerald-400" />
-              <h2 className="font-black">Утас холбох</h2>
-            </div>
-            <div className="rounded-2xl bg-white p-3">
-              <QRCodeSVG value={scannerUrl} size={260} className="h-auto w-full" />
-            </div>
-            <p className="mt-4 text-sm text-slate-400">
-              Cashier эрхтэй утсаараа энэ QR-ийг уншуулж scanner нээнэ. Уншсан тасалбар энэ компьютер дээр гарна.
-            </p>
-            <button onClick={resetStation} className="mt-4 w-full rounded-xl border border-slate-700 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-800">
-              Station шинэчлэх
-            </button>
-          </div>
+      <div className="mx-auto max-w-7xl px-5 mt-6 flex gap-4">
+        <button 
+          onClick={() => setActiveTab('verify')}
+          className={`px-6 py-3 rounded-xl font-bold transition ${activeTab === 'verify' ? 'bg-emerald-500 text-black' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
+        >
+          Тасалбар шалгах
+        </button>
+        <button 
+          onClick={() => setActiveTab('sell')}
+          className={`px-6 py-3 rounded-xl font-bold transition ${activeTab === 'sell' ? 'bg-emerald-500 text-black' : 'bg-slate-900 text-slate-400 hover:bg-slate-800'}`}
+        >
+          Тасалбар борлуулах
+        </button>
+      </div>
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
-            <h2 className="font-black">Гараар шалгах</h2>
-            <input
-              value={manualCode}
-              onChange={(event) => setManualCode(event.target.value)}
-              placeholder="Захиалгын код эсвэл QR URL"
-              className="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-emerald-500"
-            />
-            <button
-              onClick={submitManualScan}
-              disabled={loading || !manualCode.trim()}
-              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-black hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400"
-            >
-              {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
-              Шалгах
-            </button>
-          </div>
-        </aside>
+      <main className="mx-auto max-w-7xl px-5 py-6">
+        {activeTab === 'verify' ? (
+          <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+            <aside className="space-y-5">
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+                <div className="mb-4 flex items-center gap-3">
+                  <MonitorSmartphone className="h-5 w-5 text-emerald-400" />
+                  <h2 className="font-black">Утас холбох</h2>
+                </div>
+                <div className="rounded-2xl bg-white p-3">
+                  <QRCodeSVG value={scannerUrl} size={260} className="h-auto w-full" />
+                </div>
+                <p className="mt-4 text-sm text-slate-400">
+                  Cashier эрхтэй утсаараа энэ QR-ийг уншуулж scanner нээнэ. Уншсан тасалбар энэ компьютер дээр гарна.
+                </p>
+                <button onClick={resetStation} className="mt-4 w-full rounded-xl border border-slate-700 px-4 py-3 text-sm font-bold text-slate-200 hover:bg-slate-800">
+                  Station шинэчлэх
+                </button>
+              </div>
 
-        <TicketPanel booking={booking} scan={scan} onAdmit={admit} admitting={admitting} />
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
+                <h2 className="font-black">Гараар шалгах</h2>
+                <input
+                  value={manualCode}
+                  onChange={(event) => setManualCode(event.target.value)}
+                  placeholder="Захиалгын код эсвэл QR URL"
+                  className="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm outline-none focus:border-emerald-500"
+                />
+                <button
+                  onClick={submitManualScan}
+                  disabled={loading || !manualCode.trim()}
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-black text-black hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-400"
+                >
+                  {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
+                  Шалгах
+                </button>
+              </div>
+            </aside>
+
+            <TicketPanel booking={booking} scan={scan} onAdmit={admit} admitting={admitting} />
+          </div>
+        ) : (
+          <CashierBookingModule />
+        )}
       </main>
     </div>
   );
