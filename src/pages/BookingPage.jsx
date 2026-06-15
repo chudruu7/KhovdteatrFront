@@ -461,6 +461,20 @@ body,#root{background:var(--bg);min-height:100vh}
 .bk-warn li{font-size:.72rem;color:rgba(180,130,50,.85);line-height:1.65;}
 .light .bk-warn li{color:#a07020;}
 
+/* ══ PAYMENT METHOD SELECTOR ════════════════════════════════════════════ */
+.bk-pm-group{display:flex;gap:.75rem;margin-bottom:1.2rem;}
+.bk-pm-opt{flex:1;display:flex;align-items:center;gap:.75rem;padding:1rem 1.1rem;border-radius:10px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;transition:all .18s;}
+.bk-pm-opt:hover{border-color:rgba(29,233,182,.35);background:rgba(29,233,182,.04);}
+.bk-pm-opt.pm-sel{border-color:var(--teal);background:rgba(29,233,182,.1);box-shadow:0 0 14px rgba(29,233,182,.12);}
+.bk-pm-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--sub);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:border-color .15s;}
+.bk-pm-opt.pm-sel .bk-pm-radio{border-color:var(--teal);}
+.bk-pm-radio-dot{width:10px;height:10px;border-radius:50%;background:var(--teal);transform:scale(0);transition:transform .15s;}
+.bk-pm-opt.pm-sel .bk-pm-radio-dot{transform:scale(1);}
+.bk-pm-text{display:flex;flex-direction:column;gap:.15rem;}
+.bk-pm-label{font-size:.85rem;font-weight:700;color:var(--text);}
+.bk-pm-desc{font-size:.68rem;color:var(--sub);}
+.bk-pm-icon{font-size:1.3rem;flex-shrink:0;}
+
 /* ══ STEP 3 ══════════════════════════════════════════════════════════════ */
 .bk-s3{display:flex;justify-content:center;align-items:center;min-height:80vh;padding:2rem;}
 .bk-s3-box{max-width:440px;width:100%;text-align:center;animation:popIn .5s cubic-bezier(.175,.885,.32,1.275);}
@@ -907,7 +921,7 @@ function Step1({ movie, fromSchedule, availableSchedules, seats, onToggle, onTyp
 }
 
 /* ══ STEP 2 ══════════════════════════════════════════════════════════════ */
-function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats, totalPrice, prices }) {
+function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats, totalPrice, prices, paymentMethod, onPaymentMethodChange }) {
   const adultCount = seats.filter(s=>s.type==='adult').length;
   const childCount = seats.filter(s=>s.type==='child').length;
   return (
@@ -929,6 +943,27 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
               <div className="bk-field"><label>Утасны дугаар</label><input name="phone" required value={form.phone} onChange={onChange} type="tel" className="bk-inp" placeholder="9911-xxxx"/></div>
               <div className="bk-field"><label>Имэйл хаяг</label><input name="email" required value={form.email} onChange={onChange} type="email" className="bk-inp" placeholder="name@example.com"/></div>
             </div>
+
+            <div className="bk-card-title" style={{marginTop:'1.2rem',marginBottom:'.8rem',fontSize:'.95rem'}}>Төлбөрийн арга</div>
+            <div className="bk-pm-group">
+              <button type="button" className={`bk-pm-opt${paymentMethod==='wire'?' pm-sel':''}`} onClick={()=>onPaymentMethodChange('wire')}>
+                <div className="bk-pm-icon">🏦</div>
+                <div className="bk-pm-text">
+                  <div className="bk-pm-label">Дансаар шилжүүлэг</div>
+                  <div className="bk-pm-desc">QPay QR код уншуулж төлөх</div>
+                </div>
+                <div className="bk-pm-radio"><div className="bk-pm-radio-dot"/></div>
+              </button>
+              <button type="button" className={`bk-pm-opt${paymentMethod==='cash'?' pm-sel':''}`} onClick={()=>onPaymentMethodChange('cash')}>
+                <div className="bk-pm-icon">💵</div>
+                <div className="bk-pm-text">
+                  <div className="bk-pm-label">Бэлэн мөнгө</div>
+                  <div className="bk-pm-desc">Касс дээр ирж бэлнээр төлнө</div>
+                </div>
+                <div className="bk-pm-radio"><div className="bk-pm-radio-dot"/></div>
+              </button>
+            </div>
+
             <div className="bk-acts">
               <button type="button" className="bk-back" onClick={onBack}>← Буцах</button>
               <button type="submit" className="bk-pay" disabled={loading}>
@@ -937,7 +972,7 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
                     </svg>
-                    Төлбөр төлөх
+                    {paymentMethod==='cash' ? 'Захиалга батлах' : 'Төлбөр төлөх'}
                   </span>
                 )}
               </button>
@@ -954,6 +989,7 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
             ['Суудлууд',seats.map(s=>s.id).join(', ')],
             ['Том хүн', adultCount>0?`${adultCount} × ${money(prices.adult)}`:null],
             ['Хүүхэд',  childCount>0?`${childCount} × ${money(prices.child)}`:null],
+            ['Төлбөр',  paymentMethod==='cash'?'Бэлэн мөнгө (касс)':'Дансаар шилжүүлэг'],
           ].filter(([,v])=>v).map(([k,v])=>(<div key={k} className="bk-orow"><span>{k}</span><span>{v}</span></div>))}
           <div className="bk-ototal"><span>Нийт дүн</span><span className="bk-ototal-a">{money(totalPrice)}</span></div>
         </div>
@@ -962,7 +998,8 @@ function Step2({ form, onChange, onSubmit, loading, error, onBack, movie, seats,
           <div className="bk-warn-t">⚠ Анхааруулга</div>
           <ul>
             <li>Үзвэр, огноо, цагаа сайтар шалгана уу.</li>
-            <li>Wire hosted checkout дээр төлбөр баталгаажмагц тасалбар автоматаар үүснэ.</li>
+            {paymentMethod==='wire' && <li>QPay дээр төлбөр баталгаажмагц тасалбар автоматаар үүснэ.</li>}
+            {paymentMethod==='cash' && <li>Касс дээр ирж бэлэн мөнгөөр төлбөрөө төлнө үү.</li>}
             <li>Төлбөр төлсний дараа тасалбар буцаах боломжгүй.</li>
             <li>Цаг эхлэхээс 15 минутын өмнө ирнэ үү.</li>
           </ul>
@@ -1039,6 +1076,7 @@ export default function BookingPage() {
   const [modal,      setModal]      = useState(false);
   const [showWire,   setShowWire]   = useState(false);
   const [pendingId,  setPendingId]  = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('wire');
 
   const timerRef = useRef(null);
   const checkoutInFlightRef = useRef(false);
@@ -1188,8 +1226,8 @@ useEffect(() => {
   const freshTaken = new Set(freshData.soldSeats || []);
 const conflict = seats.find(s => freshTaken.has(s.id));
   if (conflict) {
-    setTakenSeats(freshTaken); // UI шинэчлэх
-    setSeats(prev => prev.filter(s => !freshTaken.has(s.id))); // давхардсан суудал хасах
+    setTakenSeats(freshTaken);
+    setSeats(prev => prev.filter(s => !freshTaken.has(s.id)));
     setError(`"${conflict.id}" суудал саяхан өөр хүн захиалсан байна. Дахин сонгоно уу.`);
     checkoutInFlightRef.current = false;
     setLoading(false);
@@ -1211,7 +1249,7 @@ const conflict = seats.find(s => freshTaken.has(s.id));
         seats:      seats.map(s=>({seatId:s.id,type:s.type})),
         totalPrice,
         customer:   form,
-        paymentMethod: 'wire',
+        paymentMethod: paymentMethod,
         status:     'pending',
         ...(movie.hall?{hall:movie.hall}:{}),
       };
@@ -1227,9 +1265,52 @@ const conflict = seats.find(s => freshTaken.has(s.id));
         throw new Error('Захиалгын дугаар үүссэнгүй. Дахин оролдоно уу.');
       }
 
-      setPendingId(bookId);
-      setShowWire(true);
+      if (paymentMethod === 'cash') {
+        // Бэлэн мөнгө: шууд тасалбар харуулах, касс дээр ирж төлнө
+        setOrderId(bookId);
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        setTLeft(null);
+        setStep(3);
+      } else {
+        // Дансаар шилжүүлэг: Wire QR modal нээх
+        setPendingId(bookId);
+        setShowWire(true);
+      }
     } catch (err) {
+      // Timeout алдаа гарсан бол booking үүссэн эсэхийг шалгах
+      const isTimeout = /timeout|abort|Back-end server/i.test(err.message || '');
+      if (isTimeout) {
+        try {
+          const checkRes = await fetch(`${API_BASE_URL}/bookings/my-history`, { headers: getHeaders() });
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            const myBookings = checkData.bookings || checkData || [];
+            // Сүүлийн 2 минутын дотор үүссэн, ижил schedule-тэй booking-г хайх
+            const recentBooking = myBookings.find(b => {
+              const created = new Date(b.createdAt).getTime();
+              const twoMinAgo = Date.now() - 2 * 60 * 1000;
+              return created > twoMinAgo && String(b.scheduleId || b.schedule) === String(movie.scheduleId);
+            });
+            if (recentBooking) {
+              const recoveredId = recentBooking._id || recentBooking.id;
+              if (paymentMethod === 'cash') {
+                setOrderId(recoveredId);
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+                setTLeft(null);
+                setStep(3);
+              } else {
+                setPendingId(recoveredId);
+                setShowWire(true);
+              }
+              checkoutInFlightRef.current = false;
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (_) { /* recovery шалгалт амжилтгүй бол алдааг харуулна */ }
+      }
       setError(err.message || 'Алдаа гарлаа. Дахин оролдоно уу.');
     } finally {
       checkoutInFlightRef.current = false;
@@ -1287,6 +1368,8 @@ const conflict = seats.find(s => freshTaken.has(s.id));
             seats={seats}
             totalPrice={totalPrice}
             prices={prices}
+            paymentMethod={paymentMethod}
+            onPaymentMethodChange={setPaymentMethod}
           />
         )}
         {step===3 && (

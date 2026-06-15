@@ -44,7 +44,7 @@ const isRetryableError = (error) => (
 
 const isRetryableStatus = (status) => [502, 503, 504].includes(status);
 
-const requestWithTimeout = async (url, options, timeoutMs = 45000) => {
+const requestWithTimeout = async (url, options, timeoutMs = 90000) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => {
     controller.abort('request_timeout');
@@ -115,7 +115,7 @@ const api = {
     const url = `${API_BASE_URL}${endpoint}`;
     console.log('POST request to:', url, data);
     
-    const response = await requestWithTimeout(url, getOptions('POST', data));
+    const response = await requestWithRetry(url, getOptions('POST', data), { retries: 2, timeoutMs: 90000 });
     
     if (!response.ok) {
       throw new Error(await readErrorMessage(response, 'POST Response not OK:'));
